@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<extension>
+	<id>66C1A24B-02A3-D153-AF52-FD3159753CAC</id>
+	<name>PLUGIN_QOBUZ</name>
+	<module>Plugins::Qobuz::Plugin</module>
+	<version>1.60</version>
+	<description>PLUGIN_QOBUZ_DESC</description>
+	<creator>Pierre Beck / Michael Herger</creator>
+	<email>pierrepoulpe@yahoo.fr</email>
+	<defaultState>enabled</defaultState>
+	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
+	
+	<homepageURL>http://www.pierrebeck.fr/SqueezeQobuz/</homepageURL>
+	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
+	<type>2</type><!-- type=extension -->
+
+	<targetApplication>
+		<id>SqueezeCenter</id>
+		   <minVersion>7.0a</minVersion>
+		   <maxVersion>*</maxVersion>
+	</targetApplication>
+
+</extension>

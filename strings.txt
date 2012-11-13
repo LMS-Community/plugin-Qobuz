@@ -1,0 +1,60 @@
+# String file for Qobuz plugin
+
+PLUGIN_QOBUZ
+	EN	Qobuz
+	FR	Qobuz
+
+PLUGIN_QOBUZ_DESC
+	EN	Qobuz plugin
+
+PLUGIN_QOBUZ_SEARCH
+	EN	Qobuz search...
+	FR	Recherche sur qobuz....
+	
+PLUGIN_QOBUZ_CTRL_PLAYLIST
+	EN	Control the playlist...
+	FR	Controle de la liste...
+	
+PLUGIN_QOBUZ_PREFS
+	EN	Preferences
+	FR	Préférences
+	
+PLUGIN_QOBUZ_PREFS_USER
+	EN	Qobuz account
+	FR	Compte Qobuz
+	
+PLUGIN_QOBUZ_PREFS_PASSWORD
+	EN	Password
+	FR	Mot de passe
+	
+PLUGIN_QOBUZ_PREFS_FORMAT
+	EN	Preferred format (flac work only with 'hifi' premium account)
+	FR	Format préféré (flac ne fonctionnera qu'avec un abonnement 'hifi')
+
+PLUGIN_QOBUZ_SUB_GENRES
+	EN	Subgenres
+	FR	Sub Genres
+
+PLUGIN_QOBUZ_BESTSELLERS
+	EN	Bestsellers
+	FR	Meilleures Ventes
+
+PLUGIN_QOBUZ_NEW_RELEASES
+	EN	New Releases
+	FR	Nouveautés
+
+PLUGIN_QOBUZ_PRESS
+	EN	In the Press
+	FR	Vu dans la Presse
+	
+PLUGIN_QOBUZ_USERPURCHASES
+	EN	My Purchases
+	FR	Mes Achats
+
+PLUGIN_QOBUZ_USERPLAYLISTS
+	EN	My Playlists
+	FR	Mes Listes de Lecture
+
+PLUGIN_QOBUZ_PUBLICPLAYLISTS
+	EN	Public Playlists
+	FR	Listes de Lecture Publiques
