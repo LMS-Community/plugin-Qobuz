@@ -1,0 +1,4 @@
+SqueezeboxQobuz
+===============
+
+Squeebox plugin to stream from qobuz.com
