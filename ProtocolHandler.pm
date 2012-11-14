@@ -25,7 +25,7 @@ sub getFormatForURL {
 	
 	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
 
-	my $info = Plugins::Qobuz::API->getFileInfo($id || $url, undef, 1);
+	my $info = Plugins::Qobuz::API->getCachedFileInfo($id || $url);
 	
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 	
@@ -83,8 +83,21 @@ sub getMetadataFor {
 
 	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
 
-	my $meta = {};
-	$meta = Plugins::Qobuz::API->getTrackInfo($id) if $id;
+	my $meta;
+	
+	# grab metadata from backend if needed, otherwise use cached values
+	if ($id && $client->master->pluginData('fetchingMeta')) {
+		$meta = Plugins::Qobuz::API->getCachedTrackInfo($id);
+	}
+	elsif ($id) {
+		$client->master->pluginData( fetchingMeta => 1 );
+
+		$meta = Plugins::Qobuz::API->getTrackInfo(sub {
+			$client->master->pluginData( fetchingMeta => 0 );
+		}, $id);
+	}
+	
+	$meta ||= {};
 	$meta->{type} = $class->getFormatForURL($url);
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? '320_000' : '750_000';
 	
@@ -100,16 +113,20 @@ sub getNextTrack {
 	# Get next track
 	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
 	
-	my $streamData = Plugins::Qobuz::API->getFileInfo($id);
+	Plugins::Qobuz::API->getFileInfo(sub {
+		my $streamData = shift;
 
-	if ($streamData) {
-		$song->pluginData(mime => $streamData->{mime_type});
-		$song->streamUrl(Plugins::Qobuz::API->getFileUrl($id));
-		$successCb->();
-		return;
-	}
-	
-	$errorCb->('Failed to get next track', 'Qobuz');
+		if ($streamData) {
+			$song->pluginData(mime => $streamData->{mime_type});
+			Plugins::Qobuz::API->getFileUrl(sub {
+				$song->streamUrl(shift);
+				$successCb->();
+			}, $id);
+			return;
+		}
+		
+		$errorCb->('Failed to get next track', 'Qobuz');
+	}, $id);
 }
 
 1;
