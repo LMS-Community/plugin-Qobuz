@@ -15,6 +15,30 @@ use Plugins::Qobuz::API;
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
+sub new {
+	my $class  = shift;
+	my $args   = shift;
+
+	my $client    = $args->{client};
+	my $song      = $args->{song};
+	my $streamUrl = $song->streamUrl() || return;
+	
+	main::DEBUGLOG && $log->is_debug && $log->debug( 'Remote streaming Qobuz track: ' . $streamUrl );
+
+	my $mime = $song->pluginData('mime');
+
+	my $sock = $class->SUPER::new( {
+		url     => $streamUrl,
+		song    => $song,
+		client  => $client,
+#		bitrate => $mime =~ /flac/i ? 750_000 : 320_000,
+	} ) || return;
+	
+	${*$sock}{contentType} = $mime;
+
+	return $sock;
+}
+
 sub scanUrl {
 	my ($class, $url, $args) = @_;
 	$args->{cb}->( $args->{song}->currentTrack() );
@@ -82,12 +106,13 @@ sub getMetadataFor {
 	my ( $class, $client, $url ) = @_;
 
 	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
+	$id ||= $url; 
 
 	my $meta;
 	
 	# grab metadata from backend if needed, otherwise use cached values
 	if ($id && $client->master->pluginData('fetchingMeta')) {
-		$meta = Plugins::Qobuz::API->getCachedTrackInfo($id);
+		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
 	}
 	elsif ($id) {
 		$client->master->pluginData( fetchingMeta => 1 );
@@ -99,7 +124,7 @@ sub getMetadataFor {
 	
 	$meta ||= {};
 	$meta->{type} = $class->getFormatForURL($url);
-	$meta->{bitrate} = $meta->{type} eq 'mp3' ? '320_000' : '750_000';
+	$meta->{bitrate} = $meta->{type} eq 'mp3' ? 320_000 : 750_000;
 	
 	return $meta;
 }
