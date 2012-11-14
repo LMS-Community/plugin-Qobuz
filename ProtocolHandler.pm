@@ -39,6 +39,10 @@ sub new {
 	return $sock;
 }
 
+sub canSeek { 0 }
+sub getSeekDataByPosition { undef }
+sub getSeekData { undef }
+
 sub scanUrl {
 	my ($class, $url, $args) = @_;
 	$args->{cb}->( $args->{song}->currentTrack() );
@@ -62,7 +66,16 @@ sub canDirectStreamSong {
 	
 	# We need to check with the base class (HTTP) to see if we
 	# are synced or if the user has set mp3StreamingMethod
-	return $class->SUPER::canDirectStream( $client, $song->streamUrl(), $class->getFormatForURL($song->streamUrl()) );
+	return $class->SUPER::canDirectStream( $client, $song->streamUrl() );
+}
+
+# parseHeaders is used for proxied streaming
+sub parseHeaders {
+	my ( $self, @headers ) = @_;
+	
+	__PACKAGE__->parseDirectHeaders( $self->client, $self->url, @headers );
+	
+	return $self->SUPER::parseHeaders( @headers );
 }
 
 sub parseDirectHeaders {
@@ -91,11 +104,17 @@ sub parseDirectHeaders {
 			$contentType = 'mp3';
 		}
 	}
+
+	my $song = $client->streamingSong();
 	
 	# try to calculate exact bitrate so we can display correct progress
+	my $meta = $class->getMetadataFor($client, $url);
+	my $duration = $meta->{duration};
+	$song->duration($duration);
+	
 	if ($length) {
-		my $meta = $class->getMetadataFor($client, $url);
-		$bitrate = $length*8 / $meta->{duration} if $meta->{duration};
+		$bitrate = $length*8 / $duration if $meta->{duration};
+		$song->bitrate($bitrate) if $bitrate;
 	}
 	
 	# title, bitrate, metaint, redir, type, length, body
@@ -132,7 +151,6 @@ sub getMetadataFor {
 sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 	
-	my $client = $song->master();
 	my $url    = $song->currentTrack()->url;
 	
 	# Get next track
