@@ -3,12 +3,15 @@ package Plugins::Qobuz::API;
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 use JSON::XS::VersionOneAndTwo;
-use LWP::UserAgent;
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
 
 use constant BASE_URL => 'http://player.qobuz.com/api.json/0.2/';
-use constant TRACK_URL_TTL => 600;
+
+use constant DEFAULT_EXPIRY   => 86400 * 30;
+use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recommendations, new releases etc.
+use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
+use constant USER_DATA_EXPIRY => 60 * 5;        # user want to see changes in purchases, playlists etc. ASAP
 
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
@@ -19,31 +22,33 @@ my $cache = Slim::Utils::Cache->new('qobuz', 3);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
-my $ua = LWP::UserAgent->new(timeout => 15);
-
 sub getToken {
+	my ($class, $cb) = @_;
+	
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 
 	if (my $token = $cache->get('token_' . $username . $password)) {
-		return $token;
+		$cb->($token);
 	}
 	
-	my $result = _call('/user/login', {
+	_get('/user/login', sub {
+		my $result = shift;
+	
+		my $token;
+		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
+			$cache->set('token', -1, 30);
+			return $cb->();
+		}
+	
+		$cache->set('username', $result->{user}->{login} || $username) if $result->{user};
+		$cache->set('token_' . $username . $password, $token);
+	
+		$cb->($token);
+	},{
 		username => $username,
 		password => $password,
 	});
-
-	my $token;
-	if ( ! ($result && ($token = $result->{user_auth_token})) ) {
-		$cache->set('token', -1, 30);
-		return;
-	}
-
-	$cache->set('username', $result->{user}->{login} || $username) if $result->{user};
-	$cache->set('token_' . $username . $password, $token);
-
-	return $token;
 }
 
 sub username {
@@ -51,11 +56,11 @@ sub username {
 }
 
 sub search {
-	my ($class, $search) = @_;
+	my ($class, $cb, $search) = @_;
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 	
-	return _call('search/getResults', {
+	_get('search/getResults', $cb, {
 		type  => 'albums',
 		query => $search, 
 		limit => 200,
@@ -63,109 +68,113 @@ sub search {
 }
 
 sub getGenres {
-	my ($class, $genreId) = @_;
+	my ($class, $cb, $genreId) = @_;
 	
-	return _call('genre/list', {
+	_get('genre/list', $cb, {
 		parent_id => $genreId
 	});
 }
 
 sub getGenre {
-	my ($class, $genreId) = @_;
+	my ($class, $cb, $genreId) = @_;
 	
-	return _call('genre/get', {
+	_get('genre/get', $cb, {
 		genre_id => $genreId,
 		extra => 'subgenresCount,albums',
 	});
 }
 
 sub getAlbum {
-	my ($class, $albumId) = @_;
+	my ($class, $cb, $albumId) = @_;
 	
-	my $album = _call('album/get', {
+	_get('album/get', sub {
+		my $album = shift;
+	
+		_precacheAlbum([$album]) if $album;
+		
+		$cb->($album);
+	},{
 		album_id => $albumId,
 	});
-	
-	_precacheAlbum([$album]) if $album;
-	
-	return $album;
 }
 
 sub getFeaturedAlbums {
-	my ($class, $type, $genreId) = @_;
+	my ($class, $cb, $type, $genreId) = @_;
 	
-	my $albums = _call('album/getFeatured', {
+	_get('album/getFeatured', sub {
+		my $albums = shift;
+	
+		_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
+		
+		$cb->($albums);
+	},{
 		type     => $type,
 		genre_id => $genreId,
 		limit    => 200,
-		_ttl     => 60*60,		# features can change quite often - don't cache for too long
+		_ttl     => EDITORIAL_EXPIRY,
 	});
-	
-	_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
-	
-	return $albums;
 }
 
 sub getUserPurchases {
-	my ($class) = @_;
+	my ($class, $cb) = @_;
 	
-	my $purchases = _call('purchase/getUserPurchases', {
-		user_auth_token => getToken,
+	_get('purchase/getUserPurchases', sub {
+		my $purchases = shift; 
+		
+		_precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
+		_precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
+		
+		$cb->($purchases);
+	},{
 		limit    => 200,
-		_ttl     => 2*60,		# don't cache user-controlled content for too long...
+		_ttl     => USER_DATA_EXPIRY,
+		_use_token => 1,
 	});
-	
-	_precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
-	_precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
-	
-	return $purchases;
 }
 
 sub getUserPlaylists {
-	my ($class, $user) = @_;
+	my ($class, $cb, $user) = @_;
 	
-	my $playlists = _call('playlist/getUserPlaylists', {
-		user_auth_token => getToken,
+	_get('playlist/getUserPlaylists', $cb, {
 		username => $user || __PACKAGE__->username,
 		limit    => 200,
-		_ttl     => 2*60,		# user playlists can change quite often - don't cache for too long
+		_ttl     => USER_DATA_EXPIRY,
+		_use_token => 1,
 	});
-	
-	return $playlists;
 }
 
 sub getPublicPlaylists {
-	my ($class) = @_;
+	my ($class, $cb) = @_;
 	
-	my $playlists = _call('playlist/getPublicPlaylists', {
-		user_auth_token => getToken,
+	_get('playlist/getPublicPlaylists', $cb, {
 		type  => 'last-created',
 		limit => 200,
-		_ttl  => 60*60
+		_ttl  => EDITORIAL_EXPIRY,
+		_use_token => 1,
 	});
-
-	return $playlists;
 }
 
 sub getPlaylistTracks {
-	my ($class, $playlistId) = @_;
+	my ($class, $cb, $playlistId) = @_;
 
-	my $tracks = _call('playlist/get', {
+	_get('playlist/get', sub {
+		my $tracks = shift;
+		
+		_precacheTracks($tracks->{tracks}->{items});
+		
+		$cb->($tracks);
+	},{
 		playlist_id => $playlistId,
-		extra => 'tracks',
-		user_auth_token => getToken,
-		_ttl  => 2*60,
+		extra       => 'tracks',
+		_ttl        => USER_DATA_EXPIRY,
+		_use_token  => 1,
 	});
-	
-	_precacheTracks($tracks->{tracks}->{items});
-	
-	return $tracks;
 }
 
 sub getTrackInfo {
-	my ($class, $trackId) = @_;
+	my ($class, $cb, $trackId) = @_;
 
-	return unless $trackId;
+	$cb->() unless $trackId;
 
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
@@ -173,54 +182,76 @@ sub getTrackInfo {
 	
 	my $meta = $cache->get('trackInfo_' . $trackId);
 	
-	if (!$meta) {
-		$meta = _call('track/get', {
-			track_id => $trackId
-		});
-		
-		$meta = _precacheTrack($meta) if $meta;
+	if ($meta) {
+		$cb->($meta);
+		return $meta;
 	}
 	
-	return $meta;
+	_get('track/get', sub {
+		my $meta = shift;
+		$meta = _precacheTrack($meta) if $meta;
+		
+		$cb->($meta);
+	},{
+		track_id => $trackId
+	});
 }
 
 sub getFileUrl {
-	my ($class, $trackId) = @_;
-	return $class->getFileInfo($trackId, 'url');
+	my ($class, $cb, $trackId) = @_;
+	$class->getFileInfo($cb, $trackId, 'url');
 }
 
 sub getFileInfo {
-	my ($class, $trackId, $urlOnly, $noPrefetch) = @_;
+	my ($class, $cb, $trackId, $urlOnly) = @_;
 
-	return unless $trackId;
+	$cb->() unless $trackId;
 
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
 	}
 	
-	if (my $cached = $cache->get($urlOnly ? "trackUrl_$trackId" : "fileInfo_$trackId")) {
-		return $cached;
+	my $preferredFormat = $prefs->get('preferredFormat');
+	
+	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
+		$cb->($cached);
+		return $cached
 	}
 	
-	return if $noPrefetch;
+	_get('track/getFileUrl', sub {
+		my $track = shift;
 	
-	my $track = _call('track/getFileUrl', {
-		track_id => $trackId,
-		format_id => $prefs->get('preferredFormat'),
-		user_auth_token => getToken,
-		_ttl  => 30,
-		_sign => 1,
+		if ($track) {
+			my $url = delete $track->{url};
+	
+			# cache urls for a short time only
+			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, URL_EXPIRY);
+			$cache->set("trackId_$url", $trackId);
+			$cache->set("fileInfo_${trackId}_$preferredFormat", $track);
+			$track = $url if $urlOnly;
+		}
+		
+		$cb->($track);
+	},{
+		track_id   => $trackId,
+		format_id  => $preferredFormat,
+		_ttl       => URL_EXPIRY,
+		_sign      => 1,
+		_use_token => 1,
 	});
-	
-	if ($track) {
-		my $url = delete $track->{url};
+}
 
-		# cache urls for a short time only
-		$cache->set("trackUrl_$trackId", $url, TRACK_URL_TTL);
-		$cache->set('trackId_' . $url, $trackId);
-		$cache->set("fileInfo_$trackId", $track);
-		return $urlOnly ? $url : $track;
+# this call is synchronous, as it's only working on cached data
+sub getCachedFileInfo {
+	my ($class, $trackId, $urlOnly) = @_;
+
+	my $preferredFormat = $prefs->get('preferredFormat');
+
+	if ($trackId =~ /^http/i) {
+		$trackId = $cache->get("trackId_$trackId");
 	}
+	
+	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
 }
 
 sub _precacheAlbum {
@@ -267,8 +298,18 @@ sub _precacheTrack {
 	return $meta;
 }
 
-sub _call {
-	my ($url, $params) = @_;
+sub _get {
+	my ( $url, $cb, $params ) = @_;
+	
+	# need to get a token first?
+	if (delete $params->{_use_token}) {
+		__PACKAGE__->getToken(sub {
+			# we'll back later to finish the original call...
+			$params->{user_auth_token} = shift;
+			_get($url, $cb, $params)
+		});
+		return;
+	}
 	
 	$params ||= {};
 	
@@ -307,29 +348,34 @@ sub _call {
 	main::DEBUGLOG && $log->debug($url);
 	
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
-		main::DEBUGLOG && $log->debug("getting cached value");
-		return $cached;
-	}
-	
-	my $response = $ua->get($url);
-	
-#	main::DEBUGLOG && warn Data::Dump::dump($response);
-
-	if ($response->is_error) {
-		my $code = $response->code;
-		my $message = $response->message;
-		$log->error("request failed: $code  $message");
-		$params->{_nocache} = 1;
+		main::DEBUGLOG && $log->debug("found cached response: " . Data::Dump::dump($cached));
+		$cb->($cached);
+		return;
 	}
 
-	my $result = eval { from_json( $response->content ) };
-	main::DEBUGLOG && warn Data::Dump::dump($result);
+	my $http = Slim::Networking::SimpleAsyncHTTP->new(
+		sub {
+			my $response = shift;
+			
+			my $result = eval { from_json($response->content) };
+				
+			$@ && $log->error($@);
+			main::DEBUGLOG && $log->debug(Data::Dump::dump($result));
+			
+			if ($result && !$params->{_nocache}) {
+				$cache->set($url, $result, $params->{_ttl} || DEFAULT_EXPIRY);
+			}
 
-	if (!$params->{_nocache}) {
-		$cache->set($url, $result, $params->{_ttl});
-	}
-
-	return $result;
+			$cb->($result);
+		},
+		sub {
+			$log->warn("Error: $_[1]");
+			$cb->();
+		},
+		{
+			timeout => 15,
+		},
+	)->get($url);
 }
 
 1;
