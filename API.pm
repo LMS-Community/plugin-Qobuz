@@ -7,7 +7,11 @@ use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
 
 use constant BASE_URL => 'http://player.qobuz.com/api.json/0.2/';
-use constant TRACK_URL_TTL => 600;
+
+use constant DEFAULT_EXPIRY   => 86400 * 360;
+use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recommendations, new releases etc.
+use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
+use constant USER_DATA_EXPIRY => 60 * 5;        # user want to see changes in purchases, playlists etc. ASAP
 
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
@@ -107,7 +111,7 @@ sub getFeaturedAlbums {
 		type     => $type,
 		genre_id => $genreId,
 		limit    => 200,
-		_ttl     => 60*60,		# features can change quite often - don't cache for too long
+		_ttl     => EDITORIAL_EXPIRY,
 	});
 }
 
@@ -123,7 +127,7 @@ sub getUserPurchases {
 		$cb->($purchases);
 	},{
 		limit    => 200,
-		_ttl     => 2*60,		# don't cache user-controlled content for too long...
+		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
 }
@@ -134,7 +138,7 @@ sub getUserPlaylists {
 	_get('playlist/getUserPlaylists', $cb, {
 		username => $user || __PACKAGE__->username,
 		limit    => 200,
-		_ttl     => 2*60,		# user playlists can change quite often - don't cache for too long
+		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
 }
@@ -145,7 +149,7 @@ sub getPublicPlaylists {
 	_get('playlist/getPublicPlaylists', $cb, {
 		type  => 'last-created',
 		limit => 200,
-		_ttl  => 60*60,
+		_ttl  => EDITORIAL_EXPIRY,
 		_use_token => 1,
 	});
 }
@@ -162,7 +166,7 @@ sub getPlaylistTracks {
 	},{
 		playlist_id => $playlistId,
 		extra       => 'tracks',
-		_ttl        => 2*60,
+		_ttl        => USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
 }
@@ -221,7 +225,7 @@ sub getFileInfo {
 			my $url = delete $track->{url};
 	
 			# cache urls for a short time only
-			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, TRACK_URL_TTL);
+			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, URL_EXPIRY);
 			$cache->set("trackId_$url", $trackId);
 			$cache->set("fileInfo_${trackId}_$preferredFormat", $track);
 			$track = $url if $urlOnly;
@@ -231,7 +235,7 @@ sub getFileInfo {
 	},{
 		track_id   => $trackId,
 		format_id  => $preferredFormat,
-		_ttl       => 30,
+		_ttl       => URL_EXPIRY,
 		_sign      => 1,
 		_use_token => 1,
 	});
@@ -359,7 +363,7 @@ sub _get {
 			main::DEBUGLOG && $log->debug(Data::Dump::dump($result));
 			
 			if ($result && !$params->{_nocache}) {
-				$cache->set($url, $result, $params->{_ttl});
+				$cache->set($url, $result, $params->{_ttl} || DEFAULT_EXPIRY);
 			}
 
 			$cb->($result);
