@@ -172,4 +172,9 @@ sub getNextTrack {
 	}, $id);
 }
 
+sub audioScrobblerSource {
+	# Scrobble as 'chosen by user' content
+	return 'P';
+}
+
 1;
