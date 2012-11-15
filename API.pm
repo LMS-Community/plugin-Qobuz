@@ -207,6 +207,8 @@ sub getFileInfo {
 		$trackId = $cache->get("trackId_$trackId");
 	}
 	
+	my $preferredFormat = $prefs->get('preferredFormat');
+	
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
 		$cb->($cached);
 		return $cached
@@ -219,16 +221,16 @@ sub getFileInfo {
 			my $url = delete $track->{url};
 	
 			# cache urls for a short time only
-			$cache->set("trackUrl_$trackId", $url, TRACK_URL_TTL);
-			$cache->set('trackId_' . $url, $trackId);
-			$cache->set("fileInfo_$trackId", $track);
+			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, TRACK_URL_TTL);
+			$cache->set("trackId_$url", $trackId);
+			$cache->set("fileInfo_${trackId}_$preferredFormat", $track);
 			$track = $url if $urlOnly;
 		}
 		
 		$cb->($track);
 	},{
 		track_id   => $trackId,
-		format_id  => $prefs->get('preferredFormat'),
+		format_id  => $preferredFormat,
 		_ttl       => 30,
 		_sign      => 1,
 		_use_token => 1,
@@ -239,11 +241,13 @@ sub getFileInfo {
 sub getCachedFileInfo {
 	my ($class, $trackId, $urlOnly) = @_;
 
+	my $preferredFormat = $prefs->get('preferredFormat');
+
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
 	}
 	
-	return $cache->get($urlOnly ? "trackUrl_$trackId" : "fileInfo_$trackId");
+	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
 }
 
 sub _precacheAlbum {
@@ -361,11 +365,8 @@ sub _get {
 			$cb->($result);
 		},
 		sub {
-			$log->warn("error: $_[1]");
-			$cb->([ { 
-				name => 'Unknown error: ' . $_[1],
-				type => 'text' 
-			} ]);
+			$log->warn("Error: $_[1]");
+			$cb->();
 		},
 		{
 			timeout => 15,
