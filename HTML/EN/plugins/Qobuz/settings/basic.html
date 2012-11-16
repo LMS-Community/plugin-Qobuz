@@ -9,8 +9,8 @@
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" value="[% prefs.password_md5_hash %]" size="20" />[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_FORMAT" desc="" %]
 						<select name="preferredFormat" id="preferredFormat"> 
-						  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >mp3 320kbps </option>
-						  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >flac 16/44.1</option>
+						  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >MP3 320 kbps </option>
+						  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >FLAC 16 bits / 44.1 kHz</option>
 						</select>	
 		[% END %]
 	[% END %]
