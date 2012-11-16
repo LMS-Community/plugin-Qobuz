@@ -5,33 +5,32 @@ PLUGIN_QOBUZ
 	FR	Qobuz
 
 PLUGIN_QOBUZ_DESC
-	EN	Qobuz plugin
-
-PLUGIN_QOBUZ_SEARCH
-	EN	Qobuz search...
-	FR	Recherche sur qobuz....
-	
-PLUGIN_QOBUZ_CTRL_PLAYLIST
-	EN	Control the playlist...
-	FR	Controle de la liste...
+	DE	Erweiterung, um auf Qobuz Inhalte zuzugreifen
+	EN	Plugin to listen to Qobuz streams
+	FR	Extension pour l'écoute de flux Qobuz
 	
 PLUGIN_QOBUZ_PREFS
+	DE	Einstellungen
 	EN	Preferences
 	FR	Préférences
 	
 PLUGIN_QOBUZ_PREFS_USER
+	DE	Qobuz Konto
 	EN	Qobuz account
 	FR	Compte Qobuz
 	
 PLUGIN_QOBUZ_PREFS_PASSWORD
+	DE	Passwort
 	EN	Password
 	FR	Mot de passe
 	
 PLUGIN_QOBUZ_PREFS_FORMAT
+	DE	Bevorzugtes Format (FLAC funktioniert nur mit einem "hifi" Premium Konto) 
 	EN	Preferred format (flac work only with 'hifi' premium account)
 	FR	Format préféré (flac ne fonctionnera qu'avec un abonnement 'hifi')
 
 PLUGIN_QOBUZ_SUB_GENRES
+	DE	Sub-Genres
 	EN	Subgenres
 	FR	Sub Genres
 
@@ -40,21 +39,26 @@ PLUGIN_QOBUZ_BESTSELLERS
 	FR	Meilleures Ventes
 
 PLUGIN_QOBUZ_NEW_RELEASES
+	DE	Neue Veröffentlichungen
 	EN	New Releases
 	FR	Nouveautés
 
 PLUGIN_QOBUZ_PRESS
+	DE	In der Presse
 	EN	In the Press
 	FR	Vu dans la Presse
 	
 PLUGIN_QOBUZ_USERPURCHASES
+	DE	Meine Einkäufe
 	EN	My Purchases
 	FR	Mes Achats
 
 PLUGIN_QOBUZ_USERPLAYLISTS
+	DE	Meine Wiedergabelisten
 	EN	My Playlists
 	FR	Mes Listes de Lecture
 
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
+	DE	Öffentliche Wiedergabelisten
 	EN	Public Playlists
 	FR	Listes de Lecture Publiques

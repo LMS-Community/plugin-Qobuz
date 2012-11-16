@@ -50,7 +50,6 @@ sub getDisplayName { 'PLUGIN_QOBUZ' }
 # don't add this plugin to the Extras menu
 sub playerMenu {}
 
-
 sub handleFeed {
 	my ($client, $cb, $args) = @_;
 	
@@ -112,17 +111,23 @@ sub QobuzSearch {
 	
 	my $search = $params->{search};
 		
-	my $searchResult = Plugins::Qobuz::API->search($search);
+	Plugins::Qobuz::API->search(sub {
+		my $searchResult = shift;
 		
-	my $albums = [];
-		
-	for my $album ( @{$searchResult->{albums}->{items}} ) {
-		push @$albums, _albumItem($album);
-	}
-		
-	$cb->( { 
-		items => $albums
-	} );
+		if (!$searchResult || !$searchResult->{albums}) {
+			$cb->();
+		}
+	
+		my $albums = [];
+			
+		for my $album ( @{$searchResult->{albums}->{items}} ) {
+			push @$albums, _albumItem($album);
+		}
+			
+		$cb->( { 
+			items => $albums
+		} );
+	}, $search);
 }
 
 
@@ -131,32 +136,34 @@ sub QobuzGenres {
 	
 	my $genreId = $args->{genreId} || '';
 
-	my $genres = Plugins::Qobuz::API->getGenres($genreId);
-	
-	if (!$genres) {
-		$log->error("Get genres ($genreId) failed");
-		return;
-	}
-	
-	my $items = [];
-	
-	for my $genre ( @{$genres->{genres}->{items}}) {
-		my $item = {};
+	Plugins::Qobuz::API->getGenres(sub {
+		my $genres = shift;
 		
-		$item = {
-			name => $genre->{name},
-			url  => \&QobuzGenre,
-			passthrough => [{
-				genreId => $genre->{id},
-			}]
-		};
+		if (!$genres) {
+			$log->error("Get genres ($genreId) failed");
+			return;
+		}
 		
-		push @$items, $item;
-	}
-	
-	$cb->({
-		items => $items
-	})	
+		my $items = [];
+		
+		for my $genre ( @{$genres->{genres}->{items}}) {
+			my $item = {};
+			
+			$item = {
+				name => $genre->{name},
+				url  => \&QobuzGenre,
+				passthrough => [{
+					genreId => $genre->{id},
+				}]
+			};
+			
+			push @$items, $item;
+		}
+		
+		$cb->({
+			items => $items
+		})	
+	}, $genreId);
 }
 
 
@@ -165,57 +172,59 @@ sub QobuzGenre {
 	
 	my $genreId = $args->{genreId} || '';
 
-	my $genre = Plugins::Qobuz::API->getGenre($genreId);
-	
-	if (!$genre) {
-		$log->error("Get genre ($genreId) failed");
-		return;
-	}
-	
-	my $items = [{
-		name => $client->string('PLUGIN_QOBUZ_BESTSELLERS'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			genreId => $genreId,
-			type    => 'best-sellers',
-		}]
-	},{
-		name => $client->string('PLUGIN_QOBUZ_NEW_RELEASES'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			genreId => $genreId,
-			type    => 'new-releases',
-		}]
-	},{
-		name => $client->string('PLUGIN_QOBUZ_PRESS'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			genreId => $genreId,
-			type    => 'press-awards',
-		}]
-	}];
-
-	if ($genre->{subgenresCount}) {
-		push @$items, {
-			name => $client->string('PLUGIN_QOBUZ_SUB_GENRES'),
-			url  => \&QobuzGenres,
-			image => 'html/images/genres.png',
+	Plugins::Qobuz::API->getGenre(sub {
+		my $genre = shift;
+		
+		if (!$genre) {
+			$log->error("Get genre ($genreId) failed");
+			return;
+		}
+		
+		my $items = [{
+			name => $client->string('PLUGIN_QOBUZ_BESTSELLERS'),
+			url  => \&QobuzFeaturedAlbums,
+			image => 'html/images/albums.png',
 			passthrough => [{
 				genreId => $genreId,
+				type    => 'best-sellers',
 			}]
+		},{
+			name => $client->string('PLUGIN_QOBUZ_NEW_RELEASES'),
+			url  => \&QobuzFeaturedAlbums,
+			image => 'html/images/albums.png',
+			passthrough => [{
+				genreId => $genreId,
+				type    => 'new-releases',
+			}]
+		},{
+			name => $client->string('PLUGIN_QOBUZ_PRESS'),
+			url  => \&QobuzFeaturedAlbums,
+			image => 'html/images/albums.png',
+			passthrough => [{
+				genreId => $genreId,
+				type    => 'press-awards',
+			}]
+		}];
+	
+		if ($genre->{subgenresCount}) {
+			push @$items, {
+				name => $client->string('PLUGIN_QOBUZ_SUB_GENRES'),
+				url  => \&QobuzGenres,
+				image => 'html/images/genres.png',
+				passthrough => [{
+					genreId => $genreId,
+				}]
+			}
 		}
-	}
-	
-	foreach my $album ( @{$genre->{albums}->{items}} ) {
-		push @$items, _albumItem($album);
-	}
-	
-	$cb->({
-		items => $items
-	})	
+		
+		foreach my $album ( @{$genre->{albums}->{items}} ) {
+			push @$items, _albumItem($album);
+		}
+		
+		$cb->({
+			items => $items
+		});
+	}, $genreId);
 }
 
 
@@ -224,117 +233,125 @@ sub QobuzFeaturedAlbums {
 	my $type    = $args->{type};
 	my $genreId = $args->{genreId};
 	
-	my $albums = Plugins::Qobuz::API->getFeaturedAlbums($type, $genreId);
-	
-	my $items = [];
-	
-	foreach my $album ( @{$albums->{albums}->{items}} ) {
-		push @$items, _albumItem($album);
-	}
-	
-	$cb->({
-		items => $items
-	})	
+	Plugins::Qobuz::API->getFeaturedAlbums(sub {
+		my $albums = shift; 
+		
+		my $items = [];
+		
+		foreach my $album ( @{$albums->{albums}->{items}} ) {
+			push @$items, _albumItem($album);
+		}
+		
+		$cb->({
+			items => $items
+		})	
+	}, $type, $genreId);
 }
 
 sub QobuzUserPurchases {
 	my ($client, $cb, $params, $args) = @_;
 	
-	my $searchResult = Plugins::Qobuz::API->getUserPurchases();
+	Plugins::Qobuz::API->getUserPurchases(sub {
+		my $searchResult = shift;
+			
+		my $items = [];
+			
+		for my $album ( @{$searchResult->{albums}->{items}} ) {
+			push @$items, _albumItem($album);
+		}
+			
+		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+			push @$items, _trackItem($track);
+		}
 		
-	my $items = [];
-		
-	for my $album ( @{$searchResult->{albums}->{items}} ) {
-		push @$items, _albumItem($album);
-	}
-		
-	for my $track ( @{$searchResult->{tracks}->{items}} ) {
-		push @$items, _trackItem($track);
-	}
-	
-	$cb->( { 
-		items => $items
-	} );
+		$cb->( { 
+			items => $items
+		} );
+	});
 }
 
 sub QobuzUserPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
-	my $searchResult = Plugins::Qobuz::API->getUserPlaylists();
-		
-	my $playlists = [];
-		
-	for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
-		push @$playlists, _playlistItem($playlist);
-	}
-		
-	$cb->( { 
-		items => $playlists
-	} );
+	Plugins::Qobuz::API->getUserPlaylists(sub {
+		my $searchResult = shift;
+			
+		my $playlists = [];
+			
+		for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
+			push @$playlists, _playlistItem($playlist);
+		}
+			
+		$cb->( { 
+			items => $playlists
+		} );
+	});
 }
 
 sub QobuzPublicPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
-	my $searchResult = Plugins::Qobuz::API->getPublicPlaylists();
-		
-	my $playlists = [];
-		
-	for my $playlist ( @{$searchResult} ) {
-		push @$playlists, _playlistItem($playlist, 'showOwner');
-	}
-		
-	$cb->( { 
-		items => $playlists
-	} );
+	Plugins::Qobuz::API->getPublicPlaylists(sub {
+		my $searchResult = shift;
+			
+		my $playlists = [];
+			
+		for my $playlist ( @{$searchResult} ) {
+			push @$playlists, _playlistItem($playlist, 'showOwner');
+		}
+			
+		$cb->( { 
+			items => $playlists
+		} );
+	});
 }
 
 sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $albumId = $args->{album_id};
 	
-	$log->debug($albumId);
+	Plugins::Qobuz::API->getAlbum(sub {
+		my $album = shift;
+		
+		if (!$album) {
+			$log->error("Get album ($albumId) failed");
+			$cb->();
+		}
+		
+		my $tracks = [];
 	
-	my $album = Plugins::Qobuz::API->getAlbum($albumId);
+		foreach my $track (@{$album->{tracks}->{items}}) {
+			push @$tracks, _trackItem($track);
+		}
 	
-	if (!$album) {
-		$log->error("Get album ($albumId) failed");
-		return;
-	}
-	
-	my $tracks = [];
-
-	foreach my $track (@{$album->{tracks}->{items}}) {
-		push @$tracks, _trackItem($track);
-	}
-
-	$cb->({
-		items => $tracks,
-	}, @_ );
+		$cb->({
+			items => $tracks,
+		}, @_ );
+	}, $albumId);
 }
 
 sub QobuzPlaylistGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $playlistId = $args->{playlist_id};
 	
-	$log->debug($playlistId);
+	Plugins::Qobuz::API->getPlaylistTracks(sub {
+		my $playlist = shift;
+		
+		if (!$playlist) {
+			$log->error("Get playlist ($playlistId) failed");
+			return;
+		}
+		
+		my $tracks = [];
 	
-	my $playlist = Plugins::Qobuz::API->getPlaylistTracks($playlistId);
+		foreach my $track (@{$playlist->{tracks}->{items}}) {
+			push @$tracks, _trackItem($track);
+		}
 	
-	if (!$playlist) {
-		$log->error("Get playlist ($playlistId) failed");
-		return;
-	}
-	
-	my $tracks = [];
-
-	foreach my $track (@{$playlist->{tracks}->{items}}) {
-		push @$tracks, _trackItem($track);
-	}
-
-	$cb->({
-		items => $tracks,
-	}, @_ );
+		$cb->({
+			items => $tracks,
+		}, @_ );
+	}, $playlistId);
 }
 
 sub _albumItem {
@@ -369,13 +386,14 @@ sub _playlistItem {
 sub _trackItem {
 	my ($track) = @_;
 
-	main::DEBUGLOG && $log->debug(" track id " . $track->{id});
+	my $artist = $track->{album}->{artist}->{name} || $track->{performer}->{name} || '';
+	my $album  = $track->{album}->{title} || '';
 
 	return {
 		name  => $track->{title},
-		name2 => $track->{album}->{artist}->{name} . " - " . $track->{album}->{title},
+		name2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		play  => 'qobuz://' . $track->{id},
-		image => $track->{album}->{image}->{large},
+		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 		on_select   => 'play',
 		playall     => 1,
 	};
