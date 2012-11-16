@@ -31,8 +31,8 @@ PLUGIN_QOBUZ_PREFS_FORMAT
 
 PLUGIN_QOBUZ_SUB_GENRES
 	DE	Sub-Genres
-	EN	Subgenres
-	FR	Sub Genres
+	EN	Subgenders
+	FR	Sous-Genres
 
 PLUGIN_QOBUZ_BESTSELLERS
 	EN	Bestsellers
