@@ -30,9 +30,9 @@ PLUGIN_QOBUZ_PREFS_FORMAT
 	FR	Format préféré (FLAC ne fonctionnera qu'avec un abonnement 'hi-fi')
 
 PLUGIN_QOBUZ_SUB_GENRES
-	DE	Sub-Genres
-	EN	Subgenders
-	FR	Sous-Genres
+	DE	Unterteilungen
+	EN	Subgenres
+	FR	Sous-genres
 
 PLUGIN_QOBUZ_BESTSELLERS
 	EN	Bestsellers
