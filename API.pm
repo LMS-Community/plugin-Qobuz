@@ -22,6 +22,10 @@ my $cache = Slim::Utils::Cache->new('qobuz', 4);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
+my ($aid, $as);
+
+sub init { ($aid, $as) = pack('H*', $_[1]) =~ /^(\d{9})(.*)/; }
+
 sub getToken {
 	my ($class, $cb) = @_;
 	
@@ -319,7 +323,7 @@ sub _get {
 		push @query, $k . '=' . uri_escape_utf8($v);
 	}
 	
-	push @query, 'app_id=942852567';
+	push @query, "app_id=$aid";
 	
 	# signed requests - see
 	# https://github.com/Qobuz/api-documentation#signed-requests-authentification-
@@ -336,7 +340,7 @@ sub _get {
 		} @query);
 		
 		my $ts = time;
-		$signature = md5_hex($signature . $ts . '');
+		$signature = md5_hex($signature . $ts . $as);
 		
 		push @query, "request_ts=$ts", "request_sig=$signature";
 		
