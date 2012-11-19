@@ -18,7 +18,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
-my $cache = Slim::Utils::Cache->new('qobuz', 3);
+my $cache = Slim::Utils::Cache->new('qobuz', 4);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -41,8 +41,8 @@ sub getToken {
 			return $cb->();
 		}
 	
-		$cache->set('username', $result->{user}->{login} || $username) if $result->{user};
-		$cache->set('token_' . $username . $password, $token);
+		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
+		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
 	
 		$cb->($token);
 	},{
@@ -226,8 +226,8 @@ sub getFileInfo {
 	
 			# cache urls for a short time only
 			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, URL_EXPIRY);
-			$cache->set("trackId_$url", $trackId);
-			$cache->set("fileInfo_${trackId}_$preferredFormat", $track);
+			$cache->set("trackId_$url", $trackId, DEFAULT_EXPIRY);
+			$cache->set("fileInfo_${trackId}_$preferredFormat", $track, DEFAULT_EXPIRY);
 			$track = $url if $urlOnly;
 		}
 		
@@ -293,7 +293,7 @@ sub _precacheTrack {
 		duration => $track->{duration},
 	};
 	
-	$cache->set('trackInfo_' . $track->{id}, $meta);
+	$cache->set('trackInfo_' . $track->{id}, $meta, DEFAULT_EXPIRY);
 	
 	return $meta;
 }
