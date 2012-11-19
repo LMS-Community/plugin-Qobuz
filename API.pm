@@ -336,7 +336,7 @@ sub _get {
 		} @query);
 		
 		my $ts = time;
-		$signature = md5_hex($signature . $ts . '761730d3f95e4af09ac63b9a37ccc96a');
+		$signature = md5_hex($signature . $ts . '');
 		
 		push @query, "request_ts=$ts", "request_sig=$signature";
 		
