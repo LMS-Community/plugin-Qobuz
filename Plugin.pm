@@ -35,6 +35,25 @@ sub initPlugin {
 		qr|\.qobuz\.com/|, 
 		sub { $class->_pluginDataFor('icon') }
 	);
+
+	# Track Info item
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuz => (
+		func  => \&trackInfoMenu,
+	) );
+
+	Slim::Menu::ArtistInfo->registerInfoProvider( qobuz => (
+		func => \&artistInfoMenu,
+	) );
+
+	Slim::Menu::AlbumInfo->registerInfoProvider( qobuz => (
+		func => \&albumInfoMenu,
+	) );
+
+	Slim::Menu::GlobalSearch->registerInfoProvider( qobuz => (
+		func => \&searchMenu,
+	) );
+	
+	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	
 	$class->SUPER::initPlugin(
 		feed   => \&handleFeed,
@@ -109,7 +128,7 @@ sub QobuzSearch {
 	
 	$params->{search} ||= $args->{q};
 	
-	my $search = $params->{search};
+	my $search = lc($params->{search});
 		
 	Plugins::Qobuz::API->search(sub {
 		my $searchResult = shift;
@@ -357,8 +376,11 @@ sub QobuzPlaylistGetTracks {
 sub _albumItem {
 	my ($album) = @_;
 	
+	my $artist = $album->{artist}->{name} || '';
+	my $albumName = $album->{title} || '';
+
 	return {
-		name  => $album->{artist}->{name} . " - " . $album->{title},
+		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
 		url   => \&QobuzGetTracks,
 		image => $album->{image}->{large},
 		passthrough => [{ 
@@ -397,6 +419,105 @@ sub _trackItem {
 		on_select   => 'play',
 		playall     => 1,
 	};
+}
+
+sub trackInfoMenu {
+	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
+
+	my $artist = $track->remote ? $remoteMeta->{artist} : $track->artistName;
+	my $album  = $track->remote ? $remoteMeta->{album}  : ( $track->album ? $track->album->name : undef );
+	my $title  = $track->remote ? $remoteMeta->{title}  : $track->title;
+
+	return _objInfoHandler( $client, $artist, $album, $title );
+}
+
+sub artistInfoMenu {
+	my ($client, $url, $artist, $remoteMeta, $tags, $filter) = @_;
+
+	return _objInfoHandler( $client, $artist->name );
+}
+
+sub albumInfoMenu {
+	my ($client, $url, $album, $remoteMeta, $tags, $filter) = @_;
+
+	my $albumTitle = $album->title;
+	my @artists;
+	push @artists, $album->artistsForRoles('ARTIST'), $album->artistsForRoles('ALBUMARTIST');
+
+	return _objInfoHandler( $client, $artists[0]->name, $albumTitle );
+}
+
+sub _objInfoHandler {
+	my ( $client, $artist, $album, $track ) = @_;
+
+	my $items = [];
+
+	foreach ($artist, $album, $track) {
+		push @$items, {
+			name => $_,
+			url  => \&QobuzSearch,
+			passthrough => [{
+				q => $_,
+			}]
+		} if $_;
+	}	
+
+	my $menu;
+	if ( scalar @$items == 1) {
+		$menu = $items->[0];
+		$menu->{name} = cstring($client, 'PLUGIN_ON_QOBUZ');
+	}
+	elsif (scalar @$items) {
+		$menu = {
+			name  => cstring($client, 'PLUGIN_ON_QOBUZ'),
+			items => $items
+		};
+	}
+
+	return $menu if $menu;
+}
+
+sub searchMenu {
+	my ( $client, $tags ) = @_;
+	
+	return {
+		name => cstring($client, getDisplayName()),
+		url  => \&QobuzSearch,
+		search => $tags->{search},
+	};
+}
+
+sub cliQobuzPlayAlbum {
+	my $request = shift;
+
+	# check this is the correct query.
+	if ($request->isNotCommand([['qobuz'], ['playalbum']])) {
+		$request->setStatusBadDispatch();
+		return;
+	}
+	
+	# get our parameters
+	my $client = $request->client();
+	my $albumId = $request->getParam('_p2');
+	
+	Plugins::Qobuz::API->getAlbum(sub {
+		my $album = shift;
+		
+		if (!$album) {
+			$log->error("Get album ($albumId) failed");
+			return;
+		}
+		
+		my $tracks = [];
+	
+		foreach my $track (@{$album->{tracks}->{items}}) {
+			push @$tracks, 'qobuz://' . $track->{id};
+		}
+	
+		$client->execute( ["playlist", "playtracks", "listref", $tracks] );
+	}, $albumId);
+
+	$request->setStatusDone();
 }
 
 1;
