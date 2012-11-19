@@ -421,34 +421,6 @@ sub _trackItem {
 	};
 }
 
-
-sub trackInfoMenuX {
-	my ( $client, undef, $track, $remoteMeta ) = @_;
-	
-	return unless $client && $track;
-	
-	my $artist = $track->remote ? $remoteMeta->{artist} : $track->artistName;
-	my $album  = $track->remote ? $remoteMeta->{album}  : ( $track->album ? $track->album->name : undef );
-	my $title  = $track->remote ? $remoteMeta->{title}  : $track->title;
-	
-	if ( $artist || $album || $title ) {
-	
-		my $snURL = Slim::Networking::SqueezeNetwork->url(
-			'/api/mog/v1/opml/context?artist=' . uri_escape_utf8($artist)
-			. '&album=' . uri_escape_utf8($album)
-			. '&track='	. uri_escape_utf8($title)
-		);
-
-		return {
-			type      => 'link',
-			name      => $client->string('PLUGIN_ON_MOG'),
-			url       => $snURL,
-			favorites => 0,
-		};
-	}
-}
-
-
 sub trackInfoMenu {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
 
