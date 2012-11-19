@@ -26,13 +26,13 @@ PLUGIN_QOBUZ_PREFS_PASSWORD
 	
 PLUGIN_QOBUZ_PREFS_FORMAT
 	DE	Bevorzugtes Format (FLAC funktioniert nur mit einem "hifi" Premium Konto) 
-	EN	Preferred format (flac work only with 'hifi' premium account)
-	FR	Format préféré (flac ne fonctionnera qu'avec un abonnement 'hifi')
+	EN	Preferred format (FLAC works only with 'hifi' premium account)
+	FR	Format préféré (FLAC ne fonctionnera qu'avec un abonnement 'hi-fi')
 
 PLUGIN_QOBUZ_SUB_GENRES
-	DE	Sub-Genres
+	DE	Unterteilungen
 	EN	Subgenres
-	FR	Sub Genres
+	FR	Sous-genres
 
 PLUGIN_QOBUZ_BESTSELLERS
 	EN	Bestsellers
