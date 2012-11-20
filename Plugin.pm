@@ -25,7 +25,12 @@ use constant PLUGIN_TAG => 'qobuz';
 
 sub initPlugin {
 	my $class = shift;
-	Plugins::Qobuz::Settings->new;
+	
+	Plugins::Qobuz::Settings->new if main::WEBUI;
+	
+	Plugins::Qobuz::API->init(
+		$class->_pluginDataFor('aid')
+	);
 
 	Slim::Player::ProtocolHandlers->registerHandler(
 		qobuz => 'Plugins::Qobuz::ProtocolHandler'

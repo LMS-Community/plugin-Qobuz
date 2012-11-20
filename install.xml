@@ -12,7 +12,7 @@
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
 	
 	<homepageURL>http://www.pierrebeck.fr/SqueezeQobuz/</homepageURL>
-	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
+	<aid>3934323835323536373736313733306433663935653461663039616336336239613337636363393661</aid>
 	<type>2</type><!-- type=extension -->
 
 	<targetApplication>
