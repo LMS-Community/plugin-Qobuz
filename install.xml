@@ -12,7 +12,7 @@
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
 	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
 	
-	<homepageURL>http://www.pierrebeck.fr/SqueezeQobuz/</homepageURL>
+	<homepageURL>http://forums.slimdevices.com/showthread.php?97146-Qobuz-com-streaming-plugin</homepageURL>
 	<aid>3934323835323536373736313733306433663935653461663039616336336239613337636363393661</aid>
 	<type>2</type><!-- type=extension -->
 
