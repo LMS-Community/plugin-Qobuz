@@ -119,6 +119,13 @@ sub handleFeed {
 				type    => 'press-awards',
 			}]
 		},{
+			name => $client->string('PLUGIN_QOBUZ_EDITOR_PICKS'),
+			url  => \&QobuzFeaturedAlbums,
+			image => 'html/images/albums.png',
+			passthrough => [{
+				type    => 'editor-picks',
+			}]
+		},{
 			name  => cstring($client, 'GENRES'),
 			image => 'html/images/genres.png',
 			type => 'link',
@@ -227,6 +234,14 @@ sub QobuzGenre {
 			passthrough => [{
 				genreId => $genreId,
 				type    => 'press-awards',
+			}]
+		},{
+			name => $client->string('PLUGIN_QOBUZ_EDITOR_PICKS'),
+			url  => \&QobuzFeaturedAlbums,
+			image => 'html/images/albums.png',
+			passthrough => [{
+				genreId => $genreId,
+				type    => 'editor-picks',
 			}]
 		}];
 	
