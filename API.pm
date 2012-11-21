@@ -154,7 +154,6 @@ sub getPublicPlaylists {
 		type  => 'last-created',
 		limit => 200,
 		_ttl  => EDITORIAL_EXPIRY,
-		_use_token => 1,
 	});
 }
 
