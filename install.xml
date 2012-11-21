@@ -4,7 +4,7 @@
 	<id>66C1A24B-02A3-D153-AF52-FD3159753CAC</id>
 	<name>PLUGIN_QOBUZ</name>
 	<module>Plugins::Qobuz::Plugin</module>
-	<version>1.72</version>
+	<version>1.73</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger</creator>
 	<email>pierrepoulpe@yahoo.fr</email>
