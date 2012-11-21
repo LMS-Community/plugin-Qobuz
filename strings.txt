@@ -47,7 +47,11 @@ PLUGIN_QOBUZ_PRESS
 	DE	In der Presse
 	EN	In the Press
 	FR	Vu dans la Presse
-	
+
+PLUGIN_QOBUZ_EDITOR_PICKS
+	EN	Qobuz selection
+	FR	Sélection Qobuz
+
 PLUGIN_QOBUZ_USERPURCHASES
 	DE	Meine Einkäufe
 	EN	My Purchases
