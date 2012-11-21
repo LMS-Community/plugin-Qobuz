@@ -10,6 +10,7 @@
 	<email>pierrepoulpe@yahoo.fr</email>
 	<defaultState>enabled</defaultState>
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
+	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
 	
 	<homepageURL>http://www.pierrebeck.fr/SqueezeQobuz/</homepageURL>
 	<aid>3934323835323536373736313733306433663935653461663039616336336239613337636363393661</aid>
