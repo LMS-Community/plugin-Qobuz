@@ -10,7 +10,7 @@ cp * Qobuz/ &> /dev/null
 cp -R HTML Qobuz/
 rm -f Qobuz/*.zip Qobuz/*.sh*
 
-VERSION=`grep -o -E "version>(.*)</ver" install.xml | grep -o -E "\d\.\d+"`
+VERSION=`grep -o -E "version>(.*)</ver" install.xml | grep -o -E "[0-9]\.[0-9]+"`
 
 ZIPFILE=Qobuz-$VERSION.zip
 
