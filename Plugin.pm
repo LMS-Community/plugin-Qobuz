@@ -317,15 +317,15 @@ sub QobuzUserFavorites {
 	my ($client, $cb, $params, $args) = @_;
 	
 	Plugins::Qobuz::API->getUserFavorites(sub {
-		my $searchResult = shift;
+		my $favorites = shift;
 			
 		my $items = [];
 			
-		for my $album ( @{$searchResult->{albums}->{items}} ) {
+		for my $album ( @{$favorites->{albums}->{items}} ) {
 			push @$items, _albumItem($album);
 		}
 			
-		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+		for my $track ( @{$favorites->{tracks}->{items}} ) {
 			push @$items, _trackItem($track);
 		}
 		
@@ -333,6 +333,72 @@ sub QobuzUserFavorites {
 			items => $items
 		} );
 	});
+}
+
+sub QobuzManageFavorites {
+	my ($client, $cb, $params, $args) = @_;
+
+	Plugins::Qobuz::API->getUserFavorites(sub {
+		my $favorites = shift;
+		
+		my $items = [];
+		
+		if ( (my $title = $args->{title}) && (my $trackId = $args->{trackId}) ) {
+			my $isFavorite = grep { $_->{id} eq $trackId } @{$favorites->{tracks}->{items}};
+
+			push @$items, {
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				passthrough => [{
+					track_ids => $trackId
+				}],
+				nextWindow => 'grandparent'
+			};
+		}
+		
+		if ( (my $album = $args->{album}) && (my $albumId = $args->{albumId}) ) {
+			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
+
+			push @$items, {
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				passthrough => [{
+					track_ids => $albumId
+				}],
+				nextWindow => 'grandparent'
+			};
+		}
+		
+		$cb->( {
+			items => $items
+		} );
+	}, 'refresh');
+}
+
+sub QobuzAddFavorite {
+	my ($client, $cb, $params, $args) = @_;
+
+	Plugins::Qobuz::API->createFavorite(sub {
+		my $result = shift;
+		$cb->({
+			text        => $result->{status},
+			showBriefly => 1,
+			nextWindow  => 'grandparent',
+		});
+	}, $args);
+}
+
+sub QobuzDeleteFavorite {
+	my ($client, $cb, $params, $args) = @_;
+
+	Plugins::Qobuz::API->deleteFavorite(sub {
+		my $result = shift;
+		$cb->({
+			text        => $result->{status},
+			showBriefly => 1,
+			nextWindow  => 'grandparent',
+		});
+	}, $args);
 }
 
 sub QobuzUserPlaylists {
@@ -419,19 +485,6 @@ sub QobuzPlaylistGetTracks {
 	}, $playlistId);
 }
 
-sub QobuzAddFavorite {
-	my ($client, $cb, $params, $args) = @_;
-
-	Plugins::Qobuz::API->createFavorite(sub {
-		my $result = shift;
-		$cb->({
-			text        => $result->{status},
-			showBriefly => 1,
-			nextWindow  => 'parent',
-		});
-	}, $args);
-}
-
 sub _albumItem {
 	my ($album) = @_;
 	
@@ -487,32 +540,29 @@ sub trackInfoMenu {
 	my $album  = $track->remote ? $remoteMeta->{album}  : ( $track->album ? $track->album->name : undef );
 	my $title  = $track->remote ? $remoteMeta->{title}  : $track->title;
 
-	my $items; 
+	my $items;
 	
 	if ( $url =~ m|^qobuz://(.*)| ) {
 		my $trackId = $1;
 		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
 		
-		if ($trackId && $title) {
-			$items ||= [];
-			push @$items, {
-				name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
-				url  => \&QobuzAddFavorite,
-				passthrough => [{
-					track_ids => $trackId
-				}],
-				nextWindow => 'parent'
+		if ($trackId || $albumId) {
+			my $args = ();
+			if ($trackId && $title) {
+				$args->{trackId} = $trackId;
+				$args->{title}   = $title;
 			}
-		}
+			
+			if ($albumId && $album) {
+				$args->{albumId} = $albumId;
+				$args->{album}   = $album;
+			}
 		
-		if ($albumId && $album) {
 			$items ||= [];
 			push @$items, {
-				name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $album),
-				url  => \&QobuzAddFavorite,
-				passthrough => [{
-					album_ids => $albumId
-				}],
+				name => cstring($client, 'PLUGIN_QOBUZ_MANAGE_FAVORITES'),
+				url  => \&QobuzManageFavorites,
+				passthrough => [$args],
 			}
 		}
 	}

@@ -34,6 +34,7 @@ sub getToken {
 
 	if (my $token = $cache->get('token_' . $username . $password)) {
 		$cb->($token);
+		return;
 	}
 	
 	_get('/user/login', sub {
@@ -137,10 +138,10 @@ sub getUserPurchases {
 }
 
 sub getUserFavorites {
-	my ($class, $cb) = @_;
+	my ($class, $cb, $force) = @_;
 	
 	_get('favorite/getUserFavorites', sub {
-		my $favorites = shift; 
+		my ($favorites) = @_; 
 		
 		_precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
 		_precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
@@ -150,6 +151,7 @@ sub getUserFavorites {
 		limit    => 200,
 		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
+		_wipecache => $force,
 	});
 }
 
@@ -159,12 +161,22 @@ sub createFavorite {
 	$args->{_use_token} = 1;
 	$args->{_nocache}   = 1;
 	
-	_get('favorite/create', $cb, $args);
+	_get('favorite/create', sub {
+		$cb->(shift);
+		$class->getUserFavorites(sub{}, 'refresh')
+	}, $args);
+}
+
+sub deleteFavorite {
+	my ($class, $cb, $args) = @_;
 	
-	# wipe favorites list from the cache. Just in case.
-	_get('favorite/getUserFavorites', sub {}, {
-		_wipecache => 1
-	});
+	$args->{_use_token} = 1;
+	$args->{_nocache}   = 1;
+	
+	_get('favorite/delete', sub {
+		$cb->(shift);
+		$class->getUserFavorites(sub{}, 'refresh')
+	}, $args);
 }
 
 sub getUserPlaylists {
@@ -383,8 +395,6 @@ sub _get {
 	
 	if ($params->{_wipecache}) {
 		$cache->remove($url);
-		$cb->();
-		return;
 	}
 	
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {

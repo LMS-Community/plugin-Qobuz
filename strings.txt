@@ -67,11 +67,21 @@ PLUGIN_QOBUZ_USER_FAVORITES
 	DE	Meine Favoriten
 	EN	My favorites
 	FR	Mes favoris
+
+PLUGIN_QOBUZ_MANAGE_FAVORITES
+	DE	Favoriten verwalten
+	EN	Manage favorites
+	FR	Géstion des favoris
 	
 PLUGIN_QOBUZ_ADD_FAVORITE
 	DE	Favorit '%s' erstellen
 	EN	Add '%s' to favorites
 	FR	Ajouter '%s' à mes favoris
+
+PLUGIN_QOBUZ_REMOVE_FAVORITE
+	DE	Entferne '%s' aus Favoriten
+	EN	Remove '%s' from favorites
+	FR	Retirer '%s' des favoris
 
 PLUGIN_QOBUZ_SEARCH
 	DE	Suche '%s'
