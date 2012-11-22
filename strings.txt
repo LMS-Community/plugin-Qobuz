@@ -67,6 +67,16 @@ PLUGIN_QOBUZ_USER_FAVORITES
 	DE	Meine Favoriten
 	EN	My favorites
 	FR	Mes favoris
+	
+PLUGIN_QOBUZ_ADD_FAVORITE
+	DE	'%s' zu den Favoriten hinzufügen
+	EN	Add '%s' to favorites
+	FR	Ajouter '%s' à mes favoris
+
+PLUGIN_QOBUZ_SEARCH
+	DE	Suche '%s'
+	EN	Search '%s'
+	FR	Rechercher '%s'
 
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
 	DE	Öffentliche Wiedergabelisten

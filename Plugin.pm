@@ -92,7 +92,7 @@ sub handleFeed {
 		},{
 			name => $client->string('PLUGIN_QOBUZ_USER_FAVORITES'),
 			url  => \&QobuzUserFavorites,
-			image => 'html/images/albums.png'
+			image => 'html/images/favorites.png'
 		},{
 			name => $client->string('PLUGIN_QOBUZ_USERPLAYLISTS'),
 			url  => \&QobuzUserPlaylists,
@@ -419,6 +419,19 @@ sub QobuzPlaylistGetTracks {
 	}, $playlistId);
 }
 
+sub QobuzAddFavorite {
+	my ($client, $cb, $params, $args) = @_;
+
+	Plugins::Qobuz::API->createFavorite(sub {
+		my $result = shift;
+		$cb->({
+			text        => $result->{status},
+			showBriefly => 1,
+			nextWindow  => 'parent',
+		});
+	}, $args);
+}
+
 sub _albumItem {
 	my ($album) = @_;
 	
@@ -474,7 +487,37 @@ sub trackInfoMenu {
 	my $album  = $track->remote ? $remoteMeta->{album}  : ( $track->album ? $track->album->name : undef );
 	my $title  = $track->remote ? $remoteMeta->{title}  : $track->title;
 
-	return _objInfoHandler( $client, $artist, $album, $title );
+	my $items; 
+	
+	if ( $url =~ m|^qobuz://(.*)| ) {
+		my $trackId = $1;
+		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
+		
+		if ($trackId && $title) {
+			$items ||= [];
+			push @$items, {
+				name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
+				url  => \&QobuzAddFavorite,
+				passthrough => [{
+					track_ids => $trackId
+				}],
+				nextWindow => 'parent'
+			}
+		}
+		
+		if ($albumId && $album) {
+			$items ||= [];
+			push @$items, {
+				name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $album),
+				url  => \&QobuzAddFavorite,
+				passthrough => [{
+					album_ids => $albumId
+				}],
+			}
+		}
+	}
+	
+	return _objInfoHandler( $client, $artist, $album, $title, $items );
 }
 
 sub artistInfoMenu {
@@ -494,13 +537,13 @@ sub albumInfoMenu {
 }
 
 sub _objInfoHandler {
-	my ( $client, $artist, $album, $track ) = @_;
+	my ( $client, $artist, $album, $track, $items ) = @_;
 
-	my $items = [];
+	$items ||= [];
 
 	foreach ($artist, $album, $track) {
 		push @$items, {
-			name => $_,
+			name => cstring($client, 'PLUGIN_QOBUZ_SEARCH', $_),
 			url  => \&QobuzSearch,
 			passthrough => [{
 				q => $_,

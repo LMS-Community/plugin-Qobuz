@@ -153,6 +153,20 @@ sub getUserFavorites {
 	});
 }
 
+sub createFavorite {
+	my ($class, $cb, $args) = @_;
+	
+	$args->{_use_token} = 1;
+	$args->{_nocache}   = 1;
+	
+	_get('favorite/create', $cb, $args);
+	
+	# wipe favorites list from the cache. Just in case.
+	_get('favorite/getUserFavorites', sub {}, {
+		_wipecache => 1
+	});
+}
+
 sub getUserPlaylists {
 	my ($class, $cb, $user) = @_;
 	
@@ -366,6 +380,12 @@ sub _get {
 	$url = BASE_URL . $url . '?' . join('&', @query);
 	
 	main::DEBUGLOG && $log->debug($url);
+	
+	if ($params->{_wipecache}) {
+		$cache->remove($url);
+		$cb->();
+		return;
+	}
 	
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
 		main::DEBUGLOG && $log->debug("found cached response: " . Data::Dump::dump($cached));
