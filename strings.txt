@@ -97,3 +97,8 @@ PLUGIN_ON_QOBUZ
 	DE	Auf Qobuz
 	EN	On Qobuz
 	FR	Sur Qobuz
+
+PLUGIN_QOBUZ_NOT_RELEASED
+	DE	Tut uns leid: dieses Werk steht noch nicht zum Hören bereit. Es wird bald verfügbar sein.
+	EN	We're sorry, this work is not available for streaming just yet. It soon will be.
+	FR	Nous sommes désolés : cette œuvre n'est pas encore disponible à l'écoute. À paraître bientôt.

@@ -156,7 +156,7 @@ sub QobuzSearch {
 		my $albums = [];
 			
 		for my $album ( @{$searchResult->{albums}->{items}} ) {
-			push @$albums, _albumItem($album);
+			push @$albums, _albumItem($client, $album);
 		}
 			
 		$cb->( { 
@@ -261,7 +261,7 @@ sub QobuzGenre {
 		}
 		
 		foreach my $album ( @{$genre->{albums}->{items}} ) {
-			push @$items, _albumItem($album);
+			push @$items, _albumItem($client, $album);
 		}
 		
 		$cb->({
@@ -282,7 +282,7 @@ sub QobuzFeaturedAlbums {
 		my $items = [];
 		
 		foreach my $album ( @{$albums->{albums}->{items}} ) {
-			push @$items, _albumItem($album);
+			push @$items, _albumItem($client, $album);
 		}
 		
 		$cb->({
@@ -300,11 +300,11 @@ sub QobuzUserPurchases {
 		my $items = [];
 			
 		for my $album ( @{$searchResult->{albums}->{items}} ) {
-			push @$items, _albumItem($album);
+			push @$items, _albumItem($client, $album);
 		}
 			
 		for my $track ( @{$searchResult->{tracks}->{items}} ) {
-			push @$items, _trackItem($track);
+			push @$items, _trackItem($client, $track);
 		}
 		
 		$cb->( { 
@@ -322,11 +322,11 @@ sub QobuzUserFavorites {
 		my $items = [];
 			
 		for my $album ( @{$favorites->{albums}->{items}} ) {
-			push @$items, _albumItem($album);
+			push @$items, _albumItem($client, $album);
 		}
 			
 		for my $track ( @{$favorites->{tracks}->{items}} ) {
-			push @$items, _trackItem($track);
+			push @$items, _trackItem($client, $track);
 		}
 		
 		$cb->( { 
@@ -452,7 +452,7 @@ sub QobuzGetTracks {
 		my $tracks = [];
 	
 		foreach my $track (@{$album->{tracks}->{items}}) {
-			push @$tracks, _trackItem($track);
+			push @$tracks, _trackItem($client, $track);
 		}
 	
 		$cb->({
@@ -476,7 +476,7 @@ sub QobuzPlaylistGetTracks {
 		my $tracks = [];
 	
 		foreach my $track (@{$playlist->{tracks}->{items}}) {
-			push @$tracks, _trackItem($track);
+			push @$tracks, _trackItem($client, $track);
 		}
 	
 		$cb->({
@@ -486,20 +486,31 @@ sub QobuzPlaylistGetTracks {
 }
 
 sub _albumItem {
-	my ($album) = @_;
+	my ($client, $album) = @_;
 	
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
-
-	return {
+	
+	my $item = {
 		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
-		url   => \&QobuzGetTracks,
 		image => $album->{image}->{large},
-		passthrough => [{ 
-			album_id  => $album->{id},
-		}],
-		type  => 'playlist',
 	};
+	
+	if ($album->{released_at} > time) {
+		$item->{items} = [{
+			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
+			type => 'textarea'
+		}];
+	}
+	else {
+		$item->{type} = 'playlist';
+		$item->{url}  = \&QobuzGetTracks;
+		$item->{passthrough} = [{ 
+			album_id  => $album->{id},
+		}];
+	}
+
+	return $item;
 }
 
 sub _playlistItem {
@@ -518,19 +529,30 @@ sub _playlistItem {
 }
 
 sub _trackItem {
-	my ($track) = @_;
+	my ($client, $track) = @_;
 
 	my $artist = $track->{album}->{artist}->{name} || $track->{performer}->{name} || '';
 	my $album  = $track->{album}->{title} || '';
 
-	return {
+	my $item = {
 		name  => $track->{title},
 		name2 => $artist . ($artist && $album ? ' - ' : '') . $album,
-		play  => 'qobuz://' . $track->{id},
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
-		on_select   => 'play',
-		playall     => 1,
 	};
+
+	if (!$track->{streamable} || $track->{released_at} > time) {
+		$item->{items} = [{
+			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
+			type => 'textarea'
+		}];
+	}
+	else {
+		$item->{play}      = 'qobuz://' . $track->{id};
+		$item->{on_select} = 'play';
+		$item->{playall}   = 1;
+	}
+
+	return $item;
 }
 
 sub trackInfoMenu {
