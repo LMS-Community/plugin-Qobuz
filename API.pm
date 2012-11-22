@@ -136,6 +136,23 @@ sub getUserPurchases {
 	});
 }
 
+sub getUserFavorites {
+	my ($class, $cb) = @_;
+	
+	_get('favorite/getUserFavorites', sub {
+		my $favorites = shift; 
+		
+		_precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
+		_precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
+		
+		$cb->($favorites);
+	},{
+		limit    => 200,
+		_ttl     => USER_DATA_EXPIRY,
+		_use_token => 1,
+	});
+}
+
 sub getUserPlaylists {
 	my ($class, $cb, $user) = @_;
 	
