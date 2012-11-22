@@ -541,7 +541,13 @@ sub _objInfoHandler {
 
 	$items ||= [];
 
+	my %seen;
 	foreach ($artist, $album, $track) {
+		# prevent duplicate entries if eg. album & artist have the same name
+		next if $seen{$_};
+		
+		$seen{$_} = 1;
+		
 		push @$items, {
 			name => cstring($client, 'PLUGIN_QOBUZ_SEARCH', $_),
 			url  => \&QobuzSearch,

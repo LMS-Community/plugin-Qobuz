@@ -69,7 +69,7 @@ PLUGIN_QOBUZ_USER_FAVORITES
 	FR	Mes favoris
 	
 PLUGIN_QOBUZ_ADD_FAVORITE
-	DE	'%s' zu den Favoriten hinzufügen
+	DE	Favorit '%s' erstellen
 	EN	Add '%s' to favorites
 	FR	Ajouter '%s' à mes favoris
 
