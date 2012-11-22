@@ -540,9 +540,15 @@ sub _trackItem {
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
 
-	if (!$track->{streamable} || $track->{released_at} > time) {
+	if ($track->{released_at} > time) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
+			type => 'textarea'
+		}];
+	}
+	elsif (!$track->{streamable} || lc($track->{streamable}) eq 'sample') {
+		$item->{items} = [{
+			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
 	}
