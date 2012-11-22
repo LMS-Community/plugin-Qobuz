@@ -62,6 +62,10 @@ PLUGIN_QOBUZ_USERPLAYLISTS
 	EN	My Playlists
 	FR	Mes Listes de Lecture
 
+PLUGIN_QOBUZ_USER_FAVORITES
+	EN	My favorites
+	FR	Mes favoris
+
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
 	DE	Öffentliche Wiedergabelisten
 	EN	Public Playlists
