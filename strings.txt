@@ -107,3 +107,8 @@ PLUGIN_QOBUZ_NOT_AVAILABLE
 	DE	Tut uns leid: dieses Werk kann aus rechtlichen Gründen nicht wiedergegeben werden.
 	EN	We're sorry, this work is not available for streaming.
 	FR	Nous sommes désolés : cette œuvre n'est pas disponible à l'écoute.
+
+PLUGIN_QOBUZ_BIOGRAPHY
+	DE	Biographie
+	EN	Biography
+	FR	Biographie

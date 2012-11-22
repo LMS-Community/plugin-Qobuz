@@ -61,14 +61,25 @@ sub username {
 }
 
 sub search {
-	my ($class, $cb, $search) = @_;
+	my ($class, $cb, $search, $type) = @_;
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
-	
-	_get('search/getResults', $cb, {
-		type  => 'albums',
+
+	my $args = {
 		query => $search, 
 		limit => 200,
+	};
+	
+	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
+
+	_get('search/getResults', $cb, $args);
+}
+
+sub getArtist {
+	my ($class, $cb, $artistId) = @_;
+	
+	_get('artist/get', $cb, {
+		artist_id => $artistId
 	});
 }
 

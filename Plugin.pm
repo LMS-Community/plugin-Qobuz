@@ -142,29 +142,113 @@ sub handleFeed {
 sub QobuzSearch {
 	my ($client, $cb, $params, $args) = @_;
 	
+	$args ||= {};
 	$params->{search} ||= $args->{q};
-	
+	my $type   = lc($args->{type} || '');
 	my $search = lc($params->{search});
 		
 	Plugins::Qobuz::API->search(sub {
 		my $searchResult = shift;
 		
-		if (!$searchResult || !$searchResult->{albums}) {
+		if (!$searchResult) {
 			$cb->();
 		}
-	
+
 		my $albums = [];
-			
 		for my $album ( @{$searchResult->{albums}->{items}} ) {
+			# XXX - unfortunately the album results don't return the artist's ID
+			next if $args->{artistId} && !($album->{artist} && lc($album->{artist}->{name}) eq $search);
 			push @$albums, _albumItem($client, $album);
 		}
-			
+
+		my $artists = [];
+		for my $artist ( @{$searchResult->{artists}->{items}} ) {
+			push @$artists, _artistItem($client, $artist);
+		}
+
+		my $tracks = [];
+		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
+			push @$tracks, _trackItem($client, $track);
+		}
+
+		my $items = [];
+		
+		push @$items, {
+			name  => cstring($client, 'ALBUMS'),
+			items => $albums,
+			image => 'html/images/albums.png',
+		} if scalar @$albums;
+
+		push @$items, {
+			name  => cstring($client, 'ARTISTS'),
+			items => $artists,
+			image => 'html/images/artists.png',
+		} if scalar @$artists;
+
+		push @$items, {
+			name  => cstring($client, 'SONGS'),
+			items => $tracks,
+			image => 'html/images/playlists.png',
+		} if scalar @$tracks;
+
+		if (scalar @$items == 1) {
+			$items = $items->[0]->{items};
+		}
+
 		$cb->( { 
-			items => $albums
+			items => $items
 		} );
-	}, $search);
+	}, $search, $type);
 }
 
+sub QobuzArtist {
+	my ($client, $cb, $params, $args) = @_;
+	
+	Plugins::Qobuz::API->getArtist(sub {
+		my $artist = shift;
+		
+		if ($artist->{status} && $artist->{status} =~ /error/i) {
+			$cb->();
+		}
+		
+		my $items = [{
+			name  => cstring($client, 'ALBUMS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/artists.png',
+			passthrough => [{
+				q        => $artist->{name},
+				type     => 'albums',
+				artistId => $artist->{id}, 
+			}]
+		},{
+			name  => cstring($client, 'SONGS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				q        => $artist->{name},
+				type     => 'tracks',
+				artistId => $artist->{id}, 
+			}]
+		}];
+		
+		if ($artist->{biography}) {
+			my $images = $artist->{image} || {};
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_BIOGRAPHY'),
+				image => $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || 'html/images/artists.png',
+				items => [{
+					name => $artist->{biography}->{summary} || $artist->{biography}->{content},
+					type => 'textarea',
+				}],
+			}
+		}
+		
+		$cb->( {
+			items => $items
+		} );
+	}, $args->{artistId});
+}
 
 sub QobuzGenres {
 	my ($client, $cb, $params, $args) = @_;
@@ -511,6 +595,18 @@ sub _albumItem {
 	}
 
 	return $item;
+}
+
+sub _artistItem {
+	my ($client, $artist) = @_;
+	
+	return {
+		name  => $artist->{name},
+		url   => \&QobuzArtist,
+		passthrough => [{ 
+			artistId  => $artist->{id},
+		}],
+	};
 }
 
 sub _playlistItem {
