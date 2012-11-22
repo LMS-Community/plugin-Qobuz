@@ -90,6 +90,10 @@ sub handleFeed {
 			url  => \&QobuzUserPurchases,
 			image => 'html/images/albums.png'
 		},{
+			name => $client->string('PLUGIN_QOBUZ_USER_FAVORITES'),
+			url  => \&QobuzUserFavorites,
+			image => 'html/images/albums.png'
+		},{
 			name => $client->string('PLUGIN_QOBUZ_USERPLAYLISTS'),
 			url  => \&QobuzUserPlaylists,
 			image => 'html/images/playlists.png'
@@ -291,6 +295,28 @@ sub QobuzUserPurchases {
 	my ($client, $cb, $params, $args) = @_;
 	
 	Plugins::Qobuz::API->getUserPurchases(sub {
+		my $searchResult = shift;
+			
+		my $items = [];
+			
+		for my $album ( @{$searchResult->{albums}->{items}} ) {
+			push @$items, _albumItem($album);
+		}
+			
+		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+			push @$items, _trackItem($track);
+		}
+		
+		$cb->( { 
+			items => $items
+		} );
+	});
+}
+
+sub QobuzUserFavorites {
+	my ($client, $cb, $params, $args) = @_;
+	
+	Plugins::Qobuz::API->getUserFavorites(sub {
 		my $searchResult = shift;
 			
 		my $items = [];
