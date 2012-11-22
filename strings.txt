@@ -64,7 +64,7 @@ PLUGIN_QOBUZ_USERPLAYLISTS
 	FR	Mes Listes de Lecture
 
 PLUGIN_QOBUZ_USER_FAVORITES
-	FR	Meine Favoriten
+	DE	Meine Favoriten
 	EN	My favorites
 	FR	Mes favoris
 
