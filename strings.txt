@@ -49,6 +49,7 @@ PLUGIN_QOBUZ_PRESS
 	FR	Vu dans la Presse
 
 PLUGIN_QOBUZ_EDITOR_PICKS
+	DE	Qobuz Auswahl
 	EN	Qobuz selection
 	FR	Sélection Qobuz
 
@@ -63,6 +64,7 @@ PLUGIN_QOBUZ_USERPLAYLISTS
 	FR	Mes Listes de Lecture
 
 PLUGIN_QOBUZ_USER_FAVORITES
+	FR	Meine Favoriten
 	EN	My favorites
 	FR	Mes favoris
 
