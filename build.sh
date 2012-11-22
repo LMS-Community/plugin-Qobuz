@@ -6,6 +6,8 @@ else
 	mkdir Qobuz
 fi
 
+rm -f repo.xml
+
 cp * Qobuz/ &> /dev/null
 cp -R HTML Qobuz/
 rm -f Qobuz/*.zip Qobuz/*.sh*
@@ -18,4 +20,18 @@ zip -9vr $ZIPFILE Qobuz -x *.sh* *.zip
 
 rm -rf Qobuz/
 
-shasum $ZIPFILE
+SHA=`shasum $ZIPFILE`
+
+wget --no-check-certificate https://github.com/downloads/pierrepoulpe/SqueezeboxQobuz/repo.xml
+
+if [ -e repo.xml ]; then
+	# create updated repo.xml file
+	SHA=`echo "$SHA" | awk {'print $1'}`
+	cat repo.xml | sed -e "s/sha>.*</sha>$SHA</g" | sed -e "s/\(version=\"\)[^\"]*\(\".*\)/\1$VERSION\2/g" | sed -e "s/Qobuz-.*zip/$ZIPFILE/" > repo.new
+	mv -f repo.new repo.xml
+	cat repo.xml
+	
+	echo $ZIPFILE and an updated repo.xml have been created. Please upload.
+else
+	echo $SHA
+fi
