@@ -50,7 +50,7 @@ PLUGIN_QOBUZ_PRESS
 
 PLUGIN_QOBUZ_EDITOR_PICKS
 	DE	Qobuz Auswahl
-	EN	Qobuz selection
+	EN	Qobuz Selection
 	FR	Sélection Qobuz
 
 PLUGIN_QOBUZ_USERPURCHASES
@@ -65,13 +65,13 @@ PLUGIN_QOBUZ_USERPLAYLISTS
 
 PLUGIN_QOBUZ_USER_FAVORITES
 	DE	Meine Favoriten
-	EN	My favorites
-	FR	Mes favoris
+	EN	My Favorites
+	FR	Mes Favoris
 
 PLUGIN_QOBUZ_MANAGE_FAVORITES
 	DE	Favoriten verwalten
-	EN	Manage favorites
-	FR	Géstion des favoris
+	EN	Manage Favorites
+	FR	Gestion des Favoris
 	
 PLUGIN_QOBUZ_ADD_FAVORITE
 	DE	Favorit '%s' erstellen
