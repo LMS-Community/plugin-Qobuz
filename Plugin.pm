@@ -447,7 +447,7 @@ sub QobuzManageFavorites {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
-					track_ids => $albumId
+					album_ids => $albumId
 				}],
 				nextWindow => 'grandparent'
 			};
