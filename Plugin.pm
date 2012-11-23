@@ -405,6 +405,10 @@ sub QobuzUserFavorites {
 			
 		my $items = [];
 			
+		for my $artist ( @{$favorites->{artists}->{items}} ) {
+			push @$items, _artistItem($client, $artist, 'withIcon');
+		}
+			
 		for my $album ( @{$favorites->{albums}->{items}} ) {
 			push @$items, _albumItem($client, $album);
 		}
@@ -427,14 +431,14 @@ sub QobuzManageFavorites {
 		
 		my $items = [];
 		
-		if ( (my $title = $args->{title}) && (my $trackId = $args->{trackId}) ) {
-			my $isFavorite = grep { $_->{id} eq $trackId } @{$favorites->{tracks}->{items}};
+		if ( (my $artist = $args->{artist}) && (my $artistId = $args->{artistId}) ) {
+			my $isFavorite = grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}};
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
-					track_ids => $trackId
+					artist_ids => $artistId
 				}],
 				nextWindow => 'grandparent'
 			};
@@ -448,6 +452,19 @@ sub QobuzManageFavorites {
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
 					album_ids => $albumId
+				}],
+				nextWindow => 'grandparent'
+			};
+		}
+		
+		if ( (my $title = $args->{title}) && (my $trackId = $args->{trackId}) ) {
+			my $isFavorite = grep { $_->{id} eq $trackId } @{$favorites->{tracks}->{items}};
+
+			push @$items, {
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				passthrough => [{
+					track_ids => $trackId
 				}],
 				nextWindow => 'grandparent'
 			};
@@ -598,15 +615,19 @@ sub _albumItem {
 }
 
 sub _artistItem {
-	my ($client, $artist) = @_;
+	my ($client, $artist, $withIcon) = @_;
 	
-	return {
+	my $item = {
 		name  => $artist->{name},
 		url   => \&QobuzArtist,
 		passthrough => [{ 
 			artistId  => $artist->{id},
 		}],
 	};
+	
+	$item->{image} = 'html/images/artists.png' if $withIcon;
+	
+	return $item;
 }
 
 sub _playlistItem {
@@ -669,9 +690,15 @@ sub trackInfoMenu {
 	if ( $url =~ m|^qobuz://(.*)| ) {
 		my $trackId = $1;
 		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
+		my $artistId= $remoteMeta ? $remoteMeta->{artistId} : undef;
 		
-		if ($trackId || $albumId) {
+		if ($trackId || $albumId || $artistId) {
 			my $args = ();
+			if ($artistId && $artist) {
+				$args->{artistId} = $artistId;
+				$args->{artist}   = $artist;
+			}
+			
 			if ($trackId && $title) {
 				$args->{trackId} = $trackId;
 				$args->{title}   = $title;

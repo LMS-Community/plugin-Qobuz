@@ -68,6 +68,7 @@ sub search {
 	my $args = {
 		query => $search, 
 		limit => 200,
+		_ttl  => EDITORIAL_EXPIRY,
 	};
 	
 	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
@@ -97,6 +98,7 @@ sub getGenre {
 	_get('genre/get', $cb, {
 		genre_id => $genreId,
 		extra => 'subgenresCount,albums',
+		_ttl  => EDITORIAL_EXPIRY,
 	});
 }
 
