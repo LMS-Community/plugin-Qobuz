@@ -97,9 +97,8 @@ sub parseDirectHeaders {
 	foreach my $header (@headers) {
 		if ( $header =~ /^Content-Length:\s*(.*)/i ) {
 			$length = $1;
-			
 		}
-		elsif ( $header =~ m/^Content-Type:(mp3)/i ) {
+		elsif ( $header =~ /^Content-Type:.*(?:mp3|mpeg)/i ) {
 			$bitrate = 320_000;
 			$contentType = 'mp3';
 		}
@@ -110,9 +109,15 @@ sub parseDirectHeaders {
 	# try to calculate exact bitrate so we can display correct progress
 	my $meta = $class->getMetadataFor($client, $url);
 	my $duration = $meta->{duration};
+	
+	# sometimes we only get a 60s/mp3 sample
+	if ($meta->{streamable} && $meta->{streamable} eq 'sample' && $contentType eq 'mp3') {
+		$duration = 60;
+	}
+	
 	$song->duration($duration);
 	
-	if ($length) {
+	if ($length && $contentType eq 'flc') {
 		$bitrate = $length*8 / $duration if $meta->{duration};
 		$song->bitrate($bitrate) if $bitrate;
 	}

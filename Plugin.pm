@@ -663,7 +663,7 @@ sub _trackItem {
 			type => 'textarea'
 		}];
 	}
-	elsif (!$track->{streamable} || lc($track->{streamable}) eq 'sample') {
+	elsif (!$track->{streamable}) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
