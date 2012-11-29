@@ -322,6 +322,7 @@ sub _precacheAlbum {
 			id     => $album->{id},
 			artist => $album->{artist},
 			image  => $album->{image},
+			year   => (localtime($album->{released_at}))[5] + 1900,
 		};
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
@@ -342,14 +343,17 @@ sub _precacheTracks {
 sub _precacheTrack {
 	my ($track) = @_;
 	
+	my $album = $track->{album};
+	
 	my $meta = {
 		title    => $track->{title},
-		album    => $track->{album}->{title},
-		albumId  => $track->{album}->{id},
-		artist   => $track->{album}->{artist}->{name},
-		artistId => $track->{album}->{artist}->{id},
-		cover    => $track->{album}->{image}->{large},
+		album    => $album->{title},
+		albumId  => $album->{id},
+		artist   => $album->{artist}->{name},
+		artistId => $album->{artist}->{id},
+		cover    => $album->{image}->{large},
 		duration => $track->{duration},
+		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900,
 	};
 	
 	$cache->set('trackInfo_' . $track->{id}, $meta, DEFAULT_EXPIRY);
