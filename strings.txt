@@ -9,6 +9,11 @@ PLUGIN_QOBUZ_DESC
 	EN	Plugin to listen to Qobuz streams
 	FR	Extension pour l'écoute de flux Qobuz
 	
+PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
+	DE	Bitte geben Sie in den Server-Einstellungen unter Erweitert/Qobuz Benutzernamen und Passwort ein.
+	EN	Please enter Qobuz username and password in Server Settings/Advanced/Qobuz.
+	FR	Spécifiez votre nom d'utilisateur Qobuz dans Paramètres/Avancé/Qobuz.
+	
 PLUGIN_QOBUZ_PREFS
 	DE	Einstellungen
 	EN	Preferences

@@ -80,7 +80,7 @@ sub handleFeed {
 	my $params = $args->{params};
 	
 	$cb->({
-		items => [{
+		items => ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? [{
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
 			type => 'search',
@@ -134,7 +134,10 @@ sub handleFeed {
 			image => 'html/images/genres.png',
 			type => 'link',
 			url  => \&QobuzGenres
-		}],
+		}] : [{
+			name => cstring($client, 'PLUGIN_QOBUZ_REQUIRES_CREDENTIALS'),
+			type => 'textarea',
+		}]
 	});
 }
 
