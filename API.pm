@@ -13,6 +13,9 @@ use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recomme
 use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
 use constant USER_DATA_EXPIRY => 60 * 5;        # user want to see changes in purchases, playlists etc. ASAP
 
+use constant DEFAULT_LIMIT  => 200;
+use constant USERDATA_LIMIT => 500;				# users know how many results to expect - let's be a bit more generous :-)
+
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -67,7 +70,7 @@ sub search {
 
 	my $args = {
 		query => $search, 
-		limit => 200,
+		limit => DEFAULT_LIMIT,
 		_ttl  => EDITORIAL_EXPIRY,
 	};
 	
@@ -128,7 +131,7 @@ sub getFeaturedAlbums {
 	},{
 		type     => $type,
 		genre_id => $genreId,
-		limit    => 200,
+		limit    => DEFAULT_LIMIT,
 		_ttl     => EDITORIAL_EXPIRY,
 	});
 }
@@ -144,7 +147,7 @@ sub getUserPurchases {
 		
 		$cb->($purchases);
 	},{
-		limit    => 200,
+		limit    => USERDATA_LIMIT,
 		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
@@ -161,7 +164,7 @@ sub getUserFavorites {
 		
 		$cb->($favorites);
 	},{
-		limit    => 200,
+		limit    => USERDATA_LIMIT,
 		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
 		_wipecache => $force,
@@ -197,7 +200,7 @@ sub getUserPlaylists {
 	
 	_get('playlist/getUserPlaylists', $cb, {
 		username => $user || __PACKAGE__->username,
-		limit    => 200,
+		limit    => USERDATA_LIMIT,
 		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
@@ -208,7 +211,7 @@ sub getPublicPlaylists {
 	
 	_get('playlist/getPublicPlaylists', $cb, {
 		type  => 'last-created',
-		limit => 200,
+		limit => DEFAULT_LIMIT,
 		_ttl  => EDITORIAL_EXPIRY,
 	});
 }
