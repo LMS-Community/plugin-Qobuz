@@ -12,8 +12,8 @@
 //
 // ==/UserScript==
 
-//alert("Edit SqueezeboxQobuz.user.js before using it!"); return; // delete this line, uncomment and edit the next one
-const squeezeBoxServer = "192.168.0.19:9000";
+alert("Edit SqueezeboxQobuz.user.js before using it!"); return; // delete this line, uncomment and edit the next one
+//const squeezeBoxServer = "192.168.0.100:9000";
 const multiPlayerSuffix = ""; //"&player=04:00:20:12:45:AB"
 
 var albumIdentifier = document.querySelector('meta[itemprop="identifier"]').content.split(":")[1];
@@ -26,7 +26,7 @@ newA.href="#";
 var language = window.navigator.language.substr(0,2);
 switch (language) {
 case "fr":
-  newA.innerHTML = "avec la SqueezeBox";	break;
+	newA.innerHTML = "avec la SqueezeBox";	break;
 default:
 	newA.innerHTML = "with the SqueezeBox";	break;
 }
