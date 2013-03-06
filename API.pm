@@ -6,7 +6,7 @@ use JSON::XS::VersionOneAndTwo;
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
 
-use constant BASE_URL => 'http://player.qobuz.com/api.json/0.2/';
+use constant BASE_URL => 'http://www.qobuz.com/api.json/0.2/';
 
 use constant DEFAULT_EXPIRY   => 86400 * 30;
 use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recommendations, new releases etc.
