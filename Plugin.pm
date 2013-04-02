@@ -509,17 +509,7 @@ sub QobuzUserPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
 	Plugins::Qobuz::API->getUserPlaylists(sub {
-		my $searchResult = shift;
-			
-		my $playlists = [];
-			
-		for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
-			push @$playlists, _playlistItem($playlist);
-		}
-			
-		$cb->( { 
-			items => $playlists
-		} );
+		_playlistCallback(shift, $cb);
 	});
 }
 
@@ -527,18 +517,22 @@ sub QobuzPublicPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
 	Plugins::Qobuz::API->getPublicPlaylists(sub {
-		my $searchResult = shift;
-			
-		my $playlists = [];
-			
-		for my $playlist ( @{$searchResult} ) {
-			push @$playlists, _playlistItem($playlist, 'showOwner');
-		}
-			
-		$cb->( { 
-			items => $playlists
-		} );
+		_playlistCallback(shift, $cb, 'showOwner');
 	});
+}
+
+sub _playlistCallback {
+	my ($searchResult, $cb, $showOwner) = @_;
+			
+	my $playlists = [];
+			
+	for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
+		push @$playlists, _playlistItem($playlist, $showOwner);
+	}
+			
+	$cb->( { 
+		items => $playlists
+	} );
 }
 
 sub QobuzGetTracks {
