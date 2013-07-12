@@ -31,7 +31,7 @@ sub init { ($aid, $as) = pack('H*', $_[1]) =~ /^(\d{9})(.*)/; }
 
 sub getToken {
 	my ($class, $cb) = @_;
-	
+
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 
@@ -39,19 +39,19 @@ sub getToken {
 		$cb->($token);
 		return;
 	}
-	
+
 	_get('/user/login', sub {
 		my $result = shift;
-	
+
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
 			$cache->set('token', -1, 30);
 			return $cb->();
 		}
-	
+
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-	
+
 		$cb->($token);
 	},{
 		username => $username,
@@ -65,15 +65,15 @@ sub username {
 
 sub search {
 	my ($class, $cb, $search, $type) = @_;
-	
+
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 
 	my $args = {
-		query => $search, 
+		query => $search,
 		limit => DEFAULT_LIMIT,
 		_ttl  => EDITORIAL_EXPIRY,
 	};
-	
+
 	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
 
 	_get('search/getResults', $cb, $args);
@@ -81,7 +81,7 @@ sub search {
 
 sub getArtist {
 	my ($class, $cb, $artistId) = @_;
-	
+
 	_get('artist/get', $cb, {
 		artist_id => $artistId
 	});
@@ -89,7 +89,7 @@ sub getArtist {
 
 sub getGenres {
 	my ($class, $cb, $genreId) = @_;
-	
+
 	_get('genre/list', $cb, {
 		parent_id => $genreId
 	});
@@ -97,7 +97,7 @@ sub getGenres {
 
 sub getGenre {
 	my ($class, $cb, $genreId) = @_;
-	
+
 	_get('genre/get', $cb, {
 		genre_id => $genreId,
 		extra => 'subgenresCount,albums',
@@ -107,12 +107,12 @@ sub getGenre {
 
 sub getAlbum {
 	my ($class, $cb, $albumId) = @_;
-	
+
 	_get('album/get', sub {
 		my $album = shift;
-	
+
 		_precacheAlbum([$album]) if $album;
-		
+
 		$cb->($album);
 	},{
 		album_id => $albumId,
@@ -121,12 +121,12 @@ sub getAlbum {
 
 sub getFeaturedAlbums {
 	my ($class, $cb, $type, $genreId) = @_;
-	
+
 	_get('album/getFeatured', sub {
 		my $albums = shift;
-	
+
 		_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
-		
+
 		$cb->($albums);
 	},{
 		type     => $type,
@@ -138,13 +138,13 @@ sub getFeaturedAlbums {
 
 sub getUserPurchases {
 	my ($class, $cb) = @_;
-	
+
 	_get('purchase/getUserPurchases', sub {
-		my $purchases = shift; 
-		
+		my $purchases = shift;
+
 		_precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
 		_precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
-		
+
 		$cb->($purchases);
 	},{
 		limit    => USERDATA_LIMIT,
@@ -155,13 +155,13 @@ sub getUserPurchases {
 
 sub getUserFavorites {
 	my ($class, $cb, $force) = @_;
-	
+
 	_get('favorite/getUserFavorites', sub {
-		my ($favorites) = @_; 
-		
+		my ($favorites) = @_;
+
 		_precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
 		_precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
-		
+
 		$cb->($favorites);
 	},{
 		limit    => USERDATA_LIMIT,
@@ -173,10 +173,10 @@ sub getUserFavorites {
 
 sub createFavorite {
 	my ($class, $cb, $args) = @_;
-	
+
 	$args->{_use_token} = 1;
 	$args->{_nocache}   = 1;
-	
+
 	_get('favorite/create', sub {
 		$cb->(shift);
 		$class->getUserFavorites(sub{}, 'refresh')
@@ -185,10 +185,10 @@ sub createFavorite {
 
 sub deleteFavorite {
 	my ($class, $cb, $args) = @_;
-	
+
 	$args->{_use_token} = 1;
 	$args->{_nocache}   = 1;
-	
+
 	_get('favorite/delete', sub {
 		$cb->(shift);
 		$class->getUserFavorites(sub{}, 'refresh')
@@ -197,7 +197,7 @@ sub deleteFavorite {
 
 sub getUserPlaylists {
 	my ($class, $cb, $user) = @_;
-	
+
 	_get('playlist/getUserPlaylists', $cb, {
 		username => $user || __PACKAGE__->username,
 		limit    => USERDATA_LIMIT,
@@ -208,7 +208,7 @@ sub getUserPlaylists {
 
 sub getPublicPlaylists {
 	my ($class, $cb) = @_;
-	
+
 	_get('playlist/getPublicPlaylists', $cb, {
 		type  => 'last-created',
 		limit => DEFAULT_LIMIT,
@@ -221,9 +221,9 @@ sub getPlaylistTracks {
 
 	_get('playlist/get', sub {
 		my $tracks = shift;
-		
+
 		_precacheTracks($tracks->{tracks}->{items});
-		
+
 		$cb->($tracks);
 	},{
 		playlist_id => $playlistId,
@@ -241,18 +241,18 @@ sub getTrackInfo {
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
 	}
-	
+
 	my $meta = $cache->get('trackInfo_' . $trackId);
-	
+
 	if ($meta) {
 		$cb->($meta);
 		return $meta;
 	}
-	
+
 	_get('track/get', sub {
 		my $meta = shift;
 		$meta = _precacheTrack($meta) if $meta;
-		
+
 		$cb->($meta);
 	},{
 		track_id => $trackId
@@ -272,27 +272,27 @@ sub getFileInfo {
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
 	}
-	
+
 	my $preferredFormat = $prefs->get('preferredFormat');
-	
+
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
 		$cb->($cached);
 		return $cached
 	}
-	
+
 	_get('track/getFileUrl', sub {
 		my $track = shift;
-	
+
 		if ($track) {
 			my $url = delete $track->{url};
-	
+
 			# cache urls for a short time only
 			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, URL_EXPIRY);
 			$cache->set("trackId_$url", $trackId, DEFAULT_EXPIRY);
 			$cache->set("fileInfo_${trackId}_$preferredFormat", $track, DEFAULT_EXPIRY);
 			$track = $url if $urlOnly;
 		}
-		
+
 		$cb->($track);
 	},{
 		track_id   => $trackId,
@@ -312,14 +312,14 @@ sub getCachedFileInfo {
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
 	}
-	
+
 	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
 }
 
 sub _precacheAlbum {
 	my ($albums) = @_;
-	
-	foreach my $album (@$albums) { 
+
+	foreach my $album (@$albums) {
 		my $albumInfo = {
 			title  => $album->{title},
 			id     => $album->{id},
@@ -331,13 +331,13 @@ sub _precacheAlbum {
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$track->{album} = $albumInfo;
 			_precacheTrack($track);
-		}		
+		}
 	}
 }
 
 sub _precacheTracks {
 	my ($tracks) = @_;
-	
+
 	foreach my $track (@$tracks) {
 		_precacheTrack($track)
 	}
@@ -345,9 +345,9 @@ sub _precacheTracks {
 
 sub _precacheTrack {
 	my ($track) = @_;
-	
+
 	my $album = $track->{album};
-	
+
 	my $meta = {
 		title    => $track->{title},
 		album    => $album->{title},
@@ -358,15 +358,15 @@ sub _precacheTrack {
 		duration => $track->{duration},
 		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900,
 	};
-	
+
 	$cache->set('trackInfo_' . $track->{id}, $meta, DEFAULT_EXPIRY);
-	
+
 	return $meta;
 }
 
 sub _get {
 	my ( $url, $cb, $params ) = @_;
-	
+
 	# need to get a token first?
 	if (delete $params->{_use_token}) {
 		__PACKAGE__->getToken(sub {
@@ -376,23 +376,23 @@ sub _get {
 		});
 		return;
 	}
-	
+
 	$params ||= {};
-	
+
 	my @query;
 	while (my ($k, $v) = each %$params) {
 		next if $k =~ /^_/;		# ignore keys starting with an underscore
 		push @query, $k . '=' . uri_escape_utf8($v);
 	}
-	
+
 	push @query, "app_id=$aid";
-	
+
 	# signed requests - see
 	# https://github.com/Qobuz/api-documentation#signed-requests-authentification-
 	if ($params->{_sign}) {
 		my $signature = $url;
 		$signature =~ s/\///;
-		
+
 		$signature .= join('', sort map {
 			my $v = $_;
 			$v =~ s/=//;
@@ -400,23 +400,23 @@ sub _get {
 		} grep {
 			$_ !~ /(?:app_id|user_auth_token)/
 		} @query);
-		
+
 		my $ts = time;
 		$signature = md5_hex($signature . $ts . $as);
-		
+
 		push @query, "request_ts=$ts", "request_sig=$signature";
-		
-		$params->{_nocache} = 1; 
+
+		$params->{_nocache} = 1;
 	}
-	
+
 	$url = BASE_URL . $url . '?' . join('&', @query);
-	
+
 	main::DEBUGLOG && $log->debug($url);
-	
+
 	if ($params->{_wipecache}) {
 		$cache->remove($url);
 	}
-	
+
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
 		main::DEBUGLOG && $log->debug("found cached response: " . Data::Dump::dump($cached));
 		$cb->($cached);
@@ -426,12 +426,12 @@ sub _get {
 	my $http = Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
-			
+
 			my $result = eval { from_json($response->content) };
-				
+
 			$@ && $log->error($@);
 			main::DEBUGLOG && $log->debug(Data::Dump::dump($result));
-			
+
 			if ($result && !$params->{_nocache}) {
 				$cache->set($url, $result, $params->{_ttl} || DEFAULT_EXPIRY);
 			}
