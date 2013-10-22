@@ -228,6 +228,7 @@ sub getPlaylistTracks {
 	},{
 		playlist_id => $playlistId,
 		extra       => 'tracks',
+		limit       => USERDATA_LIMIT,
 		_ttl        => USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
