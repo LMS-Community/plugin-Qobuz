@@ -21,13 +21,18 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
-my $cache = Slim::Utils::Cache->new('qobuz', 4);
+my $cache = Slim::Utils::Cache->new('qobuz', 5);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
 my ($aid, $as);
 
-sub init { ($aid, $as) = pack('H*', $_[1]) =~ /^(\d{9})(.*)/; }
+sub init {
+	my $class = shift;
+	$class->getToken();
+
+	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
+}
 
 sub getToken {
 	my ($class, $cb) = @_;
@@ -36,8 +41,8 @@ sub getToken {
 	my $password = $prefs->get('password_md5_hash');
 
 	if (my $token = $cache->get('token_' . $username . $password)) {
-		$cb->($token);
-		return;
+		$cb->($token) if $cb;
+		return $token;
 	}
 	
 	_get('/user/login', sub {
@@ -46,17 +51,20 @@ sub getToken {
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
 			$cache->set('token', -1, 30);
-			return $cb->();
+			$cb->() if $cb;
+			return;
 		}
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
 	
-		$cb->($token);
+		$cb->($token) if $cb;
 	},{
 		username => $username,
 		password => $password,
 	});
+	
+	return;
 }
 
 sub username {
@@ -369,14 +377,20 @@ sub _get {
 	my ( $url, $cb, $params ) = @_;
 	
 	# need to get a token first?
-	if (delete $params->{_use_token}) {
-		__PACKAGE__->getToken(sub {
-			# we'll back later to finish the original call...
-			$params->{user_auth_token} = shift;
-			_get($url, $cb, $params)
-		});
-		return;
+	my $token = '';
+	
+	if ($url ne '/user/login') {
+		$token = __PACKAGE__->getToken();
+		if ( !$token ) {
+			__PACKAGE__->getToken(sub {
+				# we'll back later to finish the original call...
+				_get($url, $cb, $params)
+			});
+			return;
+		}
 	}
+
+	$params->{user_auth_token} = $token if delete $params->{_use_token};
 	
 	$params ||= {};
 	
@@ -410,7 +424,7 @@ sub _get {
 		$params->{_nocache} = 1; 
 	}
 	
-	$url = BASE_URL . $url . '?' . join('&', @query);
+	$url = BASE_URL . $url . '?' . join('&', sort @query);
 	
 	main::DEBUGLOG && $log->debug($url);
 	
@@ -424,7 +438,7 @@ sub _get {
 		return;
 	}
 
-	my $http = Slim::Networking::SimpleAsyncHTTP->new(
+	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
 			
@@ -446,7 +460,7 @@ sub _get {
 		{
 			timeout => 15,
 		},
-	)->get($url);
+	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
 }
 
 1;
