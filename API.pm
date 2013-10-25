@@ -426,7 +426,11 @@ sub _get {
 	
 	$url = BASE_URL . $url . '?' . join('&', sort @query);
 	
-	main::DEBUGLOG && $log->debug($url);
+	if (main::DEBUGLOG && $log->is_debug) {
+		my $data = $url;
+		$data =~ s/(?:$aid|$token)//g;
+		$log->debug($data);
+	}
 	
 	if ($params->{_wipecache}) {
 		$cache->remove($url);
