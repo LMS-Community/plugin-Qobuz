@@ -29,9 +29,10 @@ my ($aid, $as);
 
 sub init {
 	my $class = shift;
-	$class->getToken();
-
 	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
+	
+	# try to get a token if needed - pass empty callback to make it look it up anyway
+	$class->getToken(sub {});
 }
 
 sub getToken {
@@ -39,13 +40,18 @@ sub getToken {
 	
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
+	
+	if ( !($username && $password) ) {
+		$cb->() if $cb;
+		return;
+	}
 
-	if (my $token = $cache->get('token_' . $username . $password)) {
+	if ( (my $token = $cache->get('token_' . $username . $password)) || !$cb ) {
 		$cb->($token) if $cb;
 		return $token;
 	}
 	
-	_get('/user/login', sub {
+	_get('user/login', sub {
 		my $result = shift;
 	
 		my $token;
@@ -379,13 +385,19 @@ sub _get {
 	# need to get a token first?
 	my $token = '';
 	
-	if ($url ne '/user/login') {
+	if ($url ne 'user/login') {
 		$token = __PACKAGE__->getToken();
 		if ( !$token ) {
-			__PACKAGE__->getToken(sub {
-				# we'll back later to finish the original call...
-				_get($url, $cb, $params)
-			});
+			if ( $prefs->get('username') && $prefs->get('password_md5_hash') ) {
+				__PACKAGE__->getToken(sub {
+					# we'll get back later to finish the original call...
+					_get($url, $cb, $params)
+				});
+			}
+			else {
+				$log->error('No or invalid username/password available');
+				$cb->();
+			}
 			return;
 		}
 	}
@@ -458,7 +470,14 @@ sub _get {
 			$cb->($result);
 		},
 		sub {
-			$log->warn("Error: $_[1]");
+			my ($http, $error) = @_;
+			
+			# login failed due to invalid username/password: delete password
+			if ($error =~ /^401/ && $http->url =~ m|user/login|i) {
+				$prefs->remove('password_md5_hash');
+			}
+
+			$log->warn("Error: $error");
 			$cb->();
 		},
 		{
