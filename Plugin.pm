@@ -10,7 +10,6 @@ use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string cstring);
 
 use Plugins::Qobuz::API;
-use Plugins::Qobuz::Settings;
 use Plugins::Qobuz::ProtocolHandler;
 
 my $prefs = preferences('plugin.qobuz');
@@ -26,7 +25,10 @@ use constant PLUGIN_TAG => 'qobuz';
 sub initPlugin {
 	my $class = shift;
 	
-	Plugins::Qobuz::Settings->new if main::WEBUI;
+	if (main::WEBUI) {
+		require Plugins::Qobuz::Settings;
+		Plugins::Qobuz::Settings->new();
+	}
 	
 	Plugins::Qobuz::API->init(
 		$class->_pluginDataFor('aid')
