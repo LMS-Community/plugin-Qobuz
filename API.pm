@@ -90,7 +90,7 @@ sub search {
 	
 	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
 
-	_get('search/getResults', $cb, $args);
+	_get('catalog/search', $cb, $args);
 }
 
 sub getArtist {
