@@ -88,44 +88,44 @@ sub handleFeed {
 			type => 'search',
 			url  => \&QobuzSearch
 		},{
-			name => $client->string('PLUGIN_QOBUZ_USERPURCHASES'),
+			name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
 			url  => \&QobuzUserPurchases,
 			image => 'html/images/albums.png'
 		},{
-			name => $client->string('PLUGIN_QOBUZ_USER_FAVORITES'),
+			name => cstring($client, 'PLUGIN_QOBUZ_USER_FAVORITES'),
 			url  => \&QobuzUserFavorites,
 			image => 'html/images/favorites.png'
 		},{
-			name => $client->string('PLUGIN_QOBUZ_USERPLAYLISTS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_USERPLAYLISTS'),
 			url  => \&QobuzUserPlaylists,
 			image => 'html/images/playlists.png'
 		},{
-			name => $client->string('PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
 			url  => \&QobuzPublicPlaylists,
 			image => 'html/images/playlists.png'
 		},{
-			name => $client->string('PLUGIN_QOBUZ_BESTSELLERS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
 				type    => 'best-sellers',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_NEW_RELEASES'),
+			name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
 				type    => 'new-releases',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_PRESS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
 				type    => 'press-awards',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_EDITOR_PICKS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -305,7 +305,7 @@ sub QobuzGenre {
 		}
 		
 		my $items = [{
-			name => $client->string('PLUGIN_QOBUZ_BESTSELLERS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -313,7 +313,7 @@ sub QobuzGenre {
 				type    => 'best-sellers',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_NEW_RELEASES'),
+			name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -321,7 +321,7 @@ sub QobuzGenre {
 				type    => 'new-releases',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_PRESS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -329,7 +329,7 @@ sub QobuzGenre {
 				type    => 'press-awards',
 			}]
 		},{
-			name => $client->string('PLUGIN_QOBUZ_EDITOR_PICKS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -340,7 +340,7 @@ sub QobuzGenre {
 	
 		if ($genre->{subgenresCount}) {
 			push @$items, {
-				name => $client->string('PLUGIN_QOBUZ_SUB_GENRES'),
+				name => cstring($client, 'PLUGIN_QOBUZ_SUB_GENRES'),
 				url  => \&QobuzGenres,
 				image => 'html/images/genres.png',
 				passthrough => [{
