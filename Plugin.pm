@@ -428,8 +428,9 @@ sub QobuzUserFavorites {
 		}
 		
 		push @$items, {
-			name => "artists",
+			name => cstring($client, 'ARTISTS'),
 			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @artists ],
+			image => 'html/images/artists.png',
 		} if @artists;
 
 		my @albums;
@@ -438,8 +439,9 @@ sub QobuzUserFavorites {
 		}
 		
 		push @$items, {
-			name => "albums",
+			name => cstring($client, 'ALBUMS'),
 			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @albums ],
+			image => 'html/images/albums.png',
 		} if @albums;
 			
 		my @tracks;
@@ -448,8 +450,9 @@ sub QobuzUserFavorites {
 		}
 		
 		push @$items, {
-			name => "trackss",
+			name => cstring($client, 'SONGS'),
 			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @tracks ],
+			image => 'html/images/playlists.png',
 		} if @tracks;
 		
 		$cb->( { 
