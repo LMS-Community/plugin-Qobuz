@@ -56,7 +56,7 @@ sub resolveUrl {
 	}, $args->{title}, 'tracks');
 }
 
-# XXX - what to do here?
+# dealt with in Plugins::SmartMix::Services->getTrackIdFromUrl
 sub urlToId {}
 
 1;

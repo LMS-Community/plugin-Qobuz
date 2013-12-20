@@ -421,18 +421,36 @@ sub QobuzUserFavorites {
 		my $favorites = shift;
 			
 		my $items = [];
-			
+		
+		my @artists;
 		for my $artist ( @{$favorites->{artists}->{items}} ) {
-			push @$items, _artistItem($client, $artist, 'withIcon');
+			push @artists, _artistItem($client, $artist, 'withIcon');
 		}
-			
+		
+		push @$items, {
+			name => "artists",
+			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @artists ],
+		} if @artists;
+
+		my @albums;
 		for my $album ( @{$favorites->{albums}->{items}} ) {
-			push @$items, _albumItem($client, $album);
+			push @albums, _albumItem($client, $album);
 		}
+		
+		push @$items, {
+			name => "albums",
+			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @albums ],
+		} if @albums;
 			
+		my @tracks;
 		for my $track ( @{$favorites->{tracks}->{items}} ) {
-			push @$items, _trackItem($client, $track);
+			push @tracks, _trackItem($client, $track);
 		}
+		
+		push @$items, {
+			name => "trackss",
+			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @tracks ],
+		} if @tracks;
 		
 		$cb->( { 
 			items => $items

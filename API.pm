@@ -11,7 +11,7 @@ use constant BASE_URL => 'http://www.qobuz.com/api.json/0.2/';
 use constant DEFAULT_EXPIRY   => 86400 * 30;
 use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recommendations, new releases etc.
 use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
-use constant USER_DATA_EXPIRY => 60 * 5;        # user want to see changes in purchases, playlists etc. ASAP
+use constant USER_DATA_EXPIRY => 60;            # user want to see changes in purchases, playlists etc. ASAP
 
 use constant DEFAULT_LIMIT  => 200;
 use constant USERDATA_LIMIT => 500;				# users know how many results to expect - let's be a bit more generous :-)
@@ -212,7 +212,15 @@ sub deleteFavorite {
 sub getUserPlaylists {
 	my ($class, $cb, $user) = @_;
 	
-	_get('playlist/getUserPlaylists', $cb, {
+	_get('playlist/getUserPlaylists', sub {
+		my $playlists = shift;
+		
+		$playlists->{playlists}->{items} = [ sort { 
+			lc($a->{name}) cmp lc($b->{name}) 
+		} @{$playlists->{playlists}->{items}} ];
+		
+		$cb->($playlists);
+	}, {
 		username => $user || __PACKAGE__->username,
 		limit    => USERDATA_LIMIT,
 		_ttl     => USER_DATA_EXPIRY,
