@@ -12,7 +12,7 @@ rm -f repo.xml*
 
 cp * Qobuz/ &> /dev/null
 cp -R HTML Qobuz/
-rm -f Qobuz/*.zip Qobuz/*.sh*
+rm -f Qobuz/*.zip Qobuz/*.sh* Qobuz/*.js
 
 VERSION=`grep -o -E "version>(.*)</ver" install.xml | grep -o -E "[0-9]\.[0-9]+"`
 
