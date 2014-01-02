@@ -98,7 +98,8 @@ sub getArtist {
 	
 	_get('artist/get', $cb, {
 		artist_id => $artistId,
-		extra     => 'albums'
+		extra     => 'albums',
+		limit     => DEFAULT_LIMIT,
 	});
 }
 
