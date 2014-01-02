@@ -97,7 +97,8 @@ sub getArtist {
 	my ($class, $cb, $artistId) = @_;
 	
 	_get('artist/get', $cb, {
-		artist_id => $artistId
+		artist_id => $artistId,
+		extra     => 'albums'
 	});
 }
 

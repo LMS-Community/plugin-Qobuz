@@ -62,7 +62,7 @@ sub initPlugin {
 	
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	
-	if ( Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
+	if ( 0 && Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
 		eval {
 			require Plugins::SmartMix::Services;
 		};
@@ -70,7 +70,7 @@ sub initPlugin {
 		if (!$@) {
 			main::INFOLOG && $log->info("SmartMix plugin is available - let's use it!");
 			require Plugins::Qobuz::SmartMix;
-			Plugins::SmartMix::Services->registerHandler('Plugins::Qobuz::SmartMix');
+			Plugins::SmartMix::Services->registerHandler('Plugins::Qobuz::SmartMix', 'Qobuz');
 		}
 	}
 	
@@ -258,6 +258,19 @@ sub QobuzArtist {
 					name => $artist->{biography}->{summary} || $artist->{biography}->{content},
 					type => 'textarea',
 				}],
+			}
+		}
+
+		# use album list if it was returned in the artist lookup
+		if ($artist->{albums}) {
+			my $albums = [];
+			for my $album ( @{$artist->{albums}->{items}} ) {
+				push @$albums, _albumItem($client, $album);
+			}
+			
+			if (@$albums) {
+				$items->[0]->{items} = $albums;
+				delete $items->[0]->{url};
 			}
 		}
 		
@@ -628,6 +641,11 @@ sub _albumItem {
 		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
 		image => $album->{image}->{large},
 	};
+	
+	if ($albumName) {
+		$item->{line1} = $albumName;
+		$item->{line2} = $artist;
+	}
 	
 	if ($album->{released_at} > time) {
 		$item->{items} = [{
