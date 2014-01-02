@@ -21,6 +21,7 @@ my $log = Slim::Utils::Log->addLogCategory( {
 } );
 
 use constant PLUGIN_TAG => 'qobuz';
+use constant CAN_IMAGEPROXY => (Slim::Utils::Versions->compareVersions($::VERSION, '7.8.0') >= 0);
 
 sub initPlugin {
 	my $class = shift;
@@ -72,6 +73,15 @@ sub initPlugin {
 			require Plugins::Qobuz::SmartMix;
 			Plugins::SmartMix::Services->registerHandler('Plugins::Qobuz::SmartMix', 'Qobuz');
 		}
+	}
+
+	# "Local Artwork" requires LMS 7.8+, as it's using its imageproxy.
+	if (CAN_IMAGEPROXY) {
+		require Slim::Web::ImageProxy;
+		Slim::Web::ImageProxy->registerHandler(
+			match => qr/static\.qobuz\.com/,
+			func  => \&_imgProxy,
+		);
 	}
 	
 	$class->SUPER::initPlugin(
@@ -865,5 +875,26 @@ sub cliQobuzPlayAlbum {
 
 	$request->setStatusDone();
 }
+
+
+sub _imgProxy { if (CAN_IMAGEPROXY) {
+	my ($url, $spec) = @_;
+	
+	#main::DEBUGLOG && $log->debug("Artwork for $url, $spec");
+
+	# https://github.com/Qobuz/api-documentation#album-cover-sizes
+	my $size = Slim::Web::ImageProxy->getRightSize($spec, {
+		50 => 50,
+		160 => 160,
+		300 => 300,
+		600 => 600
+	}) || 'max';
+
+	$url =~ s/(\d{13}_)[\dmax]+(.jpg)/$1$size$2/ if $size;
+	
+	#main::DEBUGLOG && $log->debug("Artwork file url is '$url'");
+
+	return $url;
+} }
 
 1;
