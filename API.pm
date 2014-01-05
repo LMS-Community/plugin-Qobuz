@@ -459,7 +459,7 @@ sub _get {
 	}
 	
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
-		main::DEBUGLOG && $log->debug("found cached response: " . Data::Dump::dump($cached));
+		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
 		$cb->($cached);
 		return;
 	}
@@ -471,7 +471,7 @@ sub _get {
 			my $result = eval { from_json($response->content) };
 				
 			$@ && $log->error($@);
-			main::DEBUGLOG && $url !~ /getFileUrl/i && $log->debug(Data::Dump::dump($result));
+			main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i && $log->debug(Data::Dump::dump($result));
 			
 			if ($result && !$params->{_nocache}) {
 				$cache->set($url, $result, $params->{_ttl} || DEFAULT_EXPIRY);
