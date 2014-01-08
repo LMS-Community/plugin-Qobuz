@@ -835,11 +835,36 @@ sub _objInfoHandler {
 
 sub searchMenu {
 	my ( $client, $tags ) = @_;
+
+	my $searchParam = $tags->{search};
 	
 	return {
 		name => cstring($client, getDisplayName()),
-		url  => \&QobuzSearch,
-		search => $tags->{search},
+		items => [{
+			name  => cstring($client, 'ALBUMS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/albums.png',
+			passthrough => [{
+				q        => $searchParam,
+				type     => 'albums',
+			}],
+		},{
+			name  => cstring($client, 'ARTISTS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/artists.png',
+			passthrough => [{
+				q        => $searchParam,
+				type     => 'artists',
+			}],
+		},{
+			name  => cstring($client, 'SONGS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				q        => $searchParam,
+				type     => 'tracks',
+			}],
+		}]
 	};
 }
 
