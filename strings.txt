@@ -117,3 +117,8 @@ PLUGIN_QOBUZ_BIOGRAPHY
 	DE	Biographie
 	EN	Biography
 	FR	Biographie
+
+PLUGIN_QOBUZ_SIMILAR_ARTISTS
+	DE	Ähnliche Interpreten
+	EN	Similar Artists
+	FR	Artistes similaires

@@ -190,7 +190,7 @@ sub QobuzSearch {
 
 		my $artists = [];
 		for my $artist ( @{$searchResult->{artists}->{items}} ) {
-			push @$artists, _artistItem($client, $artist);
+			push @$artists, _artistItem($client, $artist, 1);
 		}
 
 		my $tracks = [];
@@ -242,7 +242,7 @@ sub QobuzArtist {
 		my $items = [{
 			name  => cstring($client, 'ALBUMS'),
 			url   => \&QobuzSearch,
-			image => 'html/images/artists.png',
+			image => 'html/images/albums.png',
 			passthrough => [{
 				q        => $artist->{name},
 				type     => 'albums',
@@ -263,9 +263,9 @@ sub QobuzArtist {
 			my $images = $artist->{image} || {};
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_BIOGRAPHY'),
-				image => $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || 'html/images/artists.png',
+				image => $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png',
 				items => [{
-					name => $artist->{biography}->{summary} || $artist->{biography}->{content},
+					name => $artist->{biography}->{content}, # $artist->{biography}->{summary} || 
 					type => 'textarea',
 				}],
 			}
@@ -283,6 +283,33 @@ sub QobuzArtist {
 				delete $items->[0]->{url};
 			}
 		}
+		
+		push @$items, {
+			name => cstring($client, 'PLUGIN_QOBUZ_SIMILAR_ARTISTS'),
+			image => 'html/images/artists.png',
+			url => sub {
+				my ($client, $cb, $params, $args) = @_;
+				
+				Plugins::Qobuz::API->getSimilarArtists(sub {
+					my $searchResult = shift;
+					
+					my $items = [];
+					
+					$cb->() unless $searchResult;
+			
+					for my $artist ( @{$searchResult->{artists}->{items}} ) {
+						push @$items, _artistItem($client, $artist, 1);
+					}
+			
+					$cb->( { 
+						items => $items
+					} );
+				}, $args->{artistId});
+			},
+			passthrough => [{ 
+				artistId  => $artist->{id},
+			}],
+		};
 		
 		$cb->( {
 			items => $items
@@ -685,7 +712,7 @@ sub _artistItem {
 		}],
 	};
 	
-	$item->{image} = 'html/images/artists.png' if $withIcon;
+	$item->{image} = $artist->{picture} || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png' if $withIcon;
 	
 	return $item;
 }

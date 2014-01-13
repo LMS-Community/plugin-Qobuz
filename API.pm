@@ -78,28 +78,71 @@ sub username {
 }
 
 sub search {
-	my ($class, $cb, $search, $type) = @_;
+	my ($class, $cb, $search, $type, $limit) = @_;
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 
 	my $args = {
 		query => $search, 
-		limit => DEFAULT_LIMIT,
+		limit => $limit || DEFAULT_LIMIT,
 		_ttl  => EDITORIAL_EXPIRY,
 	};
 	
 	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
 
-	_get('catalog/search', $cb, $args);
+	_get('catalog/search', sub {
+		my $results = shift;
+		
+		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		
+		$cb->($results);
+	}, $args);
 }
 
 sub getArtist {
 	my ($class, $cb, $artistId) = @_;
 	
-	_get('artist/get', $cb, {
+	_get('artist/get', sub {
+		my $results = shift;
+		
+		_precacheArtistPictures([
+			{ id => $artistId, picture => $results->{image}->{small} },
+			{ id => $artistId, picture => $results->{image}->{medium} },
+			{ id => $artistId, picture => $results->{image}->{large} },
+			{ id => $artistId, picture => $results->{image}->{extralarge} },
+			{ id => $artistId, picture => $results->{image}->{mega} },
+		]) if $results && $results->{image};
+		
+		$cb->($results) if $cb;
+	}, {
 		artist_id => $artistId,
 		extra     => 'albums',
 		limit     => DEFAULT_LIMIT,
+	});
+}
+
+sub getArtistPicture {
+	my ($class, $artistId) = @_;
+	
+	my $url = $cache->get('artistpicture_' . $artistId) || '';
+
+	$class->getArtist(undef, $artistId) unless $url;
+	
+	return $url;
+}
+
+sub getSimilarArtists {
+	my ($class, $cb, $artistId) = @_;
+	
+	_get('artist/getSimilarArtists', sub {
+		my $results = shift;
+		
+		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		
+		$cb->($results);
+	}, {
+		artist_id => $artistId,
+		limit     => 100,	# max. is 100
 	});
 }
 
@@ -357,6 +400,21 @@ sub _precacheAlbum {
 			$track->{album} = $albumInfo;
 			_precacheTrack($track);
 		}		
+	}
+}
+
+sub _precacheArtistPictures {
+	my ($artists) = @_;
+	
+	return unless $artists && ref $artists eq 'ARRAY';
+	
+	foreach my $artist (@$artists) {
+		if ($artist->{picture}) {
+			$cache->set('artistpicture_' . $artist->{id}, $artist->{picture}, -1);
+		}
+		else {
+			__PACKAGE__->getArtist(undef, $artist->{id});
+		}
 	}
 }
 
