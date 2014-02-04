@@ -6,7 +6,6 @@ use base qw(Slim::Plugin::OPMLBased);
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 use lib catdir($Bin, 'Plugins', 'Qobuz', 'lib');
-use Text::Levenshtein qw(fastdistance);
 
 use JSON::XS::VersionOneAndTwo;
 use URI::Escape qw(uri_escape_utf8);
@@ -30,6 +29,16 @@ use Slim::Utils::Prefs;
 my $cache = Slim::Utils::Cache->new('qobuz', 5);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
+
+my $fastdistance = sub { 0 };
+eval {
+	require Text::Levenshtein;
+	$fastdistance = sub { Text::Levenshtein::fastdistance(@_); };
+};
+
+if ($@) {
+	$log->error('Failed to load Text::Levenshtein module: ' . $@);
+} 
 
 my ($aid, $as);
 
@@ -108,9 +117,11 @@ sub search {
 		
 		if ( $results->{artists}->{items} ) {
 			$results->{artists}->{items} = [ sort { 
-				fastdistance($search, lc($a->{name})) <=> fastdistance($search, lc($b->{name})) 
+				$fastdistance->($search, lc($a->{name})) <=> $fastdistance->($search, lc($b->{name})) 
 			} @{$results->{artists}->{items}} ];
 		}
+		
+		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 		
 		if ( $results->{albums}->{items} ) {
 			$results->{albums}->{items} = [ sort { 
@@ -121,7 +132,7 @@ sub search {
 				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
 				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
 				
-				fastdistance($search, $titleA) <=> fastdistance($search, $titleB) 
+				$fastdistance->($search, $titleA) <=> $fastdistance->($search, $titleB) 
 			} @{$results->{albums}->{items}} ];
 		}
 		
@@ -134,8 +145,8 @@ sub search {
 				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
 				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
 				
-				my $dA = fastdistance($search, $titleA);
-				my $dB = fastdistance($search, $titleB);
+				my $dA = $fastdistance->($search, $titleA);
+				my $dB = $fastdistance->($search, $titleB);
 				
 				# sort tracks by popularity if the name is identical
 				if ($dA == $dB && $a->{album} && $b->{album}) {
@@ -145,8 +156,6 @@ sub search {
 				return $dA <=> $dB;
 			} @{$results->{tracks}->{items}} ];
 		}
-		
-		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 		
 		$cache->set($key, $results, 300);
 		
@@ -180,7 +189,7 @@ sub getArtistPicture {
 	
 	my $url = $cache->get('artistpicture_' . $artistId) || '';
 
-	$class->getArtist(undef, $artistId) unless $url;
+	_precacheArtistPictures([{ id => $artistId }]) unless $url;
 	
 	return $url;
 }
