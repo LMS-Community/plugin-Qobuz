@@ -146,7 +146,7 @@ sub search {
 			} @{$results->{tracks}->{items}} ];
 		}
 		
-#		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 		
 		$cache->set($key, $results, 300);
 		
@@ -160,13 +160,12 @@ sub getArtist {
 	_get('artist/get', sub {
 		my $results = shift;
 		
-		_precacheArtistPictures([
-			{ id => $artistId, picture => $results->{image}->{small} },
-			{ id => $artistId, picture => $results->{image}->{medium} },
-			{ id => $artistId, picture => $results->{image}->{large} },
-			{ id => $artistId, picture => $results->{image}->{extralarge} },
-			{ id => $artistId, picture => $results->{image}->{mega} },
-		]) if $results && $results->{image};
+		if ( $results && (my $images = $results->{image}) ) {
+			my $pic = $images->{mega} || $images->{extralarge} || $images->{large} || $images->{large} || $images->{medium} || $images->{small};
+			_precacheArtistPictures([
+				{ id => $artistId, picture => $pic }
+			]) if $pic;
+		}
 		
 		$cb->($results) if $cb;
 	}, {
@@ -458,18 +457,33 @@ sub _precacheAlbum {
 	}
 }
 
+my @artistsToLookUp;
+my $artistLookup;
 sub _precacheArtistPictures {
 	my ($artists) = @_;
 	
 	return unless $artists && ref $artists eq 'ARRAY';
 	
 	foreach my $artist (@$artists) {
+		my $key = 'artistpicture_' . $artist->{id};
 		if ($artist->{picture}) {
-			$cache->set('artistpicture_' . $artist->{id}, $artist->{picture}, -1);
+			$cache->set($key, $artist->{picture}, -1);
 		}
-		else {
-			__PACKAGE__->getArtist(undef, $artist->{id});
+		elsif (!$cache->get($key)) {
+			push @artistsToLookUp, $artist->{id};
 		}
+	}
+	
+	_lookupArtistPicture() if @artistsToLookUp && !$artistLookup;
+}
+
+sub _lookupArtistPicture {
+	if ( !scalar @artistsToLookUp ) {
+		$artistLookup = 0;
+	}
+	else {
+		$artistLookup = 1;
+		__PACKAGE__->getArtist(\&_lookupArtistPicture, shift @artistsToLookUp);
 	}
 }
 
