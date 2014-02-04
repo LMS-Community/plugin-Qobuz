@@ -2,6 +2,12 @@ package Plugins::Qobuz::API;
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
+
+use File::Spec::Functions qw(catdir);
+use FindBin qw($Bin);
+use lib catdir($Bin, 'Plugins', 'Qobuz', 'lib');
+use Text::Levenshtein qw(fastdistance);
+
 use JSON::XS::VersionOneAndTwo;
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
@@ -81,6 +87,13 @@ sub search {
 	my ($class, $cb, $search, $type, $limit) = @_;
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
+	
+	my $key = 'search_' . $search . '_' . $type;
+	
+	if ( my $cached = $cache->get($key) ) {
+		$cb->($cached);
+		return;
+	}
 
 	my $args = {
 		query => $search, 
@@ -93,7 +106,49 @@ sub search {
 	_get('catalog/search', sub {
 		my $results = shift;
 		
-		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		if ( $results->{artists}->{items} ) {
+			$results->{artists}->{items} = [ sort { 
+				fastdistance($search, lc($a->{name})) <=> fastdistance($search, lc($b->{name})) 
+			} @{$results->{artists}->{items}} ];
+		}
+		
+		if ( $results->{albums}->{items} ) {
+			$results->{albums}->{items} = [ sort { 
+				my $titleA = lc($a->{title});
+				my $titleB = lc($b->{title});
+				
+				# remove any trailing "Remix" etc.
+				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
+				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
+				
+				fastdistance($search, $titleA) <=> fastdistance($search, $titleB) 
+			} @{$results->{albums}->{items}} ];
+		}
+		
+		if ( $results->{tracks}->{items} ) {
+			$results->{tracks}->{items} = [ sort { 
+				my $titleA = lc($a->{title});
+				my $titleB = lc($b->{title});
+				
+				# remove any trailing "Remix" etc.
+				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
+				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
+				
+				my $dA = fastdistance($search, $titleA);
+				my $dB = fastdistance($search, $titleB);
+				
+				# sort tracks by popularity if the name is identical
+				if ($dA == $dB && $a->{album} && $b->{album}) {
+					return $b->{album}->{popularity} <=> $a->{album}->{popularity};
+				}
+				
+				return $dA <=> $dB;
+			} @{$results->{tracks}->{items}} ];
+		}
+		
+#		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		
+		$cache->set($key, $results, 300);
 		
 		$cb->($results);
 	}, $args);

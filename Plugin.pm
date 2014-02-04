@@ -182,19 +182,19 @@ sub QobuzSearch {
 		}
 
 		my $albums = [];
-		for my $album ( @{$searchResult->{albums}->{items}} ) {
+		for my $album ( @{$searchResult->{albums}->{items} || []} ) {
 			# XXX - unfortunately the album results don't return the artist's ID
 			next if $args->{artistId} && !($album->{artist} && lc($album->{artist}->{name}) eq $search);
 			push @$albums, _albumItem($client, $album);
 		}
 
 		my $artists = [];
-		for my $artist ( @{$searchResult->{artists}->{items}} ) {
+		for my $artist ( @{$searchResult->{artists}->{items} || []} ) {
 			push @$artists, _artistItem($client, $artist, 1);
 		}
 
 		my $tracks = [];
-		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+		for my $track ( @{$searchResult->{tracks}->{items} || []} ) {
 			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
 			push @$tracks, _trackItem($client, $track);
 		}
