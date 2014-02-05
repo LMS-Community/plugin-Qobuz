@@ -199,14 +199,14 @@ sub _weightedPopularity {
 	my $popularity = $album->{popularity};
 	$popularity *= 0.90 if $album->{title} =~ /(?:mix|rmx|edit|karaoke|originally)/i;
 	$popularity *= 0.90 if $album->{title} =~ /(?:made famous)/i;
-	$popularity *= 0.90 if $album->{genre}->{slug} =~ /(?:electro|lounge|disco|dance)/i;
+	$popularity *= 0.90 if $album->{genre}->{slug} =~ /(?:electro|lounge|disco|dance|techno)/i;
 	$popularity *= 0.80 if $album->{genre}->{slug} =~ /(?:series|divers|bandes-origininales|soundtrack)/i;
 	$popularity *= 0.95 if $album->{tracks_count} >= 20;
 	$popularity *= 0.95 if $album->{tracks_count} >= 40;
 	$popularity *= 0.95 if $album->{title} =~ /vol.*\d/;
 	$popularity *= 0.80 if $album->{label}->{albums_count} > 500;
 	$popularity *= 0.60 if $album->{label}->{albums_count} > 1000;
-	$popularity *= 0.80 if $album->{artist}->{slug} =~ /(?:various)/i;
+	$popularity *= 0.80 if $album->{artist}->{slug} =~ /(?:various|divers)/i;
 	
 	return $popularity;
 }

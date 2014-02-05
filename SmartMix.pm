@@ -32,17 +32,19 @@ sub resolveUrl {
 		}
 
 		my $candidates = [];
+		my $searchArtist = $args->{artist};
 		
 		for my $track ( @{$searchResult->{tracks}->{items}} ) {
 			next unless $track->{performer} && $track->{id} && $track->{title};
 			
-			my $artist = $track->{performer}->{name};
+			my $artist = '';
 			
-			$artist = $track->{album}->{artist}->{name} if !$artist && $track->{album} && $track->{album}->{artist};
+			$artist = $track->{album}->{artist}->{name} if $track->{album} && $track->{album}->{artist};
+			$artist = $track->{performer}->{name} if $artist !~ /\Q$searchArtist\E/i;
 			
 			next unless $artist;
 
-			next if $track->{released_at} > time || !$track->{streamable};
+			next if $track->{released_at} > time || (!$track->{streamable} && !$prefs->get('playSamples'));
 			
 			push @$candidates, {
 				title  => $track->{title},
