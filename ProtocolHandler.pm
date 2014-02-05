@@ -51,14 +51,19 @@ sub scanUrl {
 sub getFormatForURL {
 	my ($class, $url) = @_;
 	
-	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
+	my ($id, $type) = $class->crackUrl($url);
+	
+	if ($type =~ /^(flac|mp3)$/) {
+		$type =~ s/flac/flc/;
+		return $type;
+	}
 
 	my $info = Plugins::Qobuz::API->getCachedFileInfo($id || $url);
 	
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 	
-	# fallback to configured setting - we'll hopefully fix this once we got full metadata
-	return $prefs->get('preferredFormat') == 6 ? 'flc' : 'mp3';
+	# fall back to whatever the user can play
+	return $class->getStreamingFormat();
 }
 
 sub canDirectStreamSong {
@@ -129,7 +134,7 @@ sub parseDirectHeaders {
 sub getMetadataFor {
 	my ( $class, $client, $url ) = @_;
 
-	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
+	my ($id) = $class->crackUrl($url);
 	$id ||= $url; 
 
 	my $meta;
@@ -147,7 +152,10 @@ sub getMetadataFor {
 	}
 	
 	$meta ||= {};
-	$meta->{type} = $class->getFormatForURL($url);
+	if ($meta->{mime_type} =~ /(fla?c|mp)/) {
+		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
+	}
+	$meta->{type} ||= $class->getFormatForURL($url);
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? 320_000 : 750_000;
 	
 	return $meta;
@@ -156,10 +164,10 @@ sub getMetadataFor {
 sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 	
-	my $url    = $song->currentTrack()->url;
+	my $url = $song->currentTrack()->url;
 	
 	# Get next track
-	my ($id) = $url =~ m{^qobuz://([^\.]+)$};
+	my ($id) = $class->crackUrl($url);
 	
 	Plugins::Qobuz::API->getFileInfo(sub {
 		my $streamData = shift;
@@ -175,6 +183,54 @@ sub getNextTrack {
 		
 		$errorCb->('Failed to get next track', 'Qobuz');
 	}, $id);
+}
+
+sub getUrl {
+	my ($class, $id) = @_;
+	
+	return '' unless $id;
+	
+	my $ext = $class->getStreamingFormat($id);
+
+	$id = $id->{id} if $id && ref $id eq 'HASH';
+	
+	return 'qobuz://' . $id . '.' . $ext;
+}
+
+sub crackUrl {
+	my ($class, $url) = @_;
+	
+	return unless $url;
+	
+	my ($id, $format) = $url =~ m{^qobuz://(.+?)\.(mp3|flac)$};
+	
+	# compatibility with old urls without extension
+	($id) = $url =~ m{^qobuz://([^\.]+)$} unless $id;
+	
+	return ($id, $format || 'flac');
+}
+
+# figure out what streaming format we can use
+# - check preference
+# - fall back to mp3 samples if not streamable
+# - check user's subscription level
+sub getStreamingFormat {
+	my ($class, $track) = @_;
+	
+	# shortcut if user prefers mp3 over flac anyway
+	return 'mp3' unless $prefs->get('preferredFormat') == 6;
+	
+	my $ext = 'flac';
+
+	my $credential = Plugins::Qobuz::API->getCredentials;
+	if (!$credential || $credential ne 'streaming-lossless' ) {
+		$ext = 'mp3';
+	}
+	elsif ($track && ref $track eq 'HASH') {
+		$ext = 'mp3' unless $track->{streamable};
+	}
+	
+	return $ext;
 }
 
 sub audioScrobblerSource {

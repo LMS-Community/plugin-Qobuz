@@ -196,7 +196,7 @@ sub QobuzSearch {
 		my $tracks = [];
 		for my $track ( @{$searchResult->{tracks}->{items} || []} ) {
 			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
-			push @$tracks, _trackItem($client, $track);
+			push @$tracks, _trackItem($client, $track, $params->{isWeb});
 		}
 
 		my $items = [];
@@ -720,11 +720,15 @@ sub _artistItem {
 sub _playlistItem {
 	my ($playlist, $showOwner) = @_;
 	
+	my $image = (($playlist->{images} && ref $playlist->{images} eq 'ARRAY') ? $playlist->{images}->[0] : '') || 'html/images/playlists.png';
+	# get large copy of covers by default
+	$image =~ s/(\d{13}_)[\d]+(\.jpg)/${1}600$2/;
+	
 	return {
 		name  => $playlist->{name},
 		name2 => $showOwner ? $playlist->{owner}->{name} : undef,
 		url   => \&QobuzPlaylistGetTracks,
-		image => 'html/images/playlists.png',
+		image => $image,
 		passthrough => [{ 
 			playlist_id  => $playlist->{id},
 		}],
@@ -733,13 +737,13 @@ sub _playlistItem {
 }
 
 sub _trackItem {
-	my ($client, $track) = @_;
+	my ($client, $track, $isWeb) = @_;
 
 	my $artist = $track->{album}->{artist}->{name} || $track->{performer}->{name} || '';
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {
-		name  => $track->{title},
+		name  => $track->{title} . ($isWeb && $artist ? " - $artist" : ''),
 		name2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
@@ -750,14 +754,14 @@ sub _trackItem {
 			type => 'textarea'
 		}];
 	}
-	elsif (!$track->{streamable}) {
+	elsif (!$track->{streamable} && !$prefs->get('playSamples')) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
 	}
 	else {
-		$item->{play}      = 'qobuz://' . $track->{id};
+		$item->{play}      = Plugins::Qobuz::ProtocolHandler->getUrl($track);
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;
 	}
@@ -774,8 +778,7 @@ sub trackInfoMenu {
 
 	my $items;
 	
-	if ( $url =~ m|^qobuz://(.*)| ) {
-		my $trackId = $1;
+	if ( my ($trackId) = Plugins::Qobuz::ProtocolHandler->crackUrl($url) ) {
 		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
 		my $artistId= $remoteMeta ? $remoteMeta->{artistId} : undef;
 		
@@ -919,7 +922,7 @@ sub cliQobuzPlayAlbum {
 		my $tracks = [];
 	
 		foreach my $track (@{$album->{tracks}->{items}}) {
-			push @$tracks, 'qobuz://' . $track->{id};
+			push @$tracks, Plugins::Qobuz::ProtocolHandler->getUrl($track);
 		}
 	
 		$client->execute( ["playlist", "playtracks", "listref", $tracks] );
@@ -942,7 +945,7 @@ sub _imgProxy { if (CAN_IMAGEPROXY) {
 		600 => 600
 	}) || 'max';
 
-	$url =~ s/(\d{13}_)[\dmax]+(.jpg)/$1$size$2/ if $size;
+	$url =~ s/(\d{13}_)[\dmax]+(\.jpg)/$1$size$2/ if $size;
 	
 	#main::DEBUGLOG && $log->debug("Artwork file url is '$url'");
 

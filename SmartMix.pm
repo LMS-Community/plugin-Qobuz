@@ -47,7 +47,7 @@ sub resolveUrl {
 			push @$candidates, {
 				title  => $track->{title},
 				artist => $artist,
-				url    => 'qobuz://' . $track->{id},
+				url    => Plugins::Qobuz::ProtocolHandler->getUrl($track),
 			};
 		}
 

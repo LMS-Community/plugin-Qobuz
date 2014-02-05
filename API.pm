@@ -26,7 +26,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
-my $cache = Slim::Utils::Cache->new('qobuz', 5);
+my $cache = Slim::Utils::Cache->new('qobuz', 6);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -71,13 +71,15 @@ sub getToken {
 	
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
-			$cache->set('token', -1, 30);
+			# is this ever used anywhere?
+#			$cache->set('token', -1, 30);
 			$cb->() if $cb;
 			return;
 		}
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
+		$cache->set('credential', $result->{credential}->{label}, DEFAULT_EXPIRY * 2) if $result->{credential};
 	
 		$cb->($token) if $cb;
 	},{
@@ -86,6 +88,10 @@ sub getToken {
 	});
 	
 	return;
+}
+
+sub getCredentials {
+	return $cache->get('credential');
 }
 
 sub username {
