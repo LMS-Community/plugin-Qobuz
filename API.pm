@@ -101,6 +101,8 @@ sub username {
 sub search {
 	my ($class, $cb, $search, $type, $limit) = @_;
 	
+	$search = lc($search);
+	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 	
 	my $key = 'search_' . $search . '_' . $type;
@@ -122,8 +124,26 @@ sub search {
 		my $results = shift;
 		
 		if ( $results->{artists}->{items} ) {
-			$results->{artists}->{items} = [ sort { 
-				$fastdistance->($search, lc($a->{name})) <=> $fastdistance->($search, lc($b->{name})) 
+			my %seen;
+			
+			# filter out duplicates etc.
+			$results->{artists}->{items} = [ grep {
+				!($seen{lc($_->{name})}++ && !$_->{album_count})
+			} sort { 
+				my $nameA = lc($a->{name});
+				my $nameB = lc($b->{name});
+				
+				my $dA = $fastdistance->($search, $nameA);
+				my $dB = $fastdistance->($search, $nameB);
+				
+				# sort tracks by popularity if the name is identical
+				if ($dA == $dB && defined $a->{album_count} && defined $b->{album_count}) {
+					return $b->{album_count} <=> $a->{album_count};
+				}
+				
+				return $dA <=> $dB;
+			} grep {
+				$_->{name} =~ /\Q$search\E/i;
 			} @{$results->{artists}->{items}} ];
 		}
 		
@@ -139,6 +159,8 @@ sub search {
 				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
 				
 				$fastdistance->($search, $titleA) <=> $fastdistance->($search, $titleB) 
+			} grep {
+				$_->{title} =~ /\Q$search\E/i || ($_->{artist} && (lc($_->{artist}->{name}) || '') eq $search)
 			} @{$results->{albums}->{items}} ];
 		}
 		
@@ -148,18 +170,20 @@ sub search {
 				my $titleB = lc($b->{title});
 				
 				# remove any trailing "Remix" etc.
-				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
-				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
+				$titleA =~ s/ [(\[][^(\[]*[)\]]$// if $titleA !~ /(?:mix|rmx|edit|karaoke)/i;
+				$titleB =~ s/ [(\[][^(\[]*[)\]]$// if $titleB !~ /(?:mix|rmx|edit|karaoke)/i;
 				
 				my $dA = $fastdistance->($search, $titleA);
 				my $dB = $fastdistance->($search, $titleB);
 				
 				# sort tracks by popularity if the name is identical
 				if ($dA == $dB && $a->{album} && $b->{album}) {
-					return $b->{album}->{popularity} <=> $a->{album}->{popularity};
+					return _weightedPopularity($b->{album}) <=> _weightedPopularity($a->{album});
 				}
 				
 				return $dA <=> $dB;
+			} grep {
+				$_->{title} =~ /\Q$search\E/i;
 			} @{$results->{tracks}->{items}} ];
 		}
 		
@@ -167,6 +191,24 @@ sub search {
 		
 		$cb->($results);
 	}, $args);
+}
+
+sub _weightedPopularity {
+	my ($album) = @_;
+	
+	my $popularity = $album->{popularity};
+	$popularity *= 0.90 if $album->{title} =~ /(?:mix|rmx|edit|karaoke|originally)/i;
+	$popularity *= 0.90 if $album->{title} =~ /(?:made famous)/i;
+	$popularity *= 0.90 if $album->{genre}->{slug} =~ /(?:electro|lounge|disco|dance)/i;
+	$popularity *= 0.80 if $album->{genre}->{slug} =~ /(?:series|divers|bandes-origininales|soundtrack)/i;
+	$popularity *= 0.95 if $album->{tracks_count} >= 20;
+	$popularity *= 0.95 if $album->{tracks_count} >= 40;
+	$popularity *= 0.95 if $album->{title} =~ /vol.*\d/;
+	$popularity *= 0.80 if $album->{label}->{albums_count} > 500;
+	$popularity *= 0.60 if $album->{label}->{albums_count} > 1000;
+	$popularity *= 0.80 if $album->{artist}->{slug} =~ /(?:various)/i;
+	
+	return $popularity;
 }
 
 sub getArtist {
