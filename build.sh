@@ -11,8 +11,8 @@ fi
 rm -f repo.xml*
 
 cp * Qobuz/ &> /dev/null
-cp -R HTML Qobuz/
-rm -f Qobuz/*.zip Qobuz/*.sh* Qobuz/*.js
+cp -R HTML lib Qobuz/
+rm -f Qobuz/*.zip Qobuz/*.sh* Qobuz/*.js Qobuz/.DS_store Qobuz/lib/.DS_store Qobuz/lib/Text/.DS_store
 
 VERSION=`grep -o -E "version>(.*)</ver" install.xml | grep -o -E "[0-9]\.[0-9]+"`
 
