@@ -230,7 +230,7 @@ sub QobuzSearch {
 		$cb->( { 
 			items => $items
 		} );
-	}, $search, $type);
+	}, $search, $type, undef, $args->{artistId} ? 0 : undef);
 }
 
 sub QobuzArtist {
