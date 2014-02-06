@@ -7,11 +7,17 @@
 	[% WRAPPER settingSection %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" value="[% prefs.password_md5_hash %]" size="20" />[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_FORMAT" desc="" %]
 						<select name="preferredFormat" id="preferredFormat"> 
 						  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >MP3 320 kbps </option>
 						  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >FLAC 16 bits / 44.1 kHz</option>
 						</select>	
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_FILTER_SEARCH" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_filterSearchResults %]checked [% END %] class="stdedit" name="pref_filterSearchResults" id="pref_filterSearchResults" value="1" />
+			<label for="pref_filterSearchResults" class="stdlabel">[% "PLUGIN_QOBUZ_FILTER_SEARCH_DESC" | string %]</label>
 		[% END %]
 	[% END %]
 

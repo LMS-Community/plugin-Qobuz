@@ -99,13 +99,14 @@ sub username {
 }
 
 sub search {
-	my ($class, $cb, $search, $type, $limit) = @_;
+	my ($class, $cb, $search, $type, $limit, $filter) = @_;
 	
 	$search = lc($search);
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 	
-	my $key = 'search_' . $search . '_' . $type;
+	$filter = ($prefs->get('filterSearchResults') || 0) unless defined $filter;
+	my $key = "search_${search}_${type}_$filter";
 	
 	if ( my $cached = $cache->get($key) ) {
 		$cb->($cached);
@@ -123,25 +124,22 @@ sub search {
 	_get('catalog/search', sub {
 		my $results = shift;
 		
-		if ( $results->{artists}->{items} ) {
+		if ( $filter && $results->{artists}->{items} ) {
 			my %seen;
 			
 			# filter out duplicates etc.
 			$results->{artists}->{items} = [ grep {
 				!($seen{lc($_->{name})}++ && !$_->{album_count})
 			} sort { 
-				my $nameA = lc($a->{name});
-				my $nameB = lc($b->{name});
-				
-				my $dA = $fastdistance->($search, $nameA);
-				my $dB = $fastdistance->($search, $nameB);
-				
 				# sort tracks by popularity if the name is identical
-				if ($dA == $dB && defined $a->{album_count} && defined $b->{album_count}) {
+				if ($a->{sortName} eq $b->{sortName} && defined $a->{album_count} && defined $b->{album_count}) {
 					return $b->{album_count} <=> $a->{album_count};
 				}
 				
-				return $dA <=> $dB;
+				return $fastdistance->($search, $a->{sortName}) <=> $fastdistance->($search, $b->{sortName});
+			} map {
+				$_->{sortName} = lc($_->{name});
+				$_;
 			} grep {
 				$_->{name} =~ /\Q$search\E/i;
 			} @{$results->{artists}->{items}} ];
@@ -149,39 +147,32 @@ sub search {
 		
 		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 		
-		if ( $results->{albums}->{items} ) {
+		if ( $filter && $results->{albums}->{items} ) {
 			$results->{albums}->{items} = [ sort { 
-				my $titleA = lc($a->{title});
-				my $titleB = lc($b->{title});
-				
-				# remove any trailing "Remix" etc.
-				$titleA =~ s/ [(\[][^(\[]*[)\]]$//;
-				$titleB =~ s/ [(\[][^(\[]*[)\]]$//;
-				
-				$fastdistance->($search, $titleA) <=> $fastdistance->($search, $titleB) 
+				$fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle}) 
+			} map {
+				# lower case and remove any trailing "Remix" etc.
+				$_->{sortTitle} = lc($_->{title});
+				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$//;
+				$_;
 			} grep {
 				$_->{title} =~ /\Q$search\E/i || ($_->{artist} && (lc($_->{artist}->{name}) || '') eq $search)
 			} @{$results->{albums}->{items}} ];
 		}
 		
-		if ( $results->{tracks}->{items} ) {
+		if ( $filter && $results->{tracks}->{items} ) {
 			$results->{tracks}->{items} = [ sort { 
-				my $titleA = lc($a->{title});
-				my $titleB = lc($b->{title});
-				
-				# remove any trailing "Remix" etc.
-				$titleA =~ s/ [(\[][^(\[]*[)\]]$// if $titleA !~ /(?:mix|rmx|edit|karaoke)/i;
-				$titleB =~ s/ [(\[][^(\[]*[)\]]$// if $titleB !~ /(?:mix|rmx|edit|karaoke)/i;
-				
-				my $dA = $fastdistance->($search, $titleA);
-				my $dB = $fastdistance->($search, $titleB);
-				
 				# sort tracks by popularity if the name is identical
-				if ($dA == $dB && $a->{album} && $b->{album}) {
+				if ($a->{sortTitle} eq $b->{sortTitle} && $a->{album} && $b->{album}) {
 					return _weightedPopularity($b->{album}) <=> _weightedPopularity($a->{album});
 				}
 				
-				return $dA <=> $dB;
+				return $fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle});
+			} map {
+				# lower case and remove any trailing "Remix" etc.
+				$_->{sortTitle} = lc($_->{title});
+				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$// if $_->{sortTitle} !~ /(?:mix|rmx|edit|karaoke)/i;
+				$_;
 			} grep {
 				$_->{title} =~ /\Q$search\E/i;
 			} @{$results->{tracks}->{items}} ];

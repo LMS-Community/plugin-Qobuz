@@ -55,7 +55,7 @@ sub resolveUrl {
 
 		$cb->( Plugins::SmartMix::Services->getUrlFromCandidates($candidates, $args) );
 
-	}, $args->{title}, 'tracks');
+	}, $args->{title}, 'tracks', undef, 1);
 }
 
 # dealt with in Plugins::SmartMix::Services->getTrackIdFromUrl

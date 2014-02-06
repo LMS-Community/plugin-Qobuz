@@ -14,6 +14,10 @@ use Plugins::Qobuz::ProtocolHandler;
 
 my $prefs = preferences('plugin.qobuz');
 
+$prefs->init({
+	filterSearchResults => 1,
+});
+
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.qobuz',
 	defaultLevel => 'ERROR',
@@ -63,7 +67,7 @@ sub initPlugin {
 	
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	
-	if ( 0 && Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
+	if ( $prefs->get('enableSmartmix') && Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
 		eval {
 			require Plugins::SmartMix::Services;
 		};

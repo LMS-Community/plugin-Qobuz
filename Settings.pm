@@ -24,6 +24,10 @@ sub page {
 	return Slim::Web::HTTP::CSRF->protectURI('plugins/Qobuz/settings/basic.html');
 }
 
+sub prefs {
+	return ($prefs, 'filterSearchResults');
+}
+
 sub handler {
 	my ($class, $client, $params) = @_;
 	

@@ -122,3 +122,14 @@ PLUGIN_QOBUZ_SIMILAR_ARTISTS
 	DE	Ähnliche Interpreten
 	EN	Similar Artists
 	FR	Artistes similaires
+
+PLUGIN_QOBUZ_FILTER_SEARCH
+	DE	Suchresultate filtern
+	EN	Filter search results
+	FR	Trier les résultats des recherches
+	
+PLUGIN_QOBUZ_FILTER_SEARCH_DESC
+	DE	Qobuz Suchresultate sind leider häufig unübersichtlich und unlogisch sortiert. Das Plugin kann versuchen, dies zu verbessern. Allerdings kann dies auf langsamen Servern die Antwortzeit verlängern.
+	EN	Qobuz search results often are confusing and poorly sorted. This plugin can try to improve the situation. But this comes at a cost: on slower systems you might experience a performance hit.
+	FR	Les recherches sur Qobuz souvent rendent des listes assez troublantes. Cette extension essaye d'améliorer la situations. Sur des systèmes peu performants ce processus peut ralentir le service.
+	
