@@ -246,6 +246,7 @@ sub QobuzArtist {
 		
 		my $items = [{
 			name  => cstring($client, 'ALBUMS'),
+			# placeholder URL - please see below for albums returned in the artist query
 			url   => \&QobuzSearch,
 			image => 'html/images/albums.png',
 			passthrough => [{
@@ -279,10 +280,23 @@ sub QobuzArtist {
 		# use album list if it was returned in the artist lookup
 		if ($artist->{albums}) {
 			my $albums = [];
+			
+			my $sortByDate = (preferences('server')->get('jivealbumsort') || '') eq 'artflow';
+			$artist->{albums}->{items} = [ sort {
+				
+				# push singles and EPs down the list
+				if ( ($a->{tracks_count} >= 4 && $b->{tracks_count} < 4) || ($a->{tracks_count} < 4 && $b->{tracks_count} >=4) ) {
+					return $b->{tracks_count} <=> $a->{tracks_count};
+				}
+				
+				return $a->{released_at}*1 <=> $b->{released_at}*1 if $sortByDate;
+				
+			} @{$artist->{albums}->{items} || []} ];
+
 			for my $album ( @{$artist->{albums}->{items}} ) {
+				next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
 				push @$albums, _albumItem($client, $album);
 			}
-			
 			if (@$albums) {
 				$items->[0]->{items} = $albums;
 				delete $items->[0]->{url};
