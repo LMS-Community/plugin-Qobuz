@@ -25,7 +25,7 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, 'filterSearchResults');
+	return ($prefs, 'filterSearchResults', 'playSamples');
 }
 
 sub handler {

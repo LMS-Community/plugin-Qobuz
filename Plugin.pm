@@ -17,6 +17,7 @@ my $prefs = preferences('plugin.qobuz');
 $prefs->init({
 	preferredFormat => 6,
 	filterSearchResults => 1,
+	playSamples => 1,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -282,6 +283,7 @@ sub QobuzArtist {
 			my $albums = [];
 			
 			my $sortByDate = (preferences('server')->get('jivealbumsort') || '') eq 'artflow';
+
 			$artist->{albums}->{items} = [ sort {
 				
 				# push singles and EPs down the list
@@ -290,6 +292,7 @@ sub QobuzArtist {
 				}
 				
 				return $a->{released_at}*1 <=> $b->{released_at}*1 if $sortByDate;
+				return lc($a->{title}) cmp lc($b->{title});
 				
 			} @{$artist->{albums}->{items} || []} ];
 
@@ -703,17 +706,21 @@ sub _albumItem {
 		$item->{line2} = $artist;
 	}
 	
-	if ($album->{released_at} > time) {
-		$item->{items} = [{
-			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
-			type => 'textarea'
-		}];
+	if ( $album->{released_at} > time  || (!$album->{streamable} && !$prefs->get('playSamples')) ) {
+		my $sorry = ' (' . cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE') . ')';
+		$item->{name}  .= $sorry;
+		$item->{line2} .= $sorry;
+		delete $item->{type};
+		$item->{type} = 'text';
+		delete $item->{url};
 	}
 	else {
-		$item->{type} = 'playlist';
-		$item->{url}  = \&QobuzGetTracks;
+		$item->{name}        = '* ' . $item->{name} if !$album->{streamable};
+		$item->{line1}       = '* ' . $item->{line1} if !$album->{streamable};
+		$item->{type}        = 'playlist';
+		$item->{url}         = \&QobuzGetTracks;
 		$item->{passthrough} = [{ 
-			album_id  => $album->{id},
+			album_id => $album->{id},
 		}];
 	}
 
@@ -763,7 +770,8 @@ sub _trackItem {
 
 	my $item = {
 		name  => $track->{title} . ($isWeb && $artist ? " - $artist" : ''),
-		name2 => $artist . ($artist && $album ? ' - ' : '') . $album,
+		line1 => $track->{title},
+		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
 
@@ -780,6 +788,8 @@ sub _trackItem {
 		}];
 	}
 	else {
+		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
+		$item->{line1}     = '* ' . $item->{line1} if !$track->{streamable};
 		$item->{play}      = Plugins::Qobuz::ProtocolHandler->getUrl($track);
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;

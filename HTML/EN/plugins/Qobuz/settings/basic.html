@@ -19,6 +19,11 @@
 			<input type="checkbox" [% IF prefs.pref_filterSearchResults %]checked [% END %] class="stdedit" name="pref_filterSearchResults" id="pref_filterSearchResults" value="1" />
 			<label for="pref_filterSearchResults" class="stdlabel">[% "PLUGIN_QOBUZ_FILTER_SEARCH_DESC" | string %]</label>
 		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PLAY_SAMPLES" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
+			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>
+		[% END %]
 	[% END %]
 
 [% PROCESS settings/footer.html %]

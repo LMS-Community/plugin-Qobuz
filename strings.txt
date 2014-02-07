@@ -132,4 +132,13 @@ PLUGIN_QOBUZ_FILTER_SEARCH_DESC
 	DE	Qobuz Suchresultate sind leider häufig unübersichtlich und unlogisch sortiert. Das Plugin kann versuchen, dies zu verbessern. Allerdings kann dies auf langsamen Servern die Antwortzeit verlängern.
 	EN	Qobuz search results often are confusing and poorly sorted. This plugin can try to improve the situation. But this comes at a cost: on slower systems you might experience a performance hit.
 	FR	Les recherches sur Qobuz souvent rendent des listes assez troublantes. Cette extension essaye d'améliorer la situations. Sur des systèmes peu performants ce processus peut ralentir le service.
-	
+
+PLUGIN_QOBUZ_PLAY_SAMPLES
+	DE	Hörproben wiedergeben
+	EN	Play samples
+	FR	Écouter les extraits
+
+PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
+	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
+	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
+	FR	Certeins album sont uniquement disponible à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes?
