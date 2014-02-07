@@ -63,7 +63,7 @@ sub getFormatForURL {
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 	
 	# fall back to whatever the user can play
-	return $class->getStreamingFormat();
+	return Plugins::Qobuz::API->getStreamingFormat();
 }
 
 sub canDirectStreamSong {
@@ -167,7 +167,7 @@ sub getNextTrack {
 	my $url = $song->currentTrack()->url;
 	
 	# Get next track
-	my ($id) = $class->crackUrl($url);
+	my ($id, $format) = $class->crackUrl($url);
 	
 	Plugins::Qobuz::API->getFileInfo(sub {
 		my $streamData = shift;
@@ -177,12 +177,12 @@ sub getNextTrack {
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
 				$successCb->();
-			}, $id);
+			}, $id, $format);
 			return;
 		}
 		
 		$errorCb->('Failed to get next track', 'Qobuz');
-	}, $id);
+	}, $id, $format);
 }
 
 sub getUrl {
@@ -190,7 +190,7 @@ sub getUrl {
 	
 	return '' unless $id;
 	
-	my $ext = $class->getStreamingFormat($id);
+	my $ext = Plugins::Qobuz::API->getStreamingFormat($id);
 
 	$id = $id->{id} if $id && ref $id eq 'HASH';
 	
@@ -207,30 +207,7 @@ sub crackUrl {
 	# compatibility with old urls without extension
 	($id) = $url =~ m{^qobuz://([^\.]+)$} unless $id;
 	
-	return ($id, $format || 'flac');
-}
-
-# figure out what streaming format we can use
-# - check preference
-# - fall back to mp3 samples if not streamable
-# - check user's subscription level
-sub getStreamingFormat {
-	my ($class, $track) = @_;
-	
-	# shortcut if user prefers mp3 over flac anyway
-	return 'mp3' unless $prefs->get('preferredFormat') == 6;
-	
-	my $ext = 'flac';
-
-	my $credential = Plugins::Qobuz::API->getCredentials;
-	if (!$credential || $credential ne 'streaming-lossless' ) {
-		$ext = 'mp3';
-	}
-	elsif ($track && ref $track eq 'HASH') {
-		$ext = 'mp3' unless $track->{streamable};
-	}
-	
-	return $ext;
+	return ($id, $format || Plugins::Qobuz::API->getStreamingFormat());
 }
 
 sub audioScrobblerSource {

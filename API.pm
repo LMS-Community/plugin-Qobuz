@@ -47,11 +47,11 @@ sub init {
 	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
 	
 	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {});
+	$class->getToken(sub {}, !$cache->get('credential'));
 }
 
 sub getToken {
-	my ($class, $cb) = @_;
+	my ($class, $cb, $force) = @_;
 	
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
@@ -61,7 +61,7 @@ sub getToken {
 		return;
 	}
 
-	if ( (my $token = $cache->get('token_' . $username . $password)) || !$cb ) {
+	if ( !$force && ( (my $token = $cache->get('token_' . $username . $password)) || !$cb ) ) {
 		$cb->($token) if $cb;
 		return $token;
 	}
@@ -79,12 +79,13 @@ sub getToken {
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-		$cache->set('credential', $result->{credential}->{label}, DEFAULT_EXPIRY * 2) if $result->{credential};
+		$cache->set('credential', $result->{user}->{credential}->{label}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
 	
 		$cb->($token) if $cb;
 	},{
 		username => $username,
 		password => $password,
+		_nocache => 1,
 	});
 	
 	return;
@@ -283,18 +284,21 @@ sub getAlbum {
 sub getFeaturedAlbums {
 	my ($class, $cb, $type, $genreId) = @_;
 	
+	my $args = {
+		type     => $type,
+		limit    => DEFAULT_LIMIT,
+		_ttl     => EDITORIAL_EXPIRY,
+	};
+	
+	$args->{genre_id} = $genreId if $genreId;
+	
 	_get('album/getFeatured', sub {
 		my $albums = shift;
 	
 		_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
 		
 		$cb->($albums);
-	},{
-		type     => $type,
-		genre_id => $genreId,
-		limit    => DEFAULT_LIMIT,
-		_ttl     => EDITORIAL_EXPIRY,
-	});
+	}, $args);
 }
 
 sub getUserPurchases {
@@ -430,12 +434,12 @@ sub getTrackInfo {
 }
 
 sub getFileUrl {
-	my ($class, $cb, $trackId) = @_;
-	$class->getFileInfo($cb, $trackId, 'url');
+	my ($class, $cb, $trackId, $format) = @_;
+	$class->getFileInfo($cb, $trackId, $format, 'url');
 }
 
 sub getFileInfo {
-	my ($class, $cb, $trackId, $urlOnly) = @_;
+	my ($class, $cb, $trackId, $format, $urlOnly) = @_;
 
 	$cb->() unless $trackId;
 
@@ -443,7 +447,10 @@ sub getFileInfo {
 		$trackId = $cache->get("trackId_$trackId");
 	}
 	
-	my $preferredFormat = $prefs->get('preferredFormat');
+	my $preferredFormat;
+	$preferredFormat = 6 if $format =~ /fl.c/i;
+	$preferredFormat = 5 if $format =~ /mp3/i;
+	$preferredFormat ||= $prefs->get('preferredFormat') || 5;
 	
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
 		$cb->($cached);
@@ -471,6 +478,29 @@ sub getFileInfo {
 		_sign      => 1,
 		_use_token => 1,
 	});
+}
+
+# figure out what streaming format we can use
+# - check preference
+# - fall back to mp3 samples if not streamable
+# - check user's subscription level
+sub getStreamingFormat {
+	my ($class, $track) = @_;
+	
+	# shortcut if user prefers mp3 over flac anyway
+	return 'mp3' unless $prefs->get('preferredFormat') == 6;
+	
+	my $ext = 'flac';
+
+	my $credential = $class->getCredentials;
+	if (!$credential || $credential ne 'streaming-lossless' ) {
+		$ext = 'mp3';
+	}
+	elsif ($track && ref $track eq 'HASH') {
+		$ext = 'mp3' unless $track->{streamable};
+	}
+	
+	return $ext;
 }
 
 # this call is synchronous, as it's only working on cached data
