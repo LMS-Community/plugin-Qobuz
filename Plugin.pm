@@ -114,7 +114,17 @@ sub handleFeed {
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
 			type => 'search',
-			url  => \&QobuzSearch
+			url  => sub {
+				my ($client, $cb, $params) = @_;
+	
+				my $menu = searchMenu($client, {
+					search => lc($params->{search})
+				});
+				
+				$cb->({
+					items => $menu->{items}
+				});
+			}
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
 			url  => \&QobuzUserPurchases,
