@@ -32,19 +32,24 @@ sub handler {
 	my ($class, $client, $params) = @_;
 	
 	if ($params->{'saveSettings'} && $params->{'username'}) {
-		my $username = $params->{'username'};
-		$prefs->set('username', "$username"); # add a leading space to make the message display nicely
-	}
-
-	if ($params->{'saveSettings'} && $params->{'password'} && ($params->{'password'} ne "****")) {
-		my $password_md5_hash = md5_hex($params->{'password'});
-		$prefs->set('password_md5_hash', "$password_md5_hash"); # add a leading space to make the message display nicely
-	}
+		if ($params->{'username'}) {
+			my $username = $params->{'username'};
+			$prefs->set('username', "$username"); # add a leading space to make the message display nicely
+		}
 	
-	if ($params->{'saveSettings'} && $params->{'preferredFormat'}) {
-		my $preferredFormat = $params->{'preferredFormat'};
-		$prefs->set('preferredFormat', "$preferredFormat"); # add a leading space to make the message display nicely
-	}	
+		if ($params->{'password'} && ($params->{'password'} ne "****")) {
+			my $password_md5_hash = md5_hex($params->{'password'});
+			$prefs->set('password_md5_hash', "$password_md5_hash"); # add a leading space to make the message display nicely
+		}
+		
+		if ($params->{'preferredFormat'}) {
+			my $preferredFormat = $params->{'preferredFormat'};
+			$prefs->set('preferredFormat', "$preferredFormat"); # add a leading space to make the message display nicely
+		}
+		
+		$params->{pref_filterSearchResults} ||= 0;
+		$params->{pref_playSamples} ||= 0;
+	}
 	
 	# This puts the value on the webpage. 
 	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
