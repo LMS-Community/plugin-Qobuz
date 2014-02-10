@@ -5,7 +5,11 @@ use base qw(Slim::Plugin::OPMLBased);
 
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
-use lib catdir($Bin, 'Plugins', 'Qobuz', 'lib');
+
+# manipulate @INC to support loading of custom binary modules
+my $mylib = catdir($Bin, 'Plugins', 'Qobuz', 'lib');
+my @customINC = map { catdir($mylib, $1) if /(arch.*)\/auto/ } grep /$Bin.*arch.*auto/, @INC;
+unshift @INC, @customINC, $mylib;
 
 use JSON::XS::VersionOneAndTwo;
 use URI::Escape qw(uri_escape_utf8);
@@ -30,11 +34,23 @@ my $cache = Slim::Utils::Cache->new('qobuz', 6);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
-my $fastdistance = sub { 0 };
+my $fastdistance;
+
+eval {
+	require Text::LevenshteinXS;
+	$fastdistance = sub { Text::LevenshteinXS::distance(@_); };
+};
+
+if ($@) {
+	$log->info('Failed to load Text::LevenshteinXS module: ' . $@);
+} 
+
 eval {
 	require Text::Levenshtein;
 	$fastdistance = sub { Text::Levenshtein::fastdistance(@_); };
-};
+} unless $fastdistance;
+
+$fastdistance ||= sub { 0 };
 
 if ($@) {
 	$log->error('Failed to load Text::Levenshtein module: ' . $@);
