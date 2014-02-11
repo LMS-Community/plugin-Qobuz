@@ -6,11 +6,6 @@ use base qw(Slim::Plugin::OPMLBased);
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 
-# manipulate @INC to support loading of custom binary modules
-my $mylib = catdir($Bin, 'Plugins', 'Qobuz', 'lib');
-my @customINC = map { catdir($mylib, $1) if /(arch.*)\/auto/ } grep /$Bin.*arch.*auto/, @INC;
-unshift @INC, @customINC, $mylib;
-
 use JSON::XS::VersionOneAndTwo;
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
