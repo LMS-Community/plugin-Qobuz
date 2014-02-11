@@ -34,6 +34,8 @@ my $fastdistance;
 eval {
 	require Text::LevenshteinXS;
 	$fastdistance = sub { Text::LevenshteinXS::distance(@_); };
+	# let the user know we've been able to load the XS module - can silence this later
+	$log->error('Success: using Text::LevenshteinXS to speed Qobuz up.');
 };
 
 if ($@) {
