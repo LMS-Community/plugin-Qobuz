@@ -24,6 +24,11 @@
 			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
 			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>
 		[% END %]
+
+		[% WRAPPER settingGroup title="Enable SmartMix integration" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_enableSmartmix %]checked [% END %] class="stdedit" name="pref_enableSmartmix" id="pref_enableSmartmix" value="1" />
+			<label for="pref_enableSmartmix" class="stdlabel">EXPERIMENTAL - you can now use Qobuz as a source for <a href="http://www.herger.net/SmartMix/" target="_blank">SmartMix</a>. Make sure you have both the latest SmartMix and Qobuz plugins installed, check this option and restart LMS. Please note that this feature currently is experimental. As it heavily relies on searches (which are a known weakness of Qobuz), results can be of, let's say, surprising quality. Please give it a try and let me know about your experience. Thanks!</label>
+		[% END %]
 	[% END %]
 
 [% PROCESS settings/footer.html %]
