@@ -152,7 +152,7 @@ sub getMetadataFor {
 	}
 	
 	$meta ||= {};
-	if ($meta->{mime_type} =~ /(fla?c|mp)/) {
+	if ($meta->{mime_type} && $meta->{mime_type} =~ /(fla?c|mp)/) {
 		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
 	}
 	$meta->{type} ||= $class->getFormatForURL($url);
