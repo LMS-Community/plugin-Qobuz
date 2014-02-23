@@ -15,18 +15,19 @@ sub getId {
 	
 	return unless Slim::Utils::PluginManager->isEnabled('Plugins::Qobuz::Plugin');
 
-	return if !$prefs->get('disable_Qobuz');
+	return if $prefs->get('disable_Qobuz');
 	
-	return ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? 'qobuz' : undef;
+	return ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? 'Qobuz' : undef;
 } 
 
 sub getUrl {
 	my $class = shift;
+	my ($id, $client) = @_;
 	
 	# we can't handle the id - return a search handler instead
 	return sub {
 		$class->resolveUrl(@_);
-	} if $class->getId(); 
+	} if $class->getId($client); 
 }
 
 sub resolveUrl {
