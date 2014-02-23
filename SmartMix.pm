@@ -9,6 +9,14 @@ my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
 sub getId {
+	my ($class, $client) = @_;
+	
+	return unless $client;
+	
+	return unless Slim::Utils::PluginManager->isEnabled('Plugins::Qobuz::Plugin');
+
+	return if !$prefs->get('disable_Qobuz');
+	
 	return ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? 'qobuz' : undef;
 } 
 
