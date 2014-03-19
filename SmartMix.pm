@@ -15,7 +15,7 @@ sub getId {
 	
 	return unless Slim::Utils::PluginManager->isEnabled('Plugins::Qobuz::Plugin');
 
-	return if $prefs->get('disable_Qobuz');
+	return if preferences('plugin.smartmix')->get('disable_Qobuz');
 	
 	return ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? 'Qobuz' : undef;
 } 
