@@ -69,7 +69,7 @@ sub initPlugin {
 	
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	
-	if ( $prefs->get('enableSmartmix') && Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
+	if ( Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
 		eval {
 			require Plugins::SmartMix::Services;
 		};
