@@ -1,10 +1,11 @@
 // ==UserScript==
-// @match http://www.qobuz.com/album/*
-// @match http://www.qobuz.com/telechargement-album-mp3/*
-// @include http://www.qobuz.com/album/*
-// @include http://www.qobuz.com/telechargement-album-mp3/*
+// @match http://www.qobuz.com/*/album/*
+// @match http://www.qobuz.com/*/telechargement-album-mp3/*
+// @include http://www.qobuz.com/*/album/*
+// @include http://www.qobuz.com/*/telechargement-album-mp3/*
 //
-// Pierre Beck 11/2012
+// Pierre Beck 11/2012	Creation
+// Pierre Beck 11/2014	Modification to match qobuz change on their pages architecture
 //
 // needs SqueezeboxQobuz plugin v1.70+
 // http://forums.slimdevices.com/showthread.php?97146-Qobuz-com-streaming-plugin
@@ -13,13 +14,12 @@
 // ==/UserScript==
 
 alert("Edit SqueezeboxQobuz.user.js before using it!"); return; // delete this line, uncomment and edit the next one
-//const squeezeBoxServer = "192.168.0.100:9000";
+const squeezeBoxServer = "192.168.0.19:9000";
 const multiPlayerSuffix = ""; //"&player=04:00:20:12:45:AB"
 
-var albumIdentifier = document.querySelector('meta[itemprop="identifier"]').content.split(":")[1];
-var listenButton = document.querySelector("div.product-action-box > div.action-line > div.action-listen > ul.dropdown-menu");
-var listenButtonLiDivider = document.querySelector("div.product-action-box > div.action-line > div.action-listen > ul.dropdown-menu > li.divider");
-var newOptionLi = document.createElement("li");
+var albumIdentifier = document.querySelector("#info > div.action > span.btnLike").getAttribute("data-item-id");
+var divListen = document.querySelector("#buyIt > div.actListen");
+
 var newA = document.createElement("a");
 newA.href="#";
 
@@ -31,6 +31,8 @@ default:
 	newA.innerHTML = "with the SqueezeBox";	break;
 }
 
+newA.className = "btn btn-green"
+
 newA.onclick = function(){
 	var iframe = document.createElement("iframe");
 	iframe.style.display = "none";
@@ -39,9 +41,4 @@ newA.onclick = function(){
 	return false;
 };
 
-newOptionLi.appendChild(newA);
-if (listenButtonLiDivider) {
-	listenButton.insertBefore(newOptionLi, listenButtonLiDivider);
-} else {
-	listenButton.appendChild(newOptionLi);
-}
+divListen.appendChild(newA);
