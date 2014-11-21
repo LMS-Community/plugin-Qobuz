@@ -13,9 +13,10 @@
 //
 // ==/UserScript==
 
-alert("Edit SqueezeboxQobuz.user.js before using it!"); return; // delete this line, uncomment and edit the next one
+alert("Edit SqueezeboxQobuz.user.js before using it!"); return; // delete this line, uncomment and edit the next ones
 const squeezeBoxServer = "192.168.0.19:9000";
 const multiPlayerSuffix = ""; //"&player=04:00:20:12:45:AB"
+const multiPlayerAuth = ""; //&cauth=xxxxxx" 
 
 var albumIdentifier = document.querySelector("#info > div.action > span.btnLike").getAttribute("data-item-id");
 var divListen = document.querySelector("#buyIt > div.actListen");
@@ -36,7 +37,7 @@ newA.className = "btn btn-green"
 newA.onclick = function(){
 	var iframe = document.createElement("iframe");
 	iframe.style.display = "none";
-	iframe.src = "http://" + squeezeBoxServer + "/status.html?p0=qobuz&p1=playalbum&p2=" + albumIdentifier + multiPlayerSuffix;
+	iframe.src = "http://" + squeezeBoxServer + "/status.html?p0=qobuz&p1=playalbum&p2=" + albumIdentifier + multiPlayerSuffix + multiPlayerAuth;
 	this.parentNode.appendChild(iframe);
 	return false;
 };
