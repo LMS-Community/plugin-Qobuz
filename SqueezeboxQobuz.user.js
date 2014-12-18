@@ -18,7 +18,7 @@ const squeezeBoxServer = "192.168.0.19:9000";
 const multiPlayerSuffix = ""; //"&player=04:00:20:12:45:AB"
 const multiPlayerAuth = ""; //&cauth=xxxxxx" 
 
-var albumIdentifier = document.querySelector("#info > div.action > span.btnLike").getAttribute("data-item-id");
+var albumIdentifier = document.querySelector("#item > div.action > span.btnLike").getAttribute("data-item-id");
 var divListen = document.querySelector("#buyIt > div.actListen");
 
 var newA = document.createElement("a");
