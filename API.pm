@@ -506,7 +506,7 @@ sub getStreamingFormat {
 	my $ext = 'flac';
 
 	my $credential = $class->getCredentials;
-	if (!$credential || $credential !~ /streaming-(?:lossless|classique)/ ) {
+	if (!$credential || $credential !~ /streaming-(?:lossless|classique|hifi-sublime)/ ) {
 		$ext = 'mp3';
 	}
 	elsif ($track && ref $track eq 'HASH') {
