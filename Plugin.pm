@@ -68,6 +68,7 @@ sub initPlugin {
 	) );
 	
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
+	Slim::Control::Request::addDispatch(['qobuz', 'addalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	
 	if ( Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
 		eval {
@@ -941,7 +942,7 @@ sub cliQobuzPlayAlbum {
 	my $request = shift;
 
 	# check this is the correct query.
-	if ($request->isNotCommand([['qobuz'], ['playalbum']])) {
+	if ($request->isNotCommand([['qobuz'], ['playalbum', 'addalbum']])) {
 		$request->setStatusBadDispatch();
 		return;
 	}
@@ -963,8 +964,10 @@ sub cliQobuzPlayAlbum {
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			push @$tracks, Plugins::Qobuz::ProtocolHandler->getUrl($track);
 		}
+		
+		my $action = $request->isCommand([['qobuz'], ['addalbum']]) ? 'addtracks' : 'playtracks';
 	
-		$client->execute( ["playlist", "playtracks", "listref", $tracks] );
+		$client->execute( ["playlist", $action, "listref", $tracks] );
 	}, $albumId);
 
 	$request->setStatusDone();
