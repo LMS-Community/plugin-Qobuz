@@ -49,7 +49,8 @@ sub resolveUrl {
 			my $artist = '';
 			
 			$artist = $track->{album}->{artist}->{name} if $track->{album} && $track->{album}->{artist};
-			$artist = $track->{performer}->{name} if $artist !~ /\Q$searchArtist\E/i;
+			$artist = $track->{performer}->{name} if $artist !~ /\Q$searchArtist\E/i && $track->{performer}->{name} =~ /\Q$searchArtist\E/i;
+			$artist = $track->{composer}->{name} if $artist !~ /\Q$searchArtist\E/i && $track->{composer}->{name} =~ /\Q$searchArtist\E/i;
 			
 			next unless $artist;
 
