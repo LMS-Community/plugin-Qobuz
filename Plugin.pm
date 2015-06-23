@@ -431,6 +431,14 @@ sub QobuzGenre {
 				genreId => $genreId,
 				type    => 'editor-picks',
 			}]
+		},{
+			name => cstring($client, 'PLAYLISTS'),
+			url  => \&QobuzPublicPlaylists,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				genreId => $genreId,
+				type    => 'editor-picks',
+			}]
 		}];
 	
 		if ($genre->{subgenresCount}) {
@@ -634,9 +642,11 @@ sub QobuzUserPlaylists {
 sub QobuzPublicPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
+	my $genreId = $args->{genreId};
+
 	Plugins::Qobuz::API->getPublicPlaylists(sub {
 		_playlistCallback(shift, $cb, 'showOwner');
-	});
+	}, $genreId);
 }
 
 sub _playlistCallback {
@@ -692,7 +702,7 @@ sub QobuzPlaylistGetTracks {
 		my $tracks = [];
 	
 		foreach my $track (@{$playlist->{tracks}->{items}}) {
-			push @$tracks, _trackItem($client, $track);
+			push @$tracks, _trackItem($client, $track, $params->{isWeb});
 		}
 	
 		$cb->({
@@ -757,7 +767,8 @@ sub _artistItem {
 sub _playlistItem {
 	my ($playlist, $showOwner) = @_;
 	
-	my $image = (($playlist->{images} && ref $playlist->{images} eq 'ARRAY') ? $playlist->{images}->[0] : '') || 'html/images/playlists.png';
+	# pick the last image, as this is what is shown top most in the Qobuz Desktop client
+	my $image = (($playlist->{images} && ref $playlist->{images} eq 'ARRAY') ? $playlist->{images}->[-1] : '') || 'html/images/playlists.png';
 	# get large copy of covers by default
 	$image =~ s/(\d{13}_)[\d]+(\.jpg)/${1}600$2/;
 	

@@ -393,13 +393,17 @@ sub getUserPlaylists {
 }
 
 sub getPublicPlaylists {
-	my ($class, $cb) = @_;
-	
-	_get('playlist/getPublicPlaylists', $cb, {
-		type  => 'last-created',
-		limit => DEFAULT_LIMIT,
+	my ($class, $cb, $genreId) = @_;
+
+	my $args = {
+		type  => 'editor-picks',
+		limit => 100,		# for whatever reason this query doesn't accept more than 100 results
 		_ttl  => EDITORIAL_EXPIRY,
-	});
+	};
+	
+	$args->{genre_ids} = $genreId if $genreId;
+	
+	_get('playlist/getFeatured', $cb, $args);
 }
 
 sub getPlaylistTracks {
