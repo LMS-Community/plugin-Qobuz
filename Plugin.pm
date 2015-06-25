@@ -141,7 +141,17 @@ sub handleFeed {
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
 			url  => \&QobuzPublicPlaylists,
-			image => 'html/images/playlists.png'
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				type    => 'editor-picks',
+			}]
+		},{
+			name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
+			url  => \&QobuzPublicPlaylists,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				type    => 'last-created',
+			}]
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
 			url  => \&QobuzFeaturedAlbums,
@@ -439,6 +449,14 @@ sub QobuzGenre {
 				genreId => $genreId,
 				type    => 'editor-picks',
 			}]
+		},{
+			name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
+			url  => \&QobuzPublicPlaylists,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				genreId => $genreId,
+				type    => 'last-created',
+			}]
 		}];
 	
 		if ($genre->{subgenresCount}) {
@@ -643,10 +661,11 @@ sub QobuzPublicPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
 	my $genreId = $args->{genreId};
+	my $type    = $args->{type} || 'editor-picks';
 
 	Plugins::Qobuz::API->getPublicPlaylists(sub {
 		_playlistCallback(shift, $cb, 'showOwner');
-	}, $genreId);
+	}, $type, $genreId);
 }
 
 sub _playlistCallback {
@@ -655,6 +674,7 @@ sub _playlistCallback {
 	my $playlists = [];
 			
 	for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
+		next if defined $playlist->{tracks_count} && !$playlist->{tracks_count};
 		push @$playlists, _playlistItem($playlist, $showOwner);
 	}
 			

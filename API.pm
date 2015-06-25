@@ -393,10 +393,10 @@ sub getUserPlaylists {
 }
 
 sub getPublicPlaylists {
-	my ($class, $cb, $genreId) = @_;
+	my ($class, $cb, $type, $genreId) = @_;
 
 	my $args = {
-		type  => 'editor-picks',
+		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
 		limit => 100,		# for whatever reason this query doesn't accept more than 100 results
 		_ttl  => EDITORIAL_EXPIRY,
 	};

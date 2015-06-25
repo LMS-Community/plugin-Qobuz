@@ -97,6 +97,11 @@ PLUGIN_QOBUZ_PUBLICPLAYLISTS
 	DE	Öffentliche Wiedergabelisten
 	EN	Public Playlists
 	FR	Listes de Lecture Publiques
+
+PLUGIN_QOBUZ_LATESTPLAYLISTS
+	DE	Neuste Wiedergabelisten
+	EN	Latest Playlists
+	FR	Dernières Listes de Lecture
 	
 PLUGIN_ON_QOBUZ
 	DE	Auf Qobuz
