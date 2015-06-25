@@ -538,7 +538,8 @@ sub QobuzUserFavorites {
 		
 		push @$items, {
 			name => cstring($client, 'ARTISTS'),
-			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @artists ],
+		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @artists ],
+			items => \@artists,		# don't sort, leave it the was it's displayed in the Qobuz Desktop, too
 			image => 'html/images/artists.png',
 		} if @artists;
 
