@@ -225,6 +225,12 @@ sub QobuzSearch {
 			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
 			push @$tracks, _trackItem($client, $track, $params->{isWeb});
 		}
+		
+		my $playlists = [];
+		for my $playlist ( @{$searchResult->{playlists}->{items} || []} ) {
+			next if defined $playlist->{tracks_count} && !$playlist->{tracks_count};
+			push @$playlists, _playlistItem($playlist, 'show-owner', $params->{isWeb});
+		}
 
 		my $items = [];
 		
@@ -245,6 +251,12 @@ sub QobuzSearch {
 			items => $tracks,
 			image => 'html/images/playlists.png',
 		} if scalar @$tracks;
+
+		push @$items, {
+			name  => cstring($client, 'PLAYLISTS'),
+			items => $playlists,
+			image => 'html/images/playlists.png',
+		} if scalar @$playlists;
 
 		if (scalar @$items == 1) {
 			$items = $items->[0]->{items};
@@ -654,7 +666,7 @@ sub QobuzUserPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 	
 	Plugins::Qobuz::API->getUserPlaylists(sub {
-		_playlistCallback(shift, $cb);
+		_playlistCallback(shift, $cb, undef, $params->{isWeb});
 	});
 }
 
@@ -665,18 +677,18 @@ sub QobuzPublicPlaylists {
 	my $type    = $args->{type} || 'editor-picks';
 
 	Plugins::Qobuz::API->getPublicPlaylists(sub {
-		_playlistCallback(shift, $cb, 'showOwner');
+		_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
 	}, $type, $genreId);
 }
 
 sub _playlistCallback {
-	my ($searchResult, $cb, $showOwner) = @_;
+	my ($searchResult, $cb, $showOwner, $isWeb) = @_;
 			
 	my $playlists = [];
 			
 	for my $playlist ( @{$searchResult->{playlists}->{items}} ) {
 		next if defined $playlist->{tracks_count} && !$playlist->{tracks_count};
-		push @$playlists, _playlistItem($playlist, $showOwner);
+		push @$playlists, _playlistItem($playlist, $showOwner, $isWeb);
 	}
 			
 	$cb->( { 
@@ -786,16 +798,18 @@ sub _artistItem {
 }
 
 sub _playlistItem {
-	my ($playlist, $showOwner) = @_;
+	my ($playlist, $showOwner, $isWeb) = @_;
 	
 	# pick the last image, as this is what is shown top most in the Qobuz Desktop client
 	my $image = (($playlist->{images} && ref $playlist->{images} eq 'ARRAY') ? $playlist->{images}->[-1] : '') || 'html/images/playlists.png';
 	# get large copy of covers by default
 	$image =~ s/(\d{13}_)[\d]+(\.jpg)/${1}600$2/;
 	
+	my $owner = $showOwner ? $playlist->{owner}->{name} : undef;
+	
 	return {
-		name  => $playlist->{name},
-		name2 => $showOwner ? $playlist->{owner}->{name} : undef,
+		name  => $playlist->{name} . ($isWeb && $owner ? " - $owner" : ''),
+		name2 => $owner,
 		url   => \&QobuzPlaylistGetTracks,
 		image => $image,
 		passthrough => [{ 
@@ -965,6 +979,14 @@ sub searchMenu {
 			passthrough => [{
 				q        => $searchParam,
 				type     => 'tracks',
+			}],
+		},{
+			name  => cstring($client, 'PLAYLISTS'),
+			url   => \&QobuzSearch,
+			image => 'html/images/playlists.png',
+			passthrough => [{
+				q        => $searchParam,
+				type     => 'playlists',
 			}],
 		}]
 	};

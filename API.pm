@@ -133,7 +133,7 @@ sub search {
 		_ttl  => EDITORIAL_EXPIRY,
 	};
 	
-	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks)/;
+	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
 
 	_get('catalog/search', sub {
 		my $results = shift;
