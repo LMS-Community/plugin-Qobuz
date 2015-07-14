@@ -94,14 +94,14 @@ PLUGIN_QOBUZ_SEARCH
 	FR	Rechercher '%s'
 
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
-	DE	Öffentliche Wiedergabelisten
-	EN	Public Playlists
-	FR	Listes de Lecture Publiques
+	DE	Qobuz Wiedergabelisten
+	EN	Qobuz Playlists
+	FR	Listes de Lecture Qobuz
 
 PLUGIN_QOBUZ_LATESTPLAYLISTS
-	DE	Neuste Wiedergabelisten
-	EN	Latest Playlists
-	FR	Dernières Listes de Lecture
+	DE	Benutzer Wiedergabelisten
+	EN	User Playlists
+	FR	Listes de Lecture d'utilisateurs
 	
 PLUGIN_ON_QOBUZ
 	DE	Auf Qobuz

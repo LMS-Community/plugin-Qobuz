@@ -454,7 +454,7 @@ sub QobuzGenre {
 				type    => 'editor-picks',
 			}]
 		},{
-			name => cstring($client, 'PLAYLISTS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
 			url  => \&QobuzPublicPlaylists,
 			image => 'html/images/playlists.png',
 			passthrough => [{
