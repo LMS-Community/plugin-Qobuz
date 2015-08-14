@@ -562,7 +562,8 @@ sub QobuzUserFavorites {
 		
 		push @$items, {
 			name => cstring($client, 'ALBUMS'),
-			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @albums ],
+		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @albums ],
+			items => \@albums,		# don't sort either (Pierre)
 			image => 'html/images/albums.png',
 		} if @albums;
 			
@@ -573,7 +574,8 @@ sub QobuzUserFavorites {
 		
 		push @$items, {
 			name => cstring($client, 'SONGS'),
-			items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @tracks ],
+		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @tracks ],
+			items => \@tracks,		# don't sort either (Pierre)
 			image => 'html/images/playlists.png',
 		} if @tracks;
 		
@@ -1048,4 +1050,6 @@ sub _imgProxy { if (CAN_IMAGEPROXY) {
 	return $url;
 } }
 
-1;
+1; $items
+					} );
+				}, $args-
