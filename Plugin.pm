@@ -1050,6 +1050,4 @@ sub _imgProxy { if (CAN_IMAGEPROXY) {
 	return $url;
 } }
 
-1; $items
-					} );
-				}, $args-
+1;
