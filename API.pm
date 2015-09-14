@@ -20,6 +20,10 @@ use constant USER_DATA_EXPIRY => 60;            # user want to see changes in pu
 use constant DEFAULT_LIMIT  => 200;
 use constant USERDATA_LIMIT => 500;				# users know how many results to expect - let's be a bit more generous :-)
 
+use constant STREAMING_MP3  => 5;
+use constant STREAMING_FLAC => 6;
+use constant STREAMING_FLAC_HIRES => 27;
+
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -465,9 +469,14 @@ sub getFileInfo {
 	}
 	
 	my $preferredFormat;
-	$preferredFormat = 27 if $format =~ /fl.c/i;
-	$preferredFormat = 5 if $format =~ /mp3/i;
-	$preferredFormat ||= $prefs->get('preferredFormat') || 5;
+	
+	if ($format =~ /fl.c/i) {
+		$preferredFormat = $prefs->get('preferredFormat');
+		$preferredFormat = STREAMING_FLAC if $preferredFormat < STREAMING_FLAC_HIRES;
+	}
+
+	$preferredFormat = STREAMING_MP3 if $format =~ /mp3/i;
+	$preferredFormat ||= $prefs->get('preferredFormat') || STREAMING_MP3;
 	
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
 		$cb->($cached);
@@ -505,7 +514,7 @@ sub getStreamingFormat {
 	my ($class, $track) = @_;
 	
 	# shortcut if user prefers mp3 over flac anyway
-	return 'mp3' unless $prefs->get('preferredFormat') == 6;
+	return 'mp3' unless $prefs->get('preferredFormat') >= STREAMING_FLAC;
 	
 	my $ext = 'flac';
 
