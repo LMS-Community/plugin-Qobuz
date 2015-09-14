@@ -465,7 +465,7 @@ sub getFileInfo {
 	}
 	
 	my $preferredFormat;
-	$preferredFormat = 6 if $format =~ /fl.c/i;
+	$preferredFormat = 27 if $format =~ /fl.c/i;
 	$preferredFormat = 5 if $format =~ /mp3/i;
 	$preferredFormat ||= $prefs->get('preferredFormat') || 5;
 	
