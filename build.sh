@@ -27,7 +27,7 @@ rm -rf Qobuz/
 
 SHA=`shasum $ZIPFILE`
 
-wget --no-check-certificate -q -O repo.xml http://www.herger.net/slim-plugins/qobuz-repo.xml
+curl -o repo.xml http://www.herger.net/slim-plugins/qobuz-repo.xml
 #wget --no-check-certificate -q http://www.pierrebeck.fr/SqueezeboxQobuz/repo.xml
 
 if [ -e repo.xml ]; then
