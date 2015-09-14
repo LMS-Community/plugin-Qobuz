@@ -168,7 +168,7 @@ sub getMetadataFor {
 		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
 	}
 	
-	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1024);
+	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1000);
 	
 	return $meta;
 }
