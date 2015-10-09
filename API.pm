@@ -73,7 +73,7 @@ sub getToken {
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 	
-	if ( !($username && $password) ) {
+	if ( !($username && $password) || $cache->get('getTokenFailed') ) {
 		$cb->() if $cb;
 		return;
 	}
@@ -88,8 +88,8 @@ sub getToken {
 	
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
-			# is this ever used anywhere?
-#			$cache->set('token', -1, 30);
+			# set failure flag to prevent looping
+			$cache->set('getTokenFailed', 1, 10);
 			$cb->() if $cb;
 			return;
 		}
@@ -629,7 +629,7 @@ sub _get {
 	if ($url ne 'user/login') {
 		$token = __PACKAGE__->getToken();
 		if ( !$token ) {
-			if ( $prefs->get('username') && $prefs->get('password_md5_hash') ) {
+			if ( $prefs->get('username') && $prefs->get('password_md5_hash') && !$cache->get('getTokenFailed') ) {
 				__PACKAGE__->getToken(sub {
 					# we'll get back later to finish the original call...
 					_get($url, $cb, $params)
