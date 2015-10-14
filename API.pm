@@ -178,6 +178,8 @@ sub search {
 			} @{$results->{albums}->{items}} ];
 		}
 		
+		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
+		
 		if ( $filter && $results->{tracks}->{items} ) {
 			$results->{tracks}->{items} = [ sort { 
 				# sort tracks by popularity if the name is identical
@@ -195,6 +197,8 @@ sub search {
 				$_->{title} =~ /\Q$search\E/i;
 			} @{$results->{tracks}->{items}} ];
 		}
+
+		$results->{tracks}->{items} = _precacheTracks($results->{tracks}->{items}) if $results->{tracks}->{items};
 		
 		$cache->set($key, $results, 300);
 		
@@ -232,6 +236,8 @@ sub getArtist {
 				{ id => $artistId, picture => $pic }
 			]) if $pic;
 		}
+		
+		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 		
 		$cb->($results) if $cb;
 	}, {
@@ -290,7 +296,7 @@ sub getAlbum {
 	_get('album/get', sub {
 		my $album = shift;
 	
-		_precacheAlbum([$album]) if $album;
+		($album) = @{_precacheAlbum([$album])} if $album;
 		
 		$cb->($album);
 	},{
@@ -312,7 +318,7 @@ sub getFeaturedAlbums {
 	_get('album/getFeatured', sub {
 		my $albums = shift;
 	
-		_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
+		$albums->{albums}->{items} = _precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
 		
 		$cb->($albums);
 	}, $args);
@@ -324,8 +330,8 @@ sub getUserPurchases {
 	_get('purchase/getUserPurchases', sub {
 		my $purchases = shift; 
 		
-		_precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
-		_precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
+		$purchases->{albums}->{items} = _precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
+		$purchases->{tracks}->{items} = _precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
 		
 		$cb->($purchases);
 	},{
@@ -341,8 +347,8 @@ sub getUserFavorites {
 	_get('favorite/getUserFavorites', sub {
 		my ($favorites) = @_; 
 		
-		_precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
-		_precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
+		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
+		$favorites->{tracks}->{items} = _precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
 		
 		$cb->($favorites);
 	},{
@@ -416,7 +422,7 @@ sub getPlaylistTracks {
 	_get('playlist/get', sub {
 		my $tracks = shift;
 		
-		_precacheTracks($tracks->{tracks}->{items});
+		$tracks->{tracks}->{items} = _precacheTracks($tracks->{tracks}->{items});
 		
 		$cb->($tracks);
 	},{
@@ -545,6 +551,13 @@ sub getCachedFileInfo {
 sub _precacheAlbum {
 	my ($albums) = @_;
 	
+	return unless $albums && ref $albums eq 'ARRAY';
+	
+	my $t = time;
+	$albums = [ grep {
+		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
+	} @$albums ] unless $prefs->get('playSamples');
+	
 	foreach my $album (@$albums) { 
 		my $albumInfo = {
 			title  => $album->{title},
@@ -559,6 +572,8 @@ sub _precacheAlbum {
 			_precacheTrack($track);
 		}		
 	}
+	
+	return $albums;
 }
 
 my @artistsToLookUp;
@@ -594,9 +609,18 @@ sub _lookupArtistPicture {
 sub _precacheTracks {
 	my ($tracks) = @_;
 	
+	return unless $tracks && ref $tracks eq 'ARRAY';
+	
+	my $t = time;
+	$tracks = [ grep {
+		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
+	} @$tracks ] unless $prefs->get('playSamples');
+
 	foreach my $track (@$tracks) {
 		_precacheTrack($track)
 	}
+	
+	return $tracks;
 }
 
 sub _precacheTrack {
