@@ -3,7 +3,6 @@ package Plugins::Qobuz::API;
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 
-use Cache::MemoryCache;
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 
@@ -31,11 +30,23 @@ use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
 my $cache = Slim::Utils::Cache->new('qobuz', 6);
-# corrupt cache file can lead to hammering the backend with login attempts.
-# Keep session information in memory, don't rely on disk cache.
-my $memcache = Cache::MemoryCache->new({ namespace => 'qobuz' });
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
+
+# corrupt cache file can lead to hammering the backend with login attempts.
+# Keep session information in memory, don't rely on disk cache.
+my $memcache;
+
+eval {
+	require Cache::MemoryCache;
+	$memcache = Cache::MemoryCache->new({ namespace => 'qobuz' });
+};
+
+if ($@ && !$memcache) {
+	$log->error("Failed to load Cache::MemoryCache - falling back to Cache::FileCache: $@");
+	require Cache::FileCache;
+	$memcache = Cache::FileCache->new({ namespace => 'qobuz' });
+}
 
 my $fastdistance;
 
