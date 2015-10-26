@@ -3,6 +3,7 @@ package Plugins::Qobuz::API;
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 
+use Cache::MemoryCache;
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 
@@ -30,6 +31,9 @@ use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
 my $cache = Slim::Utils::Cache->new('qobuz', 6);
+# corrupt cache file can lead to hammering the backend with login attempts.
+# Keep session information in memory, don't rely on disk cache.
+my $memcache = Cache::MemoryCache->new({ namespace => 'qobuz' });
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -73,12 +77,12 @@ sub getToken {
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 	
-	if ( !($username && $password) || $cache->get('getTokenFailed') ) {
+	if ( !($username && $password) || $memcache->get('getTokenFailed') ) {
 		$cb->() if $cb;
 		return;
 	}
 
-	if ( !$force && ( (my $token = $cache->get('token_' . $username . $password)) || !$cb ) ) {
+	if ( !$force && ( (my $token = $memcache->get('token_' . $username . $password)) || !$cb ) ) {
 		$cb->($token) if $cb;
 		return $token;
 	}
@@ -89,13 +93,13 @@ sub getToken {
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
 			# set failure flag to prevent looping
-			$cache->set('getTokenFailed', 1, 10);
+			$memcache->set('getTokenFailed', 1, 10);
 			$cb->() if $cb;
 			return;
 		}
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
-		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
+		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
 		$cache->set('credential', $result->{user}->{credential}->{label}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
 	
 		$cb->($token) if $cb;
@@ -653,7 +657,7 @@ sub _get {
 	if ($url ne 'user/login') {
 		$token = __PACKAGE__->getToken();
 		if ( !$token ) {
-			if ( $prefs->get('username') && $prefs->get('password_md5_hash') && !$cache->get('getTokenFailed') ) {
+			if ( $prefs->get('username') && $prefs->get('password_md5_hash') && !$memcache->get('getTokenFailed') ) {
 				__PACKAGE__->getToken(sub {
 					# we'll get back later to finish the original call...
 					_get($url, $cb, $params)
