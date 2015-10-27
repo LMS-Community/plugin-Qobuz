@@ -35,18 +35,7 @@ my $log = logger('plugin.qobuz');
 
 # corrupt cache file can lead to hammering the backend with login attempts.
 # Keep session information in memory, don't rely on disk cache.
-my $memcache;
-
-eval {
-	require Cache::MemoryCache;
-	$memcache = Cache::MemoryCache->new({ namespace => 'qobuz' });
-};
-
-if ($@ && !$memcache) {
-	$log->error("Failed to load Cache::MemoryCache - falling back to Cache::FileCache: $@");
-	require Cache::FileCache;
-	$memcache = Cache::FileCache->new({ namespace => 'qobuz' });
-}
+my $memcache = Plugins::Qobuz::MemCache->new();
 
 my $fastdistance;
 
@@ -88,6 +77,11 @@ sub getToken {
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 	
+	if ( $memcache->get('login') ) {
+		$log->error("Something's wrong: logging in in too short intervals. We're going to pause for a while as to not get blocked by the backend.");
+		$memcache->set('getTokenFailed', 30);
+	}
+	
 	if ( !($username && $password) || $memcache->get('getTokenFailed') ) {
 		$cb->() if $cb;
 		return;
@@ -97,6 +91,10 @@ sub getToken {
 		$cb->($token) if $cb;
 		return $token;
 	}
+	
+	# Set a timestamp we're going to use to prevent repeated logins. 
+	# Don't allow more than one login attempt per x seconds.
+	$memcache->set('login', 1, 5);
 	
 	_get('user/login', sub {
 		my $result = shift;
@@ -764,6 +762,47 @@ sub _get {
 			timeout => 15,
 		},
 	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
+}
+
+1;
+
+# very simple memory caching class
+package Plugins::Qobuz::MemCache;
+
+use Digest::MD5 qw(md5_hex);
+
+sub new {
+	return bless {}, shift;
+}
+
+sub set {
+	my ($class, $key, $value, $timeout) = @_;
+	
+	$timeout ||= Plugins::Qobuz::API::DEFAULT_EXPIRY;
+	
+	$class->{md5_hex($key)} = {
+		v => $value,
+		t => Time::HiRes::time() + $timeout,
+	};
+}
+
+sub get {
+	my ($class, $key) = @_;
+	
+	$key = md5_hex($key);
+
+	my $value;
+	
+	if (my $cached = $class->{$key}) {
+		if ( $cached->{t} > Time::HiRes::time() ) {
+			$value = $cached->{v};
+		}
+		else {
+			delete $class->{$key};
+		}
+	}
+	
+	return $value;
 }
 
 1;
