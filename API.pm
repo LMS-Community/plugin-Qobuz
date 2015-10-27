@@ -77,11 +77,6 @@ sub getToken {
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 	
-	if ( $memcache->get('login') ) {
-		$log->error("Something's wrong: logging in in too short intervals. We're going to pause for a while as to not get blocked by the backend.");
-		$memcache->set('getTokenFailed', 30);
-	}
-	
 	if ( !($username && $password) || $memcache->get('getTokenFailed') ) {
 		$cb->() if $cb;
 		return;
@@ -92,9 +87,18 @@ sub getToken {
 		return $token;
 	}
 	
+	if ( ($memcache->get('login') || 0) > 5 ) {
+		$log->error("Something's wrong: logging in in too short intervals. We're going to pause for a while as to not get blocked by the backend.");
+		$memcache->set('getTokenFailed', 30);
+
+		$cb->() if $cb;
+		return;
+	}
+	
 	# Set a timestamp we're going to use to prevent repeated logins. 
 	# Don't allow more than one login attempt per x seconds.
-	$memcache->set('login', 1, 5);
+	my $attempts = $memcache->get('login') || 0;
+	$memcache->set('login', $attempts++, 5);
 	
 	_get('user/login', sub {
 		my $result = shift;
@@ -673,7 +677,7 @@ sub _get {
 				});
 			}
 			else {
-				$log->error('No or invalid username/password available');
+				$log->error('No or invalid username/password available') unless $prefs->get('username') && $prefs->get('password_md5_hash');
 				$cb->();
 			}
 			return;
