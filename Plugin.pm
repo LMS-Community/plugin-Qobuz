@@ -16,7 +16,7 @@ my $prefs = preferences('plugin.qobuz');
 
 $prefs->init({
 	preferredFormat => 6,
-	filterSearchResults => 1,
+	filterSearchResults => 0,
 	playSamples => 1,
 });
 

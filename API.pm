@@ -139,8 +139,9 @@ sub search {
 	$search = lc($search);
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
-	
-	$filter = ($prefs->get('filterSearchResults') || 0) unless defined $filter;
+
+# disable filtering of search results - Qobuz search is now said to be good enough
+#	$filter = ($prefs->get('filterSearchResults') || 0) unless defined $filter;
 	my $key = "search_${search}_${type}_$filter";
 	
 	if ( my $cached = $cache->get($key) ) {
