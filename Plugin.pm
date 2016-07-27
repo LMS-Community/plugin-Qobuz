@@ -69,18 +69,6 @@ sub initPlugin {
 	
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	Slim::Control::Request::addDispatch(['qobuz', 'addalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
-	
-	if ( Slim::Utils::PluginManager->isEnabled('Plugins::SmartMix::Plugin') ) {
-		eval {
-			require Plugins::SmartMix::Services;
-		};
-		
-		if (!$@) {
-			main::INFOLOG && $log->info("SmartMix plugin is available - let's use it!");
-			require Plugins::Qobuz::SmartMix;
-			Plugins::SmartMix::Services->registerHandler('Plugins::Qobuz::SmartMix', 'Qobuz');
-		}
-	}
 
 	# "Local Artwork" requires LMS 7.8+, as it's using its imageproxy.
 	if (CAN_IMAGEPROXY) {
@@ -98,6 +86,20 @@ sub initPlugin {
 		is_app => 1,
 		weight => 1,
 	);
+}
+
+sub postinitPlugin {
+	if ( Slim::Utils::PluginManager->isEnabled('Plugins::LastMix::Plugin') ) {
+		eval {
+			require Plugins::LastMix::Services;
+		};
+		
+		if (!$@) {
+			main::INFOLOG && $log->info("LastMix plugin is available - let's use it!");
+			require Plugins::Qobuz::LastMix;
+			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix');
+		}
+	}
 }
 
 sub getDisplayName { 'PLUGIN_QOBUZ' }
@@ -265,7 +267,7 @@ sub QobuzSearch {
 		$cb->( { 
 			items => $items
 		} );
-	}, $search, $type, undef, $args->{artistId} ? 0 : undef);
+	}, $search, $type);
 }
 
 sub QobuzArtist {
