@@ -37,6 +37,7 @@ my $log = logger('plugin.qobuz');
 # Keep session information in memory, don't rely on disk cache.
 my $memcache = Plugins::Qobuz::MemCache->new();
 
+=pod
 my $fastdistance;
 
 eval {
@@ -60,6 +61,7 @@ $fastdistance ||= sub { 0 };
 if ($@) {
 	$log->error('Failed to load Text::Levenshtein module: ' . $@);
 } 
+=cut
 
 my ($aid, $as);
 
@@ -160,6 +162,7 @@ sub search {
 	_get('catalog/search', sub {
 		my $results = shift;
 		
+=pod
 		if ( $filter && $results->{artists}->{items} ) {
 			my %seen;
 			
@@ -180,9 +183,11 @@ sub search {
 				$_->{name} =~ /\Q$search\E/i;
 			} @{$results->{artists}->{items}} ];
 		}
+=cut
 		
 		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
-		
+	
+=pod	
 		if ( $filter && $results->{albums}->{items} ) {
 			$results->{albums}->{items} = [ sort { 
 				$fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle}) 
@@ -195,9 +200,11 @@ sub search {
 				$_->{title} =~ /\Q$search\E/i || ($_->{artist} && (lc($_->{artist}->{name}) || '') eq $search)
 			} @{$results->{albums}->{items}} ];
 		}
+=cut
 		
 		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 		
+=pod
 		if ( $filter && $results->{tracks}->{items} ) {
 			$results->{tracks}->{items} = [ sort { 
 				# sort tracks by popularity if the name is identical
@@ -215,6 +222,7 @@ sub search {
 				$_->{title} =~ /\Q$search\E/i;
 			} @{$results->{tracks}->{items}} ];
 		}
+=cut
 
 		$results->{tracks}->{items} = _precacheTracks($results->{tracks}->{items}) if $results->{tracks}->{items};
 		
