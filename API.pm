@@ -37,32 +37,6 @@ my $log = logger('plugin.qobuz');
 # Keep session information in memory, don't rely on disk cache.
 my $memcache = Plugins::Qobuz::MemCache->new();
 
-=pod
-my $fastdistance;
-
-eval {
-	require Text::LevenshteinXS;
-	$fastdistance = sub { Text::LevenshteinXS::distance(@_); };
-	# let the user know we've been able to load the XS module - can silence this later
-	$log->error('Success: using Text::LevenshteinXS to speed Qobuz up.');
-};
-
-if ($@) {
-	$log->info('Failed to load Text::LevenshteinXS module: ' . $@);
-} 
-
-eval {
-	require Text::Levenshtein;
-	$fastdistance = sub { Text::Levenshtein::fastdistance(@_); };
-} unless $fastdistance;
-
-$fastdistance ||= sub { 0 };
-
-if ($@) {
-	$log->error('Failed to load Text::Levenshtein module: ' . $@);
-} 
-=cut
-
 my ($aid, $as);
 
 sub init {
@@ -136,118 +110,42 @@ sub username {
 }
 
 sub search {
-	my ($class, $cb, $search, $type, $limit, $filter) = @_;
+	my ($class, $cb, $search, $type, $args) = @_;
+	
+	$args ||= {};
+	my $limit = $args->{limit};
 	
 	$search = lc($search);
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 
-# disable filtering of search results - Qobuz search is now said to be good enough
-#	$filter = ($prefs->get('filterSearchResults') || 0) unless defined $filter;
-	my $key = "search_${search}_${type}_$filter";
+	my $key = "search_${search}_${type}_" . ($args->{_dontPreCache} || 0);
 	
 	if ( my $cached = $cache->get($key) ) {
 		$cb->($cached);
 		return;
 	}
-
-	my $args = {
-		query => $search, 
-		limit => $limit || DEFAULT_LIMIT,
-		_ttl  => EDITORIAL_EXPIRY,
-	};
 	
-	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
+	$args->{limit} ||= DEFAULT_LIMIT;
+	$args->{_ttl}  ||= EDITORIAL_EXPIRY;
+	$args->{query} ||= $search;
+	$args->{type}  ||= $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
 
 	_get('catalog/search', sub {
 		my $results = shift;
 		
-=pod
-		if ( $filter && $results->{artists}->{items} ) {
-			my %seen;
+		if ( !$args->{_dontPreCache} ) {
+			_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		
+			$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 			
-			# filter out duplicates etc.
-			$results->{artists}->{items} = [ grep {
-				!($seen{lc($_->{name})}++ && !$_->{album_count})
-			} sort { 
-				# sort tracks by popularity if the name is identical
-				if ($a->{sortName} eq $b->{sortName} && defined $a->{album_count} && defined $b->{album_count}) {
-					return $b->{album_count} <=> $a->{album_count};
-				}
-				
-				return $fastdistance->($search, $a->{sortName}) <=> $fastdistance->($search, $b->{sortName});
-			} map {
-				$_->{sortName} = lc($_->{name});
-				$_;
-			} grep {
-				$_->{name} =~ /\Q$search\E/i;
-			} @{$results->{artists}->{items}} ];
+			$results->{tracks}->{items} = _precacheTracks($results->{tracks}->{items}) if $results->{tracks}->{items};
 		}
-=cut
-		
-		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
-	
-=pod	
-		if ( $filter && $results->{albums}->{items} ) {
-			$results->{albums}->{items} = [ sort { 
-				$fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle}) 
-			} map {
-				# lower case and remove any trailing "Remix" etc.
-				$_->{sortTitle} = lc($_->{title});
-				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$//;
-				$_;
-			} grep {
-				$_->{title} =~ /\Q$search\E/i || ($_->{artist} && (lc($_->{artist}->{name}) || '') eq $search)
-			} @{$results->{albums}->{items}} ];
-		}
-=cut
-		
-		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
-		
-=pod
-		if ( $filter && $results->{tracks}->{items} ) {
-			$results->{tracks}->{items} = [ sort { 
-				# sort tracks by popularity if the name is identical
-				if ($a->{sortTitle} eq $b->{sortTitle} && $a->{album} && $b->{album}) {
-					return _weightedPopularity($b->{album}) <=> _weightedPopularity($a->{album});
-				}
-				
-				return $fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle});
-			} map {
-				# lower case and remove any trailing "Remix" etc.
-				$_->{sortTitle} = lc($_->{title});
-				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$// if $_->{sortTitle} !~ /(?:mix|rmx|edit|karaoke)/i;
-				$_;
-			} grep {
-				$_->{title} =~ /\Q$search\E/i;
-			} @{$results->{tracks}->{items}} ];
-		}
-=cut
-
-		$results->{tracks}->{items} = _precacheTracks($results->{tracks}->{items}) if $results->{tracks}->{items};
 		
 		$cache->set($key, $results, 300);
 		
 		$cb->($results);
 	}, $args);
-}
-
-sub _weightedPopularity {
-	my ($album) = @_;
-	
-	my $popularity = $album->{popularity};
-	$popularity *= 0.90 if $album->{title} =~ /(?:mix|rmx|edit|karaoke|originally)/i;
-	$popularity *= 0.90 if $album->{title} =~ /(?:made famous)/i;
-	$popularity *= 0.90 if $album->{genre}->{slug} =~ /(?:electro|lounge|disco|dance|techno)/i;
-	$popularity *= 0.80 if $album->{genre}->{slug} =~ /(?:series|divers|bandes-origininales|soundtrack)/i;
-	$popularity *= 0.95 if $album->{tracks_count} >= 20;
-	$popularity *= 0.95 if $album->{tracks_count} >= 40;
-	$popularity *= 0.95 if $album->{title} =~ /vol.*\d/;
-	$popularity *= 0.80 if $album->{label}->{albums_count} > 500;
-	$popularity *= 0.60 if $album->{label}->{albums_count} > 1000;
-	$popularity *= 0.80 if $album->{artist}->{slug} =~ /(?:various|divers)/i;
-	
-	return $popularity;
 }
 
 sub getArtist {
@@ -478,7 +376,7 @@ sub getTrackInfo {
 	
 	_get('track/get', sub {
 		my $meta = shift;
-		$meta = _precacheTrack($meta) if $meta;
+		$meta = precacheTrack($meta) if $meta;
 		
 		$cb->($meta);
 	},{
@@ -574,15 +472,23 @@ sub getCachedFileInfo {
 	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
 }
 
+sub filterPlayables {
+	my ($class, $items) = @_;
+	
+	return $items if $prefs->get('playSamples');
+	
+	my $t = time;
+	return [ grep {
+		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
+	} @$items ];
+}
+
 sub _precacheAlbum {
 	my ($albums) = @_;
 	
 	return unless $albums && ref $albums eq 'ARRAY';
 	
-	my $t = time;
-	$albums = [ grep {
-		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
-	} @$albums ] unless $prefs->get('playSamples');
+	$albums = __PACKAGE__->filterPlayables($albums);
 	
 	foreach my $album (@$albums) { 
 		my $albumInfo = {
@@ -595,7 +501,7 @@ sub _precacheAlbum {
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$track->{album} = $albumInfo;
-			_precacheTrack($track);
+			precacheTrack($track);
 		}		
 	}
 	
@@ -637,20 +543,21 @@ sub _precacheTracks {
 	
 	return unless $tracks && ref $tracks eq 'ARRAY';
 	
-	my $t = time;
-	$tracks = [ grep {
-		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
-	} @$tracks ] unless $prefs->get('playSamples');
+	$tracks = __PACKAGE__->filterPlayables($tracks);
 
 	foreach my $track (@$tracks) {
-		_precacheTrack($track)
+		precacheTrack($track)
 	}
 	
 	return $tracks;
 }
 
-sub _precacheTrack {
-	my ($track) = @_;
+sub precacheTrack {
+	my ($class, $track) = @_;
+	
+	if ( !$track && ref $class eq 'HASH' ) {
+		$track = $class;
+	}
 	
 	my $album = $track->{album};
 	

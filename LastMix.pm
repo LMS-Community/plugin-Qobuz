@@ -35,7 +35,9 @@ sub lookup {
 		my $candidates = [];
 		my $searchArtist = $class->args->{artist};
 		
-		for my $track ( @{$searchResult->{tracks}->{items}} ) {
+		my %tracks;
+		
+		for my $track ( @{ Plugins::Qobuz::API->filterPlayables($searchResult->{tracks}->{items}) } ) {
 			next unless $track->{performer} && $track->{id} && $track->{title};
 			
 			my $artist = '';
@@ -46,17 +48,26 @@ sub lookup {
 			
 			next unless $artist;
 
-			next if $track->{released_at} > time || (!$track->{streamable} && !$prefs->get('playSamples'));
+			my $url = Plugins::Qobuz::ProtocolHandler->getUrl($track);
+			
+			$tracks{$url} = $track;
 			
 			push @$candidates, {
 				title  => $track->{title},
 				artist => $artist,
-				url    => Plugins::Qobuz::ProtocolHandler->getUrl($track),
+				url    => $url,
 			};
 		}
 
-		$class->cb->( $class->extractTrack($candidates) );
-	}, $class->args->{title}, 'tracks');
+		my $track = $class->extractTrack($candidates);
+		
+		Plugins::Qobuz::API->precacheTrack($tracks{$track}) if $tracks{$track};
+
+		$class->cb->($track);
+	}, $class->args->{title}, 'tracks', {
+		_dontPreCache => 1,
+		limit => 20,
+	});
 }
 
 sub protocol { 'qobuz' }
