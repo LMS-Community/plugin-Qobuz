@@ -44,7 +44,7 @@ sub init {
 	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
 	
 	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {}, !$cache->get('credential'));
+	$class->getToken(sub {}, !$class->getCredentials);
 }
 
 sub getToken {
@@ -89,7 +89,7 @@ sub getToken {
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-		$cache->set('credential', $result->{user}->{credential}->{label}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
+		$cache->set('credential', $result->{user}->{credential}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
 	
 		$cb->($token) if $cb;
 	},{
@@ -102,7 +102,11 @@ sub getToken {
 }
 
 sub getCredentials {
-	return $cache->get('credential');
+	my $credentials = $cache->get('credential');
+	
+	if ($credentials && ref $credentials) {
+		return $credentials;
+	}
 }
 
 sub username {
@@ -448,8 +452,8 @@ sub getStreamingFormat {
 	
 	my $ext = 'flac';
 
-	my $credential = $class->getCredentials;
-	if (!$credential || $credential !~ /streaming-(?:lossless|classique|hifi-sublime|society)/ ) {
+	my $credentials = $class->getCredentials;
+	if ( !($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming}) ) {
 		$ext = 'mp3';
 	}
 	elsif ($track && ref $track eq 'HASH') {

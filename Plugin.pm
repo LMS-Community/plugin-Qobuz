@@ -836,7 +836,7 @@ sub _trackItem {
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
 
-	if ($track->{released_at} > time) {
+	if ($track->{released_at} && $track->{released_at} > time) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
 			type => 'textarea'
