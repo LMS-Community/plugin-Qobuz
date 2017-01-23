@@ -20,6 +20,10 @@ use constant USER_DATA_EXPIRY => 60;            # user want to see changes in pu
 use constant DEFAULT_LIMIT  => 200;
 use constant USERDATA_LIMIT => 500;				# users know how many results to expect - let's be a bit more generous :-)
 
+use constant STREAMING_MP3  => 5;
+use constant STREAMING_FLAC => 6;
+use constant STREAMING_FLAC_HIRES => 27;
+
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
@@ -29,29 +33,9 @@ my $cache = Slim::Utils::Cache->new('qobuz', 6);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
-my $fastdistance;
-
-eval {
-	require Text::LevenshteinXS;
-	$fastdistance = sub { Text::LevenshteinXS::distance(@_); };
-	# let the user know we've been able to load the XS module - can silence this later
-	$log->error('Success: using Text::LevenshteinXS to speed Qobuz up.');
-};
-
-if ($@) {
-	$log->info('Failed to load Text::LevenshteinXS module: ' . $@);
-} 
-
-eval {
-	require Text::Levenshtein;
-	$fastdistance = sub { Text::Levenshtein::fastdistance(@_); };
-} unless $fastdistance;
-
-$fastdistance ||= sub { 0 };
-
-if ($@) {
-	$log->error('Failed to load Text::Levenshtein module: ' . $@);
-} 
+# corrupt cache file can lead to hammering the backend with login attempts.
+# Keep session information in memory, don't rely on disk cache.
+my $memcache = Plugins::Qobuz::MemCache->new();
 
 my ($aid, $as);
 
@@ -60,7 +44,7 @@ sub init {
 	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
 	
 	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {}, !$cache->get('credential'));
+	$class->getToken(sub {}, !$class->getCredentials);
 }
 
 sub getToken {
@@ -69,30 +53,43 @@ sub getToken {
 	my $username = $prefs->get('username');
 	my $password = $prefs->get('password_md5_hash');
 	
-	if ( !($username && $password) ) {
+	if ( !($username && $password) || $memcache->get('getTokenFailed') ) {
 		$cb->() if $cb;
 		return;
 	}
 
-	if ( !$force && ( (my $token = $cache->get('token_' . $username . $password)) || !$cb ) ) {
+	if ( !$force && ( (my $token = $memcache->get('token_' . $username . $password)) || !$cb ) ) {
 		$cb->($token) if $cb;
 		return $token;
 	}
+	
+	if ( ($memcache->get('login') || 0) > 5 ) {
+		$log->error("Something's wrong: logging in in too short intervals. We're going to pause for a while as to not get blocked by the backend.");
+		$memcache->set('getTokenFailed', 30);
+
+		$cb->() if $cb;
+		return;
+	}
+	
+	# Set a timestamp we're going to use to prevent repeated logins. 
+	# Don't allow more than one login attempt per x seconds.
+	my $attempts = $memcache->get('login') || 0;
+	$memcache->set('login', $attempts++, 5);
 	
 	_get('user/login', sub {
 		my $result = shift;
 	
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
-			# is this ever used anywhere?
-#			$cache->set('token', -1, 30);
+			# set failure flag to prevent looping
+			$memcache->set('getTokenFailed', 1, 10);
 			$cb->() if $cb;
 			return;
 		}
 	
 		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
-		$cache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-		$cache->set('credential', $result->{user}->{credential}->{label}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
+		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
+		$cache->set('credential', $result->{user}->{credential}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
 	
 		$cb->($token) if $cb;
 	},{
@@ -105,7 +102,11 @@ sub getToken {
 }
 
 sub getCredentials {
-	return $cache->get('credential');
+	my $credentials = $cache->get('credential');
+	
+	if ($credentials && ref $credentials) {
+		return $credentials;
+	}
 }
 
 sub username {
@@ -113,107 +114,42 @@ sub username {
 }
 
 sub search {
-	my ($class, $cb, $search, $type, $limit, $filter) = @_;
+	my ($class, $cb, $search, $type, $args) = @_;
+	
+	$args ||= {};
+	my $limit = $args->{limit};
 	
 	$search = lc($search);
 	
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
-	
-	$filter = ($prefs->get('filterSearchResults') || 0) unless defined $filter;
-	my $key = "search_${search}_${type}_$filter";
+
+	my $key = "search_${search}_${type}_" . ($args->{_dontPreCache} || 0);
 	
 	if ( my $cached = $cache->get($key) ) {
 		$cb->($cached);
 		return;
 	}
-
-	my $args = {
-		query => $search, 
-		limit => $limit || DEFAULT_LIMIT,
-		_ttl  => EDITORIAL_EXPIRY,
-	};
 	
-	$args->{type} = $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
+	$args->{limit} ||= DEFAULT_LIMIT;
+	$args->{_ttl}  ||= EDITORIAL_EXPIRY;
+	$args->{query} ||= $search;
+	$args->{type}  ||= $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
 
 	_get('catalog/search', sub {
 		my $results = shift;
 		
-		if ( $filter && $results->{artists}->{items} ) {
-			my %seen;
+		if ( !$args->{_dontPreCache} ) {
+			_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		
+			$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 			
-			# filter out duplicates etc.
-			$results->{artists}->{items} = [ grep {
-				!($seen{lc($_->{name})}++ && !$_->{album_count})
-			} sort { 
-				# sort tracks by popularity if the name is identical
-				if ($a->{sortName} eq $b->{sortName} && defined $a->{album_count} && defined $b->{album_count}) {
-					return $b->{album_count} <=> $a->{album_count};
-				}
-				
-				return $fastdistance->($search, $a->{sortName}) <=> $fastdistance->($search, $b->{sortName});
-			} map {
-				$_->{sortName} = lc($_->{name});
-				$_;
-			} grep {
-				$_->{name} =~ /\Q$search\E/i;
-			} @{$results->{artists}->{items}} ];
-		}
-		
-		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
-		
-		if ( $filter && $results->{albums}->{items} ) {
-			$results->{albums}->{items} = [ sort { 
-				$fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle}) 
-			} map {
-				# lower case and remove any trailing "Remix" etc.
-				$_->{sortTitle} = lc($_->{title});
-				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$//;
-				$_;
-			} grep {
-				$_->{title} =~ /\Q$search\E/i || ($_->{artist} && (lc($_->{artist}->{name}) || '') eq $search)
-			} @{$results->{albums}->{items}} ];
-		}
-		
-		if ( $filter && $results->{tracks}->{items} ) {
-			$results->{tracks}->{items} = [ sort { 
-				# sort tracks by popularity if the name is identical
-				if ($a->{sortTitle} eq $b->{sortTitle} && $a->{album} && $b->{album}) {
-					return _weightedPopularity($b->{album}) <=> _weightedPopularity($a->{album});
-				}
-				
-				return $fastdistance->($search, $a->{sortTitle}) <=> $fastdistance->($search, $b->{sortTitle});
-			} map {
-				# lower case and remove any trailing "Remix" etc.
-				$_->{sortTitle} = lc($_->{title});
-				$_->{sortTitle} =~ s/ [(\[][^(\[]*[)\]]$// if $_->{sortTitle} !~ /(?:mix|rmx|edit|karaoke)/i;
-				$_;
-			} grep {
-				$_->{title} =~ /\Q$search\E/i;
-			} @{$results->{tracks}->{items}} ];
+			$results->{tracks}->{items} = _precacheTracks($results->{tracks}->{items}) if $results->{tracks}->{items};
 		}
 		
 		$cache->set($key, $results, 300);
 		
 		$cb->($results);
 	}, $args);
-}
-
-sub _weightedPopularity {
-	my ($album) = @_;
-	
-	my $popularity = $album->{popularity};
-	$popularity *= 0.90 if $album->{title} =~ /(?:mix|rmx|edit|karaoke|originally)/i;
-	$popularity *= 0.90 if $album->{title} =~ /(?:made famous)/i;
-	$popularity *= 0.90 if $album->{genre}->{slug} =~ /(?:electro|lounge|disco|dance|techno)/i;
-	$popularity *= 0.80 if $album->{genre}->{slug} =~ /(?:series|divers|bandes-origininales|soundtrack)/i;
-	$popularity *= 0.95 if $album->{tracks_count} >= 20;
-	$popularity *= 0.95 if $album->{tracks_count} >= 40;
-	$popularity *= 0.95 if $album->{title} =~ /vol.*\d/;
-	$popularity *= 0.80 if $album->{label}->{albums_count} > 500;
-	$popularity *= 0.60 if $album->{label}->{albums_count} > 1000;
-	$popularity *= 0.80 if $album->{artist}->{slug} =~ /(?:various|divers)/i;
-	
-	return $popularity;
 }
 
 sub getArtist {
@@ -228,6 +164,8 @@ sub getArtist {
 				{ id => $artistId, picture => $pic }
 			]) if $pic;
 		}
+		
+		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 		
 		$cb->($results) if $cb;
 	}, {
@@ -286,7 +224,7 @@ sub getAlbum {
 	_get('album/get', sub {
 		my $album = shift;
 	
-		_precacheAlbum([$album]) if $album;
+		($album) = @{_precacheAlbum([$album])} if $album;
 		
 		$cb->($album);
 	},{
@@ -308,7 +246,7 @@ sub getFeaturedAlbums {
 	_get('album/getFeatured', sub {
 		my $albums = shift;
 	
-		_precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
+		$albums->{albums}->{items} = _precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
 		
 		$cb->($albums);
 	}, $args);
@@ -320,8 +258,8 @@ sub getUserPurchases {
 	_get('purchase/getUserPurchases', sub {
 		my $purchases = shift; 
 		
-		_precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
-		_precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
+		$purchases->{albums}->{items} = _precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
+		$purchases->{tracks}->{items} = _precacheTracks($purchases->{tracks}->{items}) if $purchases->{tracks};
 		
 		$cb->($purchases);
 	},{
@@ -337,8 +275,8 @@ sub getUserFavorites {
 	_get('favorite/getUserFavorites', sub {
 		my ($favorites) = @_; 
 		
-		_precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
-		_precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
+		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
+		$favorites->{tracks}->{items} = _precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
 		
 		$cb->($favorites);
 	},{
@@ -412,7 +350,7 @@ sub getPlaylistTracks {
 	_get('playlist/get', sub {
 		my $tracks = shift;
 		
-		_precacheTracks($tracks->{tracks}->{items});
+		$tracks->{tracks}->{items} = _precacheTracks($tracks->{tracks}->{items});
 		
 		$cb->($tracks);
 	},{
@@ -442,7 +380,7 @@ sub getTrackInfo {
 	
 	_get('track/get', sub {
 		my $meta = shift;
-		$meta = _precacheTrack($meta) if $meta;
+		$meta = precacheTrack($meta) if $meta;
 		
 		$cb->($meta);
 	},{
@@ -465,9 +403,14 @@ sub getFileInfo {
 	}
 	
 	my $preferredFormat;
-	$preferredFormat = 6 if $format =~ /fl.c/i;
-	$preferredFormat = 5 if $format =~ /mp3/i;
-	$preferredFormat ||= $prefs->get('preferredFormat') || 5;
+	
+	if ($format =~ /fl.c/i) {
+		$preferredFormat = $prefs->get('preferredFormat');
+		$preferredFormat = STREAMING_FLAC if $preferredFormat < STREAMING_FLAC_HIRES;
+	}
+
+	$preferredFormat = STREAMING_MP3 if $format =~ /mp3/i;
+	$preferredFormat ||= $prefs->get('preferredFormat') || STREAMING_MP3;
 	
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
 		$cb->($cached);
@@ -505,12 +448,12 @@ sub getStreamingFormat {
 	my ($class, $track) = @_;
 	
 	# shortcut if user prefers mp3 over flac anyway
-	return 'mp3' unless $prefs->get('preferredFormat') == 6;
+	return 'mp3' unless $prefs->get('preferredFormat') >= STREAMING_FLAC;
 	
 	my $ext = 'flac';
 
-	my $credential = $class->getCredentials;
-	if (!$credential || $credential !~ /streaming-(?:lossless|classique|hifi-sublime)/ ) {
+	my $credentials = $class->getCredentials;
+	if ( !($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming}) ) {
 		$ext = 'mp3';
 	}
 	elsif ($track && ref $track eq 'HASH') {
@@ -533,8 +476,23 @@ sub getCachedFileInfo {
 	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
 }
 
+sub filterPlayables {
+	my ($class, $items) = @_;
+	
+	return $items if $prefs->get('playSamples');
+	
+	my $t = time;
+	return [ grep {
+		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
+	} @$items ];
+}
+
 sub _precacheAlbum {
 	my ($albums) = @_;
+	
+	return unless $albums && ref $albums eq 'ARRAY';
+	
+	$albums = __PACKAGE__->filterPlayables($albums);
 	
 	foreach my $album (@$albums) { 
 		my $albumInfo = {
@@ -547,9 +505,11 @@ sub _precacheAlbum {
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$track->{album} = $albumInfo;
-			_precacheTrack($track);
+			precacheTrack($track);
 		}		
 	}
+	
+	return $albums;
 }
 
 my @artistsToLookUp;
@@ -585,13 +545,23 @@ sub _lookupArtistPicture {
 sub _precacheTracks {
 	my ($tracks) = @_;
 	
+	return unless $tracks && ref $tracks eq 'ARRAY';
+	
+	$tracks = __PACKAGE__->filterPlayables($tracks);
+
 	foreach my $track (@$tracks) {
-		_precacheTrack($track)
+		precacheTrack($track)
 	}
+	
+	return $tracks;
 }
 
-sub _precacheTrack {
-	my ($track) = @_;
+sub precacheTrack {
+	my ($class, $track) = @_;
+	
+	if ( !$track && ref $class eq 'HASH' ) {
+		$track = $class;
+	}
 	
 	my $album = $track->{album};
 	
@@ -620,14 +590,14 @@ sub _get {
 	if ($url ne 'user/login') {
 		$token = __PACKAGE__->getToken();
 		if ( !$token ) {
-			if ( $prefs->get('username') && $prefs->get('password_md5_hash') ) {
+			if ( $prefs->get('username') && $prefs->get('password_md5_hash') && !$memcache->get('getTokenFailed') ) {
 				__PACKAGE__->getToken(sub {
 					# we'll get back later to finish the original call...
 					_get($url, $cb, $params)
 				});
 			}
 			else {
-				$log->error('No or invalid username/password available');
+				$log->error('No or invalid username/password available') unless $prefs->get('username') && $prefs->get('password_md5_hash');
 				$cb->();
 			}
 			return;
@@ -716,6 +686,47 @@ sub _get {
 			timeout => 15,
 		},
 	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
+}
+
+1;
+
+# very simple memory caching class
+package Plugins::Qobuz::MemCache;
+
+use Digest::MD5 qw(md5_hex);
+
+sub new {
+	return bless {}, shift;
+}
+
+sub set {
+	my ($class, $key, $value, $timeout) = @_;
+	
+	$timeout ||= Plugins::Qobuz::API::DEFAULT_EXPIRY;
+	
+	$class->{md5_hex($key)} = {
+		v => $value,
+		t => Time::HiRes::time() + $timeout,
+	};
+}
+
+sub get {
+	my ($class, $key) = @_;
+	
+	$key = md5_hex($key);
+
+	my $value;
+	
+	if (my $cached = $class->{$key}) {
+		if ( $cached->{t} > Time::HiRes::time() ) {
+			$value = $cached->{v};
+		}
+		else {
+			delete $class->{$key};
+		}
+	}
+	
+	return $value;
 }
 
 1;

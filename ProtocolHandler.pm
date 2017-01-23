@@ -127,6 +127,11 @@ sub parseDirectHeaders {
 		$song->bitrate($bitrate) if $bitrate;
 	}
 	
+	if ($client) {
+		$client->currentPlaylistUpdateTime( Time::HiRes::time() );
+		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+	}
+
 	# title, bitrate, metaint, redir, type, length, body
 	return (undef, $bitrate, 0, undef, $contentType, $length, undef);
 }
@@ -141,6 +146,7 @@ sub getMetadataFor {
 	
 	# grab metadata from backend if needed, otherwise use cached values
 	if ($id && $client->master->pluginData('fetchingMeta')) {
+		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $client;
 		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
 	}
 	elsif ($id) {
@@ -157,6 +163,12 @@ sub getMetadataFor {
 	}
 	$meta->{type} ||= $class->getFormatForURL($url);
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? 320_000 : 750_000;
+	
+	if ($meta->{type} ne 'mp3' && $client && $client->playingSong && $client->playingSong->track->url eq $url) {
+		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
+	}
+	
+	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1000);
 	
 	return $meta;
 }
