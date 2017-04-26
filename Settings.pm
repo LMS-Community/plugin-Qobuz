@@ -8,12 +8,7 @@ use Digest::MD5 qw(md5_hex);
 
 
 # Used for logging.
-my $log = Slim::Utils::Log->addLogCategory({
-	'category'     => 'plugin.qobuz',
-	'defaultLevel' => 'INFO',
-	'description'  => 'Qobuz Settings',
-});
-
+my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
 sub name {
