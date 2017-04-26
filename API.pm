@@ -379,8 +379,9 @@ sub getTrackInfo {
 	}
 	
 	_get('track/get', sub {
-		my $meta = shift;
-		$meta = precacheTrack($meta) if $meta;
+		my $meta = shift || { id => $trackId };
+			
+		$meta = precacheTrack($meta);
 		
 		$cb->($meta);
 	},{
@@ -563,20 +564,20 @@ sub precacheTrack {
 		$track = $class;
 	}
 	
-	my $album = $track->{album};
+	my $album = $track->{album} || {};
 	
 	my $meta = {
-		title    => $track->{title},
-		album    => $album->{title},
+		title    => $track->{title} || $track->{id},
+		album    => $album->{title} || '',
 		albumId  => $album->{id},
-		artist   => $album->{artist}->{name},
-		artistId => $album->{artist}->{id},
-		cover    => $album->{image}->{large},
-		duration => $track->{duration},
-		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900,
+		artist   => $album->{artist}->{name} || '',
+		artistId => $album->{artist}->{id} || '',
+		cover    => $album->{image}->{large} || '',
+		duration => $track->{duration} || 0,
+		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
 	};
 	
-	$cache->set('trackInfo_' . $track->{id}, $meta, DEFAULT_EXPIRY);
+	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? DEFAULT_EXPIRY : EDITORIAL_EXPIRY));
 	
 	return $meta;
 }
