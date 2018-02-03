@@ -79,16 +79,12 @@ sub vars {
 
 sub bufferThreshold{
 	my ($class, $client, $url) = @_;
-    
+
     #We have bufferThreshold in prefs, let's use it.
-    my $prefs= $class->getPreferences($client);
+    my $clientPrefs= $prefs->client($client);
+    my $bufferThreshold= $clientPrefs->get('bufferThreshold');
     
-    my $bufferThreshold= $prefs->get('bufferThreshold');
-    
-    if ($bufferThreshold){return $bufferThreshold};
- 
     my $bufferSecs = $prefs->get('bufferSecs') || BUFFERING_SECONDS;
-        
     #limit to BUFFERING_SECONDS seconds.
     if ($bufferSecs > BUFFERING_SECONDS){$bufferSecs = BUFFERING_SECONDS;}
     
