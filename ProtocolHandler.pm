@@ -10,6 +10,22 @@ use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
 
+use List::Util qw(min max first);
+use Slim::Utils::Errno;
+
+# Size of the _sysread chunksize AND buffers, NOT to be confuesed with same applied to pipeline and/or player.
+
+use constant MAX_OUT    => 512*1024*1024; # safety limit, the out should always be empty, if reached _sysread stops reading from source.
+
+use constant MIN_OUT    => 256*1024;      # data are not transferred to output until this limit is reached in input.
+use constant RANGE_SIZE => 1024*1024;     # size of range in the http get request, not really the chunksize, but similar.
+
+# Note that playback will not start untill the firs http get returns, so the greather value between RANGE_SIZE and MIN_OUT, is the real 
+# threshold.
+
+# Seconds of delay before playback starts (initial buffering seconds)
+use constant BUFFERING_SECONDS  => 5;
+
 use Plugins::Qobuz::API;
 
 my $log   = logger('plugin.qobuz');
@@ -36,7 +52,169 @@ sub new {
 	
 	${*$sock}{contentType} = $mime;
 
-	return $sock;
+    if (defined($sock)) {
+		${*$sock}{'vars'} = {                   # variables which hold state for this instance:
+			'inBuf'       => '',                # buffer of received data
+			'outBuf'      => '',                # buffer of processed audio
+			'offset'      => 0,                 # offset for next HTTP request
+			'streaming'   => 1,                 # flag for streaming, changes to 0 when all data received
+			'fetching'    => 0,                 # waiting for HTTP data
+		};
+    }
+    return $sock;
+}
+
+sub vars {
+	return ${*{$_[0]}}{'vars'};
+}
+
+# The real delay is caused by max between bufferThreshold*1000 and RANGE_SIZE,
+# no data could be returned before the first chunk is here.
+# If this method is omitted, then player.pm will try to calculate the value using 
+# bitrate and buffersec preference (that is also used to size the buffer) resulting
+# in a too huge value, topped at 255, that is good for mp3 but maybe little for flac.
+#
+# THE FOLLOWING SEEMS NOT TO WORK...
+#
+
+sub bufferThreshold{
+	my ($class, $client, $url) = @_;
+    
+    #We have bufferThreshold in prefs, let's use it.
+    my $prefs= $class->getPreferences($client);
+    
+    my $bufferThreshold= $prefs->get('bufferThreshold');
+    
+    if ($bufferThreshold){return $bufferThreshold};
+ 
+    my $bufferSecs = $prefs->get('bufferSecs') || BUFFERING_SECONDS;
+        
+    #limit to BUFFERING_SECONDS seconds.
+    if ($bufferSecs > BUFFERING_SECONDS){$bufferSecs = BUFFERING_SECONDS;}
+    
+    my $format = $class->getFormatForURL($url);
+    
+	return ($format eq 'flc' ? 80 : 32) * $bufferSecs;
+}
+
+sub sysread {
+	my $self = $_[0];
+    #my $chunk = $_[1];
+	my $chunkSize = $_[2];
+
+	my $metaInterval = ${*$self}{'metaInterval'};
+	my $metaPointer  = ${*$self}{'metaPointer'};
+    
+    #Data::Dump::dump("Plugins::Qobuz::ProtocolHandler - sysread: ", $metaInterval, $metaPointer, $chunkSize);
+    my $readLength;
+    
+	if ($metaInterval && ($metaPointer + $chunkSize) > $metaInterval) {
+
+		$chunkSize = $metaInterval - $metaPointer;
+
+		# This is very verbose...
+		#$log->debug("Reduced chunksize to $chunkSize for metadata");
+        Data::Dump::dump("Reduced chunksize for metadata", $chunkSize);
+        
+        $readLength = CORE::sysread($self, $_[1], $chunkSize, length($_[1] || '' ))
+
+    } else {
+        
+        $readLength = _sysread($self, $_[1], MIN_OUT);
+    }
+    
+    #Data::Dump::dump("sysread: ", $_[1], $chunkSize, length($_[1]));
+	#my $readLength = CORE::sysread($self, $_[1], $chunkSize, length($_[1] || '' ));
+
+	if ($metaInterval && $readLength) {
+
+		$metaPointer += $readLength;
+		${*$self}{'metaPointer'} = $metaPointer;
+
+		# handle instream metadata for shoutcast/icecast
+		if ($metaPointer == $metaInterval) {
+
+			$self->readMetaData();
+
+			${*$self}{'metaPointer'} = 0;
+
+		} elsif ($metaPointer > $metaInterval) {
+
+			main::DEBUGLOG && $log->debug("The shoutcast metadata overshot the interval.");
+		}	
+	}
+
+	return $readLength;
+}
+
+sub _sysread(){
+    use bytes;
+    
+    my $self = $_[0];
+    
+    my $v = $self->vars;
+    my $url = ${*$self}{'url'};
+
+    # need more data
+	if ( length $v->{'outBuf'} < MAX_OUT && !$v->{'fetching'}) {
+        
+        my $range;
+        
+        if ($v->{'streaming'}){
+            $range = "bytes=$v->{offset}-" . ($v->{offset} + RANGE_SIZE - 1);
+ 
+        } else {
+            
+            $range = "bytes=$v->{offset}-" . ($v->{offset} + 1);
+        }
+        $v->{'fetching'} = 1;
+        Data::Dump::dump("* Going to fetch:  ", $url, $range, length($v->{'inBuf'} || ''), $v->{'fetching'},$v->{'streaming'});
+						
+		Slim::Networking::SimpleAsyncHTTP->new(
+			sub {
+				$v->{'inBuf'} .= $_[0]->content;
+				$v->{'fetching'} = 0;
+				$v->{'streaming'} = 0 if length($_[0]->content) < RANGE_SIZE;
+                $v->{offset} += length($_[0]->content);
+                
+				main::DEBUGLOG && $log->is_debug && $log->debug("got chunk length: ", length $_[0]->content, " from ", $v->{offset} - RANGE_SIZE, " for $url");
+                Data::Dump::dump("* Got chunk length: ", length $_[0]->content, $v->{offset} - RANGE_SIZE, length $v->{'inBuf'});
+            },
+			
+			sub { 
+				$log->warn("error fetching $url");
+				$v->{'inBuf'} = '';
+				$v->{'fetching'} = 0;
+                Data::Dump::dump("error fetching $url");
+			}, 
+			
+		)->get($url, 'Range' => $range );
+		
+	}	
+    if (length $v->{'inBuf'} >= MIN_OUT || !$v->{'streaming'}){
+        
+        Data::Dump::dump("Going to feed OUT BUF:  ", length $v->{'inBuf'}, MIN_OUT);
+        
+        $v->{'outBuf'} = $v->{'outBuf'}.$v->{'inBuf'};
+        $v->{'inBuf'}='';
+    }
+    
+    my $bytes =length $v->{'outBuf'};
+
+    if ($bytes) {
+        Data::Dump::dump("Going to return OUT BUF:  ",$bytes, length $v->{'outBuf'});
+		$_[1] = $_[1].substr($v->{'outBuf'}, 0, $bytes);
+		$v->{'outBuf'} = substr($v->{'outBuf'}, $bytes);
+		return $bytes;
+	} elsif ( $v->{streaming} ) {
+		#$! = EINTR; Pipeline does not recocgnize EINTR;
+        $! = EWOULDBLOCK;
+		return undef;
+	} else {
+        Data::Dump::dump("EOF");
+        return 0; #EOF.
+    }
+    
 }
 
 sub canSeek { 0 }
