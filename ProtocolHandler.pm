@@ -166,7 +166,7 @@ sub _sysread(){
 	if ( length $v->{'outBuf'} < $maxOut && !$v->{'fetching'}) {
 
 		my $range;
-		Data::Dump::dump("_sysread: fetching", $rangeSize);
+		#Data::Dump::dump("_sysread: fetching", $rangeSize);
 		
 		if ($v->{'streaming'}){
 
@@ -205,7 +205,7 @@ sub _sysread(){
 
 	if (length $v->{'inBuf'} >= $chunckSize || !$v->{'streaming'}){
 		
-		Data::Dump::dump("_sysread: move to Outbuf", length $v->{'inBuf'});
+		#Data::Dump::dump("_sysread: move to Outbuf", length $v->{'inBuf'});
 		
 		$v->{'outBuf'} = $v->{'outBuf'}.$v->{'inBuf'};
 		$v->{'inBuf'}='';
@@ -215,7 +215,7 @@ sub _sysread(){
 
 	if ($bytes) {
 		
-		Data::Dump::dump("_sysread: move to pipeline", $bytes);
+		#Data::Dump::dump("_sysread: move to pipeline", $bytes);
 		
 		$_[1] = $_[1].substr($v->{'outBuf'}, 0, $bytes);
 		$v->{'outBuf'} = substr($v->{'outBuf'}, $bytes);
