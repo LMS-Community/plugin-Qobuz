@@ -27,6 +27,29 @@
 			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
 			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>
 		[% END %]
+		
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_USE_RANGE" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_useChunkedHttpGet %]checked [% END %] class="stdedit" name="pref_useChunkedHttpGet" id="pref_useChunkedHttpGet" value="1" />
+			<label for="pref_useChunkedHttpGet" class="stdlabel">[% "PLUGIN_QOBUZ_USE_RANGE_DESC" | string %]</label>
+		[% END %]
+		
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_RANGE_SIZE" desc="PLUGIN_QOBUZ_RANGE_SIZE_DESC" %]
+			<select name="pref_httpRangeSize" id="httpRangeSize">
+			  <option [% prefs.httpRangeSize == "32" ? "selected" : "" %] value="32" >32 Kb </option>
+		      <option [% prefs.httpRangeSize == "64" ? "selected" : "" %] value="64" >64 Kb </option>
+			  <option [% prefs.httpRangeSize == "128" ? "selected" : "" %] value="128" >128 Kb </option>
+			  <option [% prefs.httpRangeSize == "256" ? "selected" : "" %] value="256" >256 Kb </option>
+			  <option [% prefs.httpRangeSize == "512" ? "selected" : "" %] value="512" >512 Kb </option>
+			  <option [% prefs.httpRangeSize == "1024" ? "selected" : "" %] value="1024" >1 Mb </option>
+			  <option [% prefs.httpRangeSize == "2048" ? "selected" : "" %] value="2048" >2 Mb </option>
+			  <option [% prefs.httpRangeSize == "4096" ? "selected" : "" %] value="4096" >4 Mb </option>
+			  <option [% prefs.httpRangeSize == "8192" ? "selected" : "" %] value="8192" >8 Mb </option>
+			  <option [% prefs.httpRangeSize == "16256" ? "selected" : "" %] value="16256" >16 Mb </option>
+			  <option [% prefs.httpRangeSize == "32512" ? "selected" : "" %] value="32512" >32 Mb </option>
+			  <option [% prefs.httpRangeSize == "65024" ? "selected" : "" %] value="65024" >64 Mb </option>
+			</select>	
+		[% END %]
+		
 	[% END %]
 
 [% PROCESS settings/footer.html %]

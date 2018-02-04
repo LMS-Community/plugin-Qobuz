@@ -55,7 +55,7 @@ sub new {
 	if (defined($sock)) {
 		${*$sock}{'vars'} = { # variables which hold state for this instance:
 			'inBuf' => '', # buffer of received data
-			'outBuf' => '',# buffer of processed audio
+			'outBuf' => '',# buffer of data data ready to be processed
 			'offset' => 0, # offset for next HTTP request
 			'streaming' => 1, # flag for streaming, changes to 0 when all data received
 			'fetching' => 0, # waiting for HTTP data
@@ -71,29 +71,29 @@ sub vars {
 # The real delay is caused by max between bufferThreshold*1000 and RANGE_SIZE,
 # no data could be returned before the first chunk is here.
 # If this method is omitted, then player.pm will try to calculate the value using 
-# bitrate and buffersec preference (that is also used to size the buffer) resulting
-# in a too huge value, topped at 255, that is good for mp3 but maybe little for flac.
+# bitrate and buffersec preference (that is also used to size the buffer), limited
+# at 255 Kb, good for mp3, maybe little for flac 44100/16, inadeguate for HiRez.
 #
 # THE FOLLOWING SEEMS NOT TO WORK...
 #
 
 sub bufferThreshold{
-my ($class, $client, $url) = @_;
+	my ($class, $client, $url) = @_;
 
-#We have bufferThreshold in prefs, let's use it.
-my $clientPrefs= $prefs->client($client);
+	#We have bufferThreshold in prefs, let's use it.
+	my $clientPrefs= $prefs->client($client);
 
-my $bufferThreshold= $clientPrefs->get('bufferThreshold');
+	my $bufferThreshold= $clientPrefs->get('bufferThreshold');
 
-if ($bufferThreshold){return $bufferThreshold};
+	if ($bufferThreshold){return $bufferThreshold};
 
-my $bufferSecs = $prefs->get('bufferSecs') || BUFFERING_SECONDS;
-#limit to BUFFERING_SECONDS seconds.
-if ($bufferSecs > BUFFERING_SECONDS){$bufferSecs = BUFFERING_SECONDS;}
+	my $bufferSecs = $prefs->get('bufferSecs') || BUFFERING_SECONDS;
+	#limit to BUFFERING_SECONDS seconds.
+	if ($bufferSecs > BUFFERING_SECONDS){$bufferSecs = BUFFERING_SECONDS;}
 
-my $format = $class->getFormatForURL($url);
+	my $format = $class->getFormatForURL($url);
 
-return ($format eq 'flc' ? 80 : 32) * $bufferSecs;
+	return ($format eq 'flc' ? 80 : 32) * $bufferSecs;
 
 }
 
@@ -107,6 +107,9 @@ sub sysread {
  
 	#Data::Dump::dump("Plugins::Qobuz::ProtocolHandler - sysread: ", $metaInterval, $metaPointer, $chunkSize);
 	my $readLength;
+
+	#Data::Dump::dump("useChunkedHttpGet: ",$prefs->get('useChunkedHttpGet'));
+	#Data::Dump::dump("httpRangeSize: ", $prefs->get('httpRangeSize'));
  
 	if ($metaInterval && ($metaPointer + $chunkSize) > $metaInterval) {
 
@@ -116,10 +119,14 @@ sub sysread {
 		#$log->debug("Reduced chunksize to $chunkSize for metadata");
 
 		$readLength = CORE::sysread($self, $_[1], $chunkSize, length($_[1] || '' ))
+		
+	} elsif (!$prefs->get('useChunkedHttpGet')) { 
+		#Data::Dump::dump("CORE::sysread: ", $chunkSize);
+		$readLength = CORE::sysread($self, $_[1], $chunkSize, length($_[1] || ''));
 
 	} else {
-
-		$readLength = _sysread($self, $_[1], MIN_OUT);
+		#Data::Dump::dump("_sysread: ", $prefs->get('httpRangeSize')*1024 || RANGE_SIZE);
+		$readLength = _sysread($self, $_[1]);
 	}
  
 	if ($metaInterval && $readLength) {
@@ -150,6 +157,7 @@ sub _sysread(){
 
 	my $client = $self->client;
 	my $maxOut = $client->bufferSize() || MAX_OUT;
+	my $rangeSize = $prefs->get('httpRangeSize')*1024 || RANGE_SIZE;
 
 	my $v = $self->vars;
 	my $url = ${*$self}{'url'};
@@ -158,10 +166,11 @@ sub _sysread(){
 	if ( length $v->{'outBuf'} < $maxOut && !$v->{'fetching'}) {
 
 		my $range;
-
+		Data::Dump::dump("_sysread: fetching", $rangeSize);
+		
 		if ($v->{'streaming'}){
 
-			$range = "bytes=$v->{offset}-" . ($v->{offset} + RANGE_SIZE - 1);
+			$range = "bytes=$v->{offset}-" . ($v->{offset} + $rangeSize - 1);
 
 		} else {
 
@@ -170,16 +179,14 @@ sub _sysread(){
 
 		$v->{'fetching'} = 1;
 
-		#Data::Dump::dump("* Going to fetch: ", $url, $range, length($v->{'inBuf'} || ''), $v->{'fetching'},$v->{'streaming'});
-
 		Slim::Networking::SimpleAsyncHTTP->new(
 			sub {
 				$v->{'inBuf'} .= $_[0]->content;
 				$v->{'fetching'} = 0;
-				$v->{'streaming'} = 0 if length($_[0]->content) < RANGE_SIZE;
+				$v->{'streaming'} = 0 if length($_[0]->content) < $rangeSize;
 				$v->{offset} += length($_[0]->content);
 
-				main::DEBUGLOG && $log->is_debug && $log->debug("got chunk length: ", length $_[0]->content, " from ", $v->{offset} - RANGE_SIZE, " for $url");
+				main::DEBUGLOG && $log->is_debug && $log->debug("got chunk length: ", length $_[0]->content, " from ", $v->{offset} - $rangeSize, " for $url");
 			},
 			sub { 
 				$log->warn("error fetching $url");
@@ -188,9 +195,18 @@ sub _sysread(){
 			}, 
 
 		)->get($url, 'Range' => $range );
-	}	
-	if (length $v->{'inBuf'} >= MIN_OUT || !$v->{'streaming'}){
+	}
+	
+	# This is the size of chunck of data moved from in to out buffers.
+	# Standard id 32Kb, resulting in a higly inefficent move.
+	# Move the entire range size or MIN_OUT instead.
+	
+	my $chunckSize = max($rangeSize, MIN_OUT);
 
+	if (length $v->{'inBuf'} >= $chunckSize || !$v->{'streaming'}){
+		
+		Data::Dump::dump("_sysread: move to Outbuf", length $v->{'inBuf'});
+		
 		$v->{'outBuf'} = $v->{'outBuf'}.$v->{'inBuf'};
 		$v->{'inBuf'}='';
 	}
@@ -198,7 +214,9 @@ sub _sysread(){
 	my $bytes =length $v->{'outBuf'};
 
 	if ($bytes) {
-
+		
+		Data::Dump::dump("_sysread: move to pipeline", $bytes);
+		
 		$_[1] = $_[1].substr($v->{'outBuf'}, 0, $bytes);
 		$v->{'outBuf'} = substr($v->{'outBuf'}, $bytes);
 		return $bytes;
@@ -208,7 +226,7 @@ sub _sysread(){
 		$! = EWOULDBLOCK;
 		return undef;
 	} else {
-		Data::Dump::dump("EOF");
+		#Data::Dump::dump("EOF");
 		return 0; #EOF.
 	}
 }

@@ -20,7 +20,7 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, 'filterSearchResults', 'playSamples');
+	return ($prefs, 'filterSearchResults', 'playSamples', 'useChunkedHttpGet', 'httpRangeSize');
 }
 
 sub handler {
@@ -41,9 +41,15 @@ sub handler {
 			my $preferredFormat = $params->{'preferredFormat'};
 			$prefs->set('preferredFormat', "$preferredFormat"); # add a leading space to make the message display nicely
 		}
+		if ($params->{'httpRangeSize'}) {
+			my $httpRangeSize = $params->{'httpRangeSize'};
+			$prefs->set('httpRangeSize', "$httpRangeSize"); # add a leading space to make the message display nicely
+		}
 		
 		$params->{pref_filterSearchResults} ||= 0;
 		$params->{pref_playSamples} ||= 0;
+		$params->{pref_useChunkedHttpGet} ||= 0;
+		
 	}
 	
 	# This puts the value on the webpage. 
@@ -51,6 +57,7 @@ sub handler {
 	$params->{'prefs'}->{'username'} = $prefs->get('username');
 	$params->{'prefs'}->{'password_md5_hash'} = "****";
 	$params->{'prefs'}->{'preferredFormat'} = $prefs->get('preferredFormat');
+	$params->{'prefs'}->{'httpRangeSize'} = $prefs->get('httpRangeSize');
 	
 	# I have no idea what this does, but it seems important and it's not plugin-specific.
 	return $class->SUPER::handler($client, $params);

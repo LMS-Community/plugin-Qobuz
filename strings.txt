@@ -147,3 +147,15 @@ PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
 	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
 	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
 	FR	Certeins album sont uniquement disponible à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes?
+
+PLUGIN_QOBUZ_USE_RANGE
+	EN	Use chuncked download.
+
+PLUGIN_QOBUZ_USE_RANGE_DESC
+	EN	Could help in case of network problems, see below.
+
+PLUGIN_QOBUZ_RANGE_SIZE
+	EN	Size of data chunk (Range).
+
+PLUGIN_QOBUZ_RANGE_SIZE_DESC
+	EN	Size of chunk (Range) used in downloading audio data. <br><br> Greather values means a longer initial delay (actual time depends on network speed and file format) and reduced underrun risk during playback.<br><br>  Values under <strong>512Kb</strong> are reserved to very slow networks, low bitrate (mp3) and small buffer devices (like old SB). <br><br> <strong>1-16 Mb</strong> are rigth for CD quality flac. <br><br> Use <strong>highers</strong> only for Hi-Rez and/or very fast connections.
