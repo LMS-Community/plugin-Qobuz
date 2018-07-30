@@ -11,6 +11,7 @@ use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
 
 use Plugins::Qobuz::API;
+use Plugins::Qobuz::Reporting;
 
 use constant MP3_BITRATE => 320_000;
 
@@ -149,6 +150,8 @@ sub parseDirectHeaders {
 		$client->currentPlaylistUpdateTime( Time::HiRes::time() );
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 	}
+	
+	Plugins::Qobuz::Reporting->startStreaming($client);
 
 	# title, bitrate, metaint, redir, type, length, body
 	return (undef, $bitrate, 0, undef, $contentType, $length, undef);

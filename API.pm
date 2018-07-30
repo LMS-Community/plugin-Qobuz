@@ -87,30 +87,42 @@ sub getToken {
 			return;
 		}
 
-		$cache->set('username', $result->{user}->{login} || $username, DEFAULT_EXPIRY) if $result->{user};
 		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-		$cache->set('credential', $result->{user}->{credential}, DEFAULT_EXPIRY) if $result->{user} && $result->{user}->{credential};
+		$cache->set('userdata', $result->{user});
 
 		$cb->($token) if $cb;
 	},{
 		username => $username,
 		password => $password,
+		device_manufacturer_id => preferences('server')->get('server_uuid'),
 		_nocache => 1,
 	});
 
 	return;
 }
 
+sub getUserdata {
+	my ($class, $item) = @_;
+
+	my $userdata = $cache->get('userdata') || {};
+
+	return $item ? $userdata->{$item} : $userdata;
+}
+
 sub getCredentials {
-	my $credentials = $cache->get('credential');
+	my $credentials = $_[0]->getUserdata('credential');
 
 	if ($credentials && ref $credentials) {
 		return $credentials;
 	}
 }
 
+sub getDevicedata {
+	$_[0]->getUserdata('device') || {};
+}
+
 sub username {
-	return $cache->get('username') || $prefs->get('username');
+	return $_[0]->getUserdata('login') || $prefs->get('username');
 }
 
 sub search {
@@ -266,6 +278,39 @@ sub getUserPurchases {
 		limit    => USERDATA_LIMIT,
 		_ttl     => USER_DATA_EXPIRY,
 		_use_token => 1,
+	});
+}
+
+sub getUserPurchasesIds {
+	my ($class, $cb) = @_;
+
+	_get('purchase/getUserPurchasesIds', sub {
+		$cb->(@_) if $cb;
+	},{
+		_use_token => 1,
+	})
+}
+
+sub checkPurchase {
+	my ($class, $type, $id, $cb) = @_;
+
+	$class->getUserPurchasesIds(sub {
+		my ($purchases) = @_;
+
+		$type = $type . 's';
+
+		if ( $purchases && ref $purchases && $purchases->{$type} && ref $purchases->{$type} && (my $items = $purchases->{$type}->{items}) ) {
+			if ( $items && ref $items && scalar @$items ) {
+				$cb->(
+					(grep { $_->{id} =~ /^\Q$id\E$/i } @$items)
+					? 1
+					: 0
+				);
+				return;
+			}
+		}
+
+		$cb->();
 	});
 }
 
@@ -694,6 +739,9 @@ sub _get {
 		},
 	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
 }
+
+sub cache { wantarray ? ($cache, $memcache) : $cache }
+sub aid { $aid }
 
 1;
 
