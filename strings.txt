@@ -147,3 +147,12 @@ PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
 	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
 	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
 	FR	Certeins album sont uniquement disponible à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes?
+
+PLUGIN_QOBUZ_GOODIES
+	DE	Qobuz Extras
+	EN	Qobuz Goodies
+	FR	Qobuz Extras
+
+PLUGIN_QOBUZ_BOOKLET
+	EN	Booklet
+	FR	Livret
