@@ -3,6 +3,7 @@ package Plugins::Qobuz::Plugin;
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 use JSON::XS::VersionOneAndTwo;
+use Tie::RegexpHash;
 
 use Slim::Formats::RemoteMetadata;
 use Slim::Player::ProtocolHandlers;
@@ -19,6 +20,12 @@ my $WEBLINK_SUPPORTED_UA_RE = qr/iPeng|SqueezePad|OrangeSqueeze/i;
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
 
 my $prefs = preferences('plugin.qobuz');
+
+tie my %localizationTable, 'Tie::RegexpHash';
+
+%localizationTable = (
+	qr/^Livret Num.rique/i => 'PLUGIN_QOBUZ_BOOKLET'
+);
 
 $prefs->init({
 	preferredFormat => 6,
@@ -1015,8 +1022,8 @@ sub trackInfoMenuBooklet {
 sub _localizeGoodies {
 	my ($client, $name) = @_;
 
-	if ( $name =~ /^Livret num.rique/ ) {
-		$name = cstring($client, 'PLUGIN_QOBUZ_BOOKLET')
+	if ( my $localizedToken = $localizationTable{$name} ) {
+		$name = cstring($client, $localizedToken);
 	}
 
 	return $name;
