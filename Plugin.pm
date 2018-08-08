@@ -64,8 +64,13 @@ sub initPlugin {
 	);
 
 	# Track Info item
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuzPerformers => (
+		func  => \&trackInfoMenuPerformers,
+	) );
+
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuz => (
 		func  => \&trackInfoMenu,
+		after => 'qobuzPerformers'
 	) );
 
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBooklet => (
@@ -976,6 +981,44 @@ sub _objInfoHandler {
 	}
 
 	return $menu if $menu;
+}
+
+my $MAIN_ARTIST_RE = qr/MainArtist|Performer/i;
+my $ARTIST_RE = qr/Keyboards|Synthesizer|Vocal|Guitar|Lyricist|Composer|Bass|Drums/i;
+my $STUDIO_RE = qr/StudioPersonnel|Other|Producer|Engineer|Prod/i;
+
+sub trackInfoMenuPerformers {
+	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
+
+	if ( $remoteMeta && (my $performers = $remoteMeta->{performers}) ) {
+		my @performers = map {
+			s/,?\s?(MainArtist|AssociatedPerformer|StudioPersonnel)//ig;
+			s/,/:/;
+			{
+				name => $_,
+				type => 'text'
+			}
+		} sort {
+			return $a cmp $b if $a =~ $MAIN_ARTIST_RE && $b =~ $MAIN_ARTIST_RE;
+			return -1 if $a =~ $MAIN_ARTIST_RE;
+			return 1 if $b =~ $MAIN_ARTIST_RE;
+
+			return $a cmp $b if $a =~ $ARTIST_RE && $b =~ $ARTIST_RE;
+			return -1 if $a =~ $ARTIST_RE;
+			return 1 if $b =~ $ARTIST_RE;
+
+			return $a cmp $b if $a =~ $STUDIO_RE && $b =~ $STUDIO_RE;
+			return -1 if $a =~ $STUDIO_RE;
+			return 1 if $b =~ $STUDIO_RE;
+
+			return $a cmp $b;
+		} split(/ - /, $remoteMeta->{performers});
+
+		return {
+			name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
+			items => \@performers,
+		};
+	}
 }
 
 sub trackInfoMenuBooklet {
