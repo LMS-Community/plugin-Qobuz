@@ -6,7 +6,7 @@
 	<version>1.330</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger</creator>
-	<email>pierrepoulpe@yahoo.fr</email>
+	<email>contact@pierrebeck.fr</email>
 	<defaultState>enabled</defaultState>
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
 	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
