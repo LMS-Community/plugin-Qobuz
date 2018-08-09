@@ -983,8 +983,8 @@ sub _objInfoHandler {
 	return $menu if $menu;
 }
 
-my $MAIN_ARTIST_RE = qr/MainArtist|Performer/i;
-my $ARTIST_RE = qr/Keyboards|Synthesizer|Vocal|Guitar|Lyricist|Composer|Bass|Drums/i;
+my $MAIN_ARTIST_RE = qr/MainArtist|\bPerformer\b|ComposerLyricist/i;
+my $ARTIST_RE = qr/Performer|Keyboards|Synthesizer|Vocal|Guitar|Lyricist|Composer|Bass|Drums|Percussion||Violin|Viola|Cello|Trumpet|Conductor|Trombone|Trumpet|Horn|Tuba|Flute|Euphonium|Piano|Orchestra|Clarinet|Didgeridoo|Cymbals|Strings|Harp/i;
 my $STUDIO_RE = qr/StudioPersonnel|Other|Producer|Engineer|Prod/i;
 
 sub trackInfoMenuPerformers {
@@ -992,7 +992,7 @@ sub trackInfoMenuPerformers {
 
 	if ( $remoteMeta && (my $performers = $remoteMeta->{performers}) ) {
 		my @performers = map {
-			s/,?\s?(MainArtist|AssociatedPerformer|StudioPersonnel)//ig;
+			s/,?\s?(MainArtist|AssociatedPerformer|StudioPersonnel|ComposerLyricist)//ig;
 			s/,/:/;
 			{
 				name => $_,
