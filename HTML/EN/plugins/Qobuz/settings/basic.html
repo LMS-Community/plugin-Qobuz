@@ -5,6 +5,13 @@
 	[% END %]
 
 	[% WRAPPER settingSection %]
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST" desc="" %]
+			<select name="pref_showComposerWithArtist" id="showComposerWithArtist"> 
+				<option [% prefs.showComposerWithArtist ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.showComposerWithArtist ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>	
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" value="[% prefs.password_md5_hash %]" size="20" />[% END %]
 

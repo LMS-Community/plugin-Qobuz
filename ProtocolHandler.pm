@@ -188,6 +188,10 @@ sub getMetadataFor {
 
 	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1000);
 
+	if ($meta->{composer} && $prefs->get('showComposerWithArtist') && $meta->{artist} !~ /$meta->{composer}/) {
+		$meta->{artist} .= ', ' . $meta->{composer};
+	}
+
 	return $meta;
 }
 

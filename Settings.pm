@@ -20,7 +20,7 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, 'filterSearchResults', 'playSamples');
+	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist');
 }
 
 sub handler {

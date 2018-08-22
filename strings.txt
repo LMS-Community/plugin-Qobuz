@@ -160,3 +160,8 @@ PLUGIN_QOBUZ_BOOKLET
 PLUGIN_QOBUZ_PERFORMERS
 	DE	Personal
 	EN	Personnel
+
+PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
+	DE	Komponisten mit Interpret anzeigen
+	EN	Show Composer with Artist
+	FR	Afficher le compositeur avec l'interprète
