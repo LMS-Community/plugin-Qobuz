@@ -784,6 +784,10 @@ sub _albumItem {
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 
+	if ( $album->{hires} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($album) eq 'flac' ) {
+		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
+	}
+
 	my $item = {
 		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
 		image => $album->{image}->{large},
