@@ -156,7 +156,7 @@ sub _post {
 		{
 			timeout => 15,
 		},
-	)->post($url, 'Content-Type' => 'x-www-form-urlencoded', $body);
+	)->post($url, 'Content-Type' => 'application/x-www-form-urlencoded', $body);
 }
 
 
