@@ -79,8 +79,11 @@ sub getToken {
 	_get('user/login', sub {
 		my $result = shift;
 
+		main::INFOLOG && $log->is_info && !$log->is_debug && $log->info(Data::Dump::dump($result));
+
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
+			$log->warn('Failed to get token');
 			# set failure flag to prevent looping
 			$memcache->set('getTokenFailed', 1, 10);
 			$cb->() if $cb;
@@ -89,7 +92,7 @@ sub getToken {
 
 		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
 		# keep the user data around longer than the token
-		$cache->set('userdata', $result->{user}, DEFAULT_EXPIRY * 2);
+		$cache->set('userdata', $result->{user}, time() + DEFAULT_EXPIRY*2);
 
 		$cb->($token) if $cb;
 	},{
