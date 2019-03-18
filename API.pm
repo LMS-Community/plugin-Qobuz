@@ -88,7 +88,8 @@ sub getToken {
 		}
 
 		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
-		$cache->set('userdata', $result->{user});
+		# keep the user data around longer than the token
+		$cache->set('userdata', $result->{user}, DEFAULT_EXPIRY * 2);
 
 		$cb->($token) if $cb;
 	},{
