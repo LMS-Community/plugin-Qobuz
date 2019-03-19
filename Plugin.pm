@@ -839,9 +839,14 @@ sub _playlistItem {
 	my ($playlist, $showOwner, $isWeb) = @_;
 
 	# pick the last image, as this is what is shown top most in the Qobuz Desktop client
-	my $image = (($playlist->{images} && ref $playlist->{images} eq 'ARRAY') ? $playlist->{images}->[-1] : '') || 'html/images/playlists.png';
-	# get large copy of covers by default
-	$image =~ s/(\d{13}_)[\d]+(\.jpg)/${1}600$2/;
+	my $image;
+	foreach ('image_rectangle', 'images_300', 'images_150', 'images') {
+		if ($playlist->{$_} && ref $playlist->{$_} eq 'ARRAY') {
+			$image = $playlist->{$_}->[-1];
+			last;
+		}
+	}
+	$image =~ s/([a-z\d]{13}_)[\d]+(\.jpg)/${1}600$2/;
 
 	my $owner = $showOwner ? $playlist->{owner}->{name} : undef;
 
