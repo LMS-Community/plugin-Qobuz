@@ -380,7 +380,7 @@ sub getUserPlaylists {
 }
 
 sub getPublicPlaylists {
-	my ($class, $cb, $type, $genreId) = @_;
+	my ($class, $cb, $type, $genreId, $tags) = @_;
 
 	my $args = {
 		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
@@ -389,6 +389,7 @@ sub getPublicPlaylists {
 	};
 
 	$args->{genre_ids} = $genreId if $genreId;
+	$args->{tags} = $tags if $tags;
 
 	_get('playlist/getFeatured', $cb, $args);
 }
@@ -408,6 +409,33 @@ sub getPlaylistTracks {
 		limit       => USERDATA_LIMIT,
 		_ttl        => USER_DATA_EXPIRY,
 		_use_token  => 1,
+	});
+}
+
+sub getTags {
+	my ($class, $cb) = @_;
+
+	_get('playlist/getTags', sub {
+		my $result = shift;
+
+		my $tags = [];
+
+		if ($result && ref $result && $result->{tags} && ref $result->{tags}) {
+			$tags = [ grep {
+				$_->{id} && $_->{name};
+			} map {
+				my $name = eval { from_json($_->{name_json}) };
+				{
+					featured_tag_id => $_->{featured_tag_id},
+					id => $_->{slug},
+					name => $name
+				};
+			} @{$result->{tags}} ];
+		}
+
+		$cb->($tags);
+	},{
+		_use_token => 1
 	});
 }
 

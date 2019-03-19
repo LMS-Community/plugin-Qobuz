@@ -178,13 +178,13 @@ sub handleFeed {
 				type    => 'editor-picks',
 			}]
 		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
-			url  => \&QobuzPublicPlaylists,
-			image => 'html/images/playlists.png',
-			passthrough => [{
-				type    => 'last-created',
-			}]
-		},{
+		# 	name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
+		# 	url  => \&QobuzPublicPlaylists,
+		# 	image => 'html/images/playlists.png',
+		# 	passthrough => [{
+		# 		type    => 'last-created',
+		# 	}]
+		# },{
 			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
@@ -708,11 +708,43 @@ sub QobuzPublicPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 
 	my $genreId = $args->{genreId};
+	my $tags    = $args->{tags};
 	my $type    = $args->{type} || 'editor-picks';
 
-	Plugins::Qobuz::API->getPublicPlaylists(sub {
-		_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
-	}, $type, $genreId);
+	if ($type eq 'editor-picks' && !$genreId && !$tags) {
+		Plugins::Qobuz::API->getTags(sub {
+			my $tags = shift;
+
+			if ($tags && ref $tags) {
+				my $lang = lc(preferences('server')->get('language'));
+
+				my @items = map {
+					{
+						name => $_->{name}->{$lang} || $_->{name}->{en},
+						url  => \&QobuzPublicPlaylists,
+						passthrough => [{
+							tags => $_->{id},
+							type => $type
+						}]
+					};
+				} @$tags;
+
+				$cb->( {
+					items => \@items
+				} );
+			}
+			else {
+				Plugins::Qobuz::API->getPublicPlaylists(sub {
+					_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
+				}, $type);
+			}
+		});
+	}
+	else {
+		Plugins::Qobuz::API->getPublicPlaylists(sub {
+			_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
+		}, $type, $genreId, $tags);
+	}
 }
 
 sub _playlistCallback {
