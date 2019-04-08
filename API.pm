@@ -133,7 +133,6 @@ sub search {
 	my ($class, $cb, $search, $type, $args) = @_;
 
 	$args ||= {};
-	my $limit = $args->{limit};
 
 	$search = lc($search);
 
@@ -595,7 +594,7 @@ my @artistsToLookUp;
 my $artistLookup;
 sub _precacheArtistPictures {
 	my ($artists) = @_;
-
+	
 	return unless $artists && ref $artists eq 'ARRAY';
 
 	foreach my $artist (@$artists) {

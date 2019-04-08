@@ -53,11 +53,12 @@ sub getSeekData {
 
 	my ($id, $type) = $class->crackUrl($url);
 
-	# we can't seek within flac files
-	return unless $type eq 'mp3';
+	my $bitrate = $type eq 'mp3' ? MP3_BITRATE : $song->bitrate();
+
+	return unless $bitrate;
 
 	return {
-		sourceStreamOffset => ( MP3_BITRATE / 8 ) * $newtime,
+		sourceStreamOffset => ( $bitrate  * $newtime ) / 8,
 		timeOffset         => $newtime,
 	};
 }
@@ -122,6 +123,10 @@ sub parseDirectHeaders {
 		if ( $header =~ /^Content-Length:\s*(.*)/i ) {
 			$length = $1;
 		}
+		# allows seeking in flac files, see getSeekData()
+		elsif ( $header =~ /^Content-Range:.*\/+(.*)/i ) {
+			$length = $1;
+		}
 		elsif ( $header =~ /^Content-Type:.*(?:mp3|mpeg)/i ) {
 			$bitrate = MP3_BITRATE;
 			$contentType = 'mp3';
@@ -142,7 +147,7 @@ sub parseDirectHeaders {
 	$song->duration($duration);
 
 	if ($length && $contentType eq 'flc') {
-		$bitrate = $length*8 / $duration if $meta->{duration};
+		$bitrate = $length*8 / $duration if $duration;
 		$song->bitrate($bitrate) if $bitrate;
 	}
 
@@ -150,7 +155,7 @@ sub parseDirectHeaders {
 		$client->currentPlaylistUpdateTime( Time::HiRes::time() );
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 	}
-	
+
 	Plugins::Qobuz::Reporting->startStreaming($client);
 
 	# title, bitrate, metaint, redir, type, length, body
@@ -187,6 +192,8 @@ sub getMetadataFor {
 
 	if ($meta->{type} ne 'mp3' && $client && $client->playingSong && $client->playingSong->track->url eq $url) {
 		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
+		$meta->{samplerate} = $client->playingSong->pluginData('samplerate');
+		$meta->{samplesize} = $client->playingSong->pluginData('samplesize');
 	}
 
 	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1000);
@@ -211,6 +218,10 @@ sub getNextTrack {
 
 		if ($streamData) {
 			$song->pluginData(mime => $streamData->{mime_type});
+
+			$song->pluginData(samplesize => $streamData->{bit_depth});
+			$song->pluginData(samplerate => $streamData->{sampling_rate});
+
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
 				$successCb->();

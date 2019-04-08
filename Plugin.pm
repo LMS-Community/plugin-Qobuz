@@ -67,27 +67,39 @@ sub initPlugin {
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzPerformers => (
 		func  => \&trackInfoMenuPerformers,
 	) );
-
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuz => (
+	
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuzTrackInfo => ( 
 		func  => \&trackInfoMenu,
-		after => 'qobuzPerformers'
+		after => 'qobuzPerformers' 
 	) );
 
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBooklet => (
 		func  => \&trackInfoMenuBooklet,
-		after => 'qobuz',
+		after => 'qobuzTrackInfo'
+	) );
+	
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuzFrequency => (
+		parent => 'moreinfo',
+		after  => 'bitrate',
+		func   => \&infoSamplerate,
+	) );
+	
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBitsperSample => (
+		parent => 'moreinfo',
+		after  => 'qobuzFrequency',
+		func   => \&infoBitsperSample,
 	) );
 
-	Slim::Menu::ArtistInfo->registerInfoProvider( qobuz => (
-		func => \&artistInfoMenu,
+	Slim::Menu::ArtistInfo->registerInfoProvider( qobuzArtistInfo => (
+		func => \&artistInfoMenu
 	) );
-
-	Slim::Menu::AlbumInfo->registerInfoProvider( qobuz => (
-		func => \&albumInfoMenu,
+	
+	Slim::Menu::AlbumInfo->registerInfoProvider( qobuzAlbumInfo => (
+		func => \&albumInfoMenu
 	) );
-
-	Slim::Menu::GlobalSearch->registerInfoProvider( qobuz => (
-		func => \&searchMenu,
+	
+	Slim::Menu::GlobalSearch->registerInfoProvider( qobuzSearch => (
+		func => \&searchMenu
 	) );
 
 #                                                             |requires Client
@@ -238,6 +250,7 @@ sub QobuzSearch {
 
 		if (!$searchResult) {
 			$cb->();
+			return;
 		}
 
 		my $albums = [];
@@ -302,12 +315,13 @@ sub QobuzSearch {
 
 sub QobuzArtist {
 	my ($client, $cb, $params, $args) = @_;
-
+	
 	Plugins::Qobuz::API->getArtist(sub {
 		my $artist = shift;
-
+		
 		if ($artist->{status} && $artist->{status} =~ /error/i) {
 			$cb->();
+			return;
 		}
 
 		my $items = [{
@@ -762,6 +776,30 @@ sub _playlistCallback {
 	} );
 }
 
+sub infoSamplerate {
+	my ( $client, $url, $track, $remoteMeta ) = @_;
+	
+	if ( my $sampleRate = $remoteMeta->{samplerate} ) {
+		return {
+			type  => 'text',
+			label => 'SAMPLERATE',
+			name  => sprintf('%.1f kHz', $sampleRate)
+		};
+	}
+}
+
+sub infoBitsperSample {
+	my ( $client, $url, $track, $remoteMeta ) = @_;
+	
+	if ( my $samplesize = $remoteMeta->{samplesize} ) {
+		return {
+			type  => 'text',
+			label => 'SAMPLESIZE',
+			name  => $samplesize . ' ' . cstring($client, 'BITS'),
+		};
+	}
+}
+
 sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $albumId = $args->{album_id};
@@ -772,16 +810,69 @@ sub QobuzGetTracks {
 		if (!$album) {
 			$log->error("Get album ($albumId) failed");
 			$cb->();
+			return;
 		}
 
-		my $tracks = [];
+		my $items = [];
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
-			push @$tracks, _trackItem($client, $track);
+			push @$items, _trackItem($client, $track);
+		}
+
+		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
+			$artistItem->{label} = 'ARTIST';
+			push @$items, $artistItem;
+		}
+
+		push @$items,{
+			name  => $album->{genre}->{name},
+			label => 'GENRE',
+			type  => 'text'
+		},{
+			name  => Slim::Utils::DateTime::timeFormat($album->{duration}),
+			label => 'ALBUMLENGTH',
+			type  => 'text'
+		},{ 
+			name => $album->{tracks_count}, 
+			label => 'PLUGIN_QOBUZ_TRACKS_COUNT', 
+			type => 'text'
+		};
+
+		if ($album->{description}) {
+			push @$items, {
+				name  => cstring($client, 'DESCRIPTION'),
+				items => [{
+					name => $album->{description}, 
+					type => 'textarea',
+				}],
+			};
+		};
+
+		if ($album->{goodies}) {
+			my $item = trackInfoMenuBooklet($client, undef, undef, $album);
+			push @$items, $item if $item;
+		}
+		
+		push @$items, {
+			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . ': ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
+			type  => 'text'
+		},{
+			name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . ': ' . $album->{label}->{name},
+			type  => 'text'
+		};
+		
+		if ($album->{copyright}) {
+			push @$items, {
+				name  => 'Copyright',
+				items => [{
+					name => $album->{copyright}, 
+					type => 'textarea',
+				}],
+			};
 		}
 
 		$cb->({
-			items => $tracks,
+			items => $items,
 		}, @_ );
 	}, $albumId);
 }
