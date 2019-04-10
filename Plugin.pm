@@ -907,7 +907,7 @@ sub _albumItem {
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 
-	if ( $album->{hires} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($album) eq 'flac' ) {
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
@@ -998,7 +998,7 @@ sub _trackItem {
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
 
-	if ( $track->{hires} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($track->{album}) eq 'flac' ) {
+	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
