@@ -992,7 +992,7 @@ sub _trackItem {
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {
-		name  => $track->{title} . ($isWeb && $artist ? " - $artist" : ''),
+		name  => sprintf('%s %s %s %s %s', $track->{title}, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
 		line1 => $track->{title},
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
