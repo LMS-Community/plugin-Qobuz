@@ -988,7 +988,7 @@ sub _playlistItem {
 sub _trackItem {
 	my ($client, $track, $isWeb) = @_;
 
-	my $artist = $track->{album}->{artist}->{name} || $track->{performer}->{name} || '';
+	my $artist = $track->{performer}->{name} || $track->{album}->{artist}->{name} || '';
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {
