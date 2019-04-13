@@ -988,7 +988,7 @@ sub _playlistItem {
 sub _trackItem {
 	my ($client, $track, $isWeb) = @_;
 
-	my $artist = $track->{performer}->{name} || $track->{album}->{artist}->{name} || '';
+	my $artist = Plugins::Qobuz::API->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {

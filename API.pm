@@ -29,7 +29,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
 # bump the second parameter if you decide to change the schema of cached data
-my $cache = Slim::Utils::Cache->new('qobuz', 7);
+my $cache = Slim::Utils::Cache->new('qobuz', 8);
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -639,6 +639,7 @@ sub precacheTrack {
 
 	if ( !$track && ref $class eq 'HASH' ) {
 		$track = $class;
+		$class = __PACKAGE__;
 	}
 
 	my $album = $track->{album} || {};
@@ -648,7 +649,7 @@ sub precacheTrack {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
 		albumId  => $album->{id},
-		artist   => $album->{artist}->{name} || '',
+		artist   => $class->getArtistName($track, $album),
 		artistId => $album->{artist}->{id} || '',
 		composer => $track->{composer}->{name} || '',
 		composerId => $track->{composer}->{id} || '',
@@ -662,6 +663,12 @@ sub precacheTrack {
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? DEFAULT_EXPIRY : EDITORIAL_EXPIRY));
 
 	return $meta;
+}
+
+sub getArtistName {
+	my ($class, $track, $album) = @_;
+	$track->{performer} ||= $album->{performer} || {};
+	return $track->{performer}->{name} || $album->{artist}->{name} || '',
 }
 
 sub _get {
