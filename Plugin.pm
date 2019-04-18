@@ -16,7 +16,10 @@ use Plugins::Qobuz::ProtocolHandler;
 
 use constant CLICOMMAND => 'qobuzquery';
 
-my $WEBLINK_SUPPORTED_UA_RE = qr/iPeng|SqueezePad|OrangeSqueeze/i;
+# Keep in sync with Music & Artist Information plugin
+my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze)\b/i;
+my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
+
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
 
 my $prefs = preferences('plugin.qobuz');
@@ -1327,7 +1330,7 @@ sub cliQobuzPlayAlbum {
 
 sub _canWeblink {
 	my ($client) = @_;
-	return $client && $client->controllerUA && $client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE;
+	return $client && $client->controllerUA && ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE);
 }
 
 sub _imgProxy { if (CAN_IMAGEPROXY) {
