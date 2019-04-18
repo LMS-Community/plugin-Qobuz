@@ -2,6 +2,7 @@ package Plugins::Qobuz::Plugin;
 
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
+
 use JSON::XS::VersionOneAndTwo;
 use Tie::RegexpHash;
 
@@ -70,23 +71,23 @@ sub initPlugin {
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzPerformers => (
 		func  => \&trackInfoMenuPerformers,
 	) );
-	
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuzTrackInfo => ( 
+
+	Slim::Menu::TrackInfo->registerInfoProvider( qobuzTrackInfo => (
 		func  => \&trackInfoMenu,
-		after => 'qobuzPerformers' 
+		after => 'qobuzPerformers'
 	) );
 
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBooklet => (
 		func  => \&trackInfoMenuBooklet,
 		after => 'qobuzTrackInfo'
 	) );
-	
+
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzFrequency => (
 		parent => 'moreinfo',
 		after  => 'bitrate',
 		func   => \&infoSamplerate,
 	) );
-	
+
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBitsperSample => (
 		parent => 'moreinfo',
 		after  => 'qobuzFrequency',
@@ -96,11 +97,11 @@ sub initPlugin {
 	Slim::Menu::ArtistInfo->registerInfoProvider( qobuzArtistInfo => (
 		func => \&artistInfoMenu
 	) );
-	
+
 	Slim::Menu::AlbumInfo->registerInfoProvider( qobuzAlbumInfo => (
 		func => \&albumInfoMenu
 	) );
-	
+
 	Slim::Menu::GlobalSearch->registerInfoProvider( qobuzSearch => (
 		func => \&searchMenu
 	) );
@@ -318,10 +319,10 @@ sub QobuzSearch {
 
 sub QobuzArtist {
 	my ($client, $cb, $params, $args) = @_;
-	
+
 	Plugins::Qobuz::API->getArtist(sub {
 		my $artist = shift;
-		
+
 		if ($artist->{status} && $artist->{status} =~ /error/i) {
 			$cb->();
 			return;
@@ -354,7 +355,7 @@ sub QobuzArtist {
 				name  => cstring($client, 'PLUGIN_QOBUZ_BIOGRAPHY'),
 				image => $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png',
 				items => [{
-					name => $artist->{biography}->{content}, # $artist->{biography}->{summary} ||
+					name => _stripHTML($artist->{biography}->{content}),
 					type => 'textarea',
 				}],
 			}
@@ -781,7 +782,7 @@ sub _playlistCallback {
 
 sub infoSamplerate {
 	my ( $client, $url, $track, $remoteMeta ) = @_;
-	
+
 	if ( my $sampleRate = $remoteMeta->{samplerate} ) {
 		return {
 			type  => 'text',
@@ -793,7 +794,7 @@ sub infoSamplerate {
 
 sub infoBitsperSample {
 	my ( $client, $url, $track, $remoteMeta ) = @_;
-	
+
 	if ( my $samplesize = $remoteMeta->{samplesize} ) {
 		return {
 			type  => 'text',
@@ -835,9 +836,9 @@ sub QobuzGetTracks {
 			name  => Slim::Utils::DateTime::timeFormat($album->{duration}),
 			label => 'ALBUMLENGTH',
 			type  => 'text'
-		},{ 
-			name => $album->{tracks_count}, 
-			label => 'PLUGIN_QOBUZ_TRACKS_COUNT', 
+		},{
+			name => $album->{tracks_count},
+			label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
 			type => 'text'
 		};
 
@@ -845,7 +846,7 @@ sub QobuzGetTracks {
 			push @$items, {
 				name  => cstring($client, 'DESCRIPTION'),
 				items => [{
-					name => $album->{description}, 
+					name => _stripHTML($album->{description}),
 					type => 'textarea',
 				}],
 			};
@@ -855,7 +856,7 @@ sub QobuzGetTracks {
 			my $item = trackInfoMenuBooklet($client, undef, undef, $album);
 			push @$items, $item if $item;
 		}
-		
+
 		push @$items, {
 			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . ': ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
 			type  => 'text'
@@ -863,12 +864,12 @@ sub QobuzGetTracks {
 			name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . ': ' . $album->{label}->{name},
 			type  => 'text'
 		};
-		
+
 		if ($album->{copyright}) {
 			push @$items, {
 				name  => 'Copyright',
 				items => [{
-					name => $album->{copyright}, 
+					name => $album->{copyright},
 					type => 'textarea',
 				}],
 			};
@@ -1331,6 +1332,12 @@ sub cliQobuzPlayAlbum {
 sub _canWeblink {
 	my ($client) = @_;
 	return $client && $client->controllerUA && ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE);
+}
+
+sub _stripHTML {
+	my $html = shift;
+	$html =~ s/<(?:[^>'”]*|([‘”]).*?\1)*>//ig;
+	return $html;
 }
 
 sub _imgProxy { if (CAN_IMAGEPROXY) {
