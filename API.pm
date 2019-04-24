@@ -524,20 +524,18 @@ sub getFileInfo {
 sub getStreamingFormat {
 	my ($class, $track) = @_;
 
-	# shortcut if user prefers mp3 over flac anyway
-	return 'mp3' unless $prefs->get('preferredFormat') >= STREAMING_FLAC;
-
-	my $ext = 'flac';
-
-	my $credentials = $class->getCredentials;
-	if ( !($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming}) ) {
-		$ext = 'mp3';
-	}
-	elsif ($track && ref $track eq 'HASH') {
-		$ext = 'mp3' unless $track->{streamable};
+	if (
+		# user prefers mp3 over flac anyway
+		$prefs->get('preferredFormat') < STREAMING_FLAC
+		# user is not allowed to stream losslessly
+		|| !Plugins::Qobuz::Plugin->canLossless()
+		# track is not available in flac
+		|| !($track && ref $track eq 'HASH' && $track->{streamable})
+	) {
+		return 'mp3';
 	}
 
-	return $ext;
+	return 'flac';
 }
 
 # this call is synchronous, as it's only working on cached data

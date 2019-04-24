@@ -143,7 +143,7 @@ sub postinitPlugin {
 		if (!$@) {
 			main::INFOLOG && $log->info("LastMix plugin is available - let's use it!");
 			require Plugins::Qobuz::LastMix;
-			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix');
+			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix', canLossless());
 		}
 	}
 }
@@ -1327,6 +1327,11 @@ sub cliQobuzPlayAlbum {
 	}, $albumId);
 
 	$request->setStatusDone();
+}
+
+sub canLossless {
+	my $credentials = Plugins::Qobuz::API->getCredentials;
+	return ($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming});
 }
 
 sub _canWeblink {
