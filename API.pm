@@ -22,7 +22,8 @@ use constant USERDATA_LIMIT => 500;				# users know how many results to expect -
 
 use constant STREAMING_MP3  => 5;
 use constant STREAMING_FLAC => 6;
-use constant STREAMING_FLAC_HIRES => 27;
+use constant STREAMING_FLAC_HIRES => 7;
+use constant STREAMING_FLAC_HIRES2 => 27;
 
 use Slim::Utils::Cache;
 use Slim::Utils::Log;
@@ -483,13 +484,20 @@ sub getFileInfo {
 
 	if ($format =~ /fl.c/i) {
 		$preferredFormat = $prefs->get('preferredFormat');
-		$preferredFormat = STREAMING_FLAC if $preferredFormat < STREAMING_FLAC_HIRES;
+		if ($preferredFormat < STREAMING_FLAC_HIRES) {
+			$preferredFormat = STREAMING_FLAC;
+		}
+		elsif ($preferredFormat > STREAMING_FLAC_HIRES) {
+			$preferredFormat = STREAMING_FLAC_HIRES2;
+		}
+	}
+	elsif ($format =~ /mp3/i) {
+		$preferredFormat = STREAMING_MP3 ;
 	}
 
-	$preferredFormat = STREAMING_MP3 if $format =~ /mp3/i;
 	$preferredFormat ||= $prefs->get('preferredFormat') || STREAMING_MP3;
 
-	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly) ) {
+	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly, $preferredFormat) ) {
 		$cb->($cached);
 		return $cached
 	}
@@ -501,9 +509,9 @@ sub getFileInfo {
 			my $url = delete $track->{url};
 
 			# cache urls for a short time only
-			$cache->set("trackUrl_${trackId}_$preferredFormat", $url, URL_EXPIRY);
+			$cache->set("trackUrl_${trackId}_${preferredFormat}", $url, URL_EXPIRY);
 			$cache->set("trackId_$url", $trackId, DEFAULT_EXPIRY);
-			$cache->set("fileInfo_${trackId}_$preferredFormat", $track, DEFAULT_EXPIRY);
+			$cache->set("fileInfo_${trackId}_${preferredFormat}", $track, DEFAULT_EXPIRY);
 			$track = $url if $urlOnly;
 		}
 
@@ -540,9 +548,9 @@ sub getStreamingFormat {
 
 # this call is synchronous, as it's only working on cached data
 sub getCachedFileInfo {
-	my ($class, $trackId, $urlOnly) = @_;
+	my ($class, $trackId, $urlOnly, $preferredFormat) = @_;
 
-	my $preferredFormat = $prefs->get('preferredFormat');
+	$preferredFormat ||= $prefs->get('preferredFormat');
 
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
