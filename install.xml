@@ -3,10 +3,10 @@
 	<id>66C1A24B-02A3-D153-AF52-FD3159753CAC</id>
 	<name>PLUGIN_QOBUZ</name>
 	<module>Plugins::Qobuz::Plugin</module>
-	<version>1.525</version>
+	<version>1.530</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger</creator>
-	<email>contact@pierrebeck.fr</email>
+	<email>slim@herger.net</email>
 	<defaultState>enabled</defaultState>
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
 	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>

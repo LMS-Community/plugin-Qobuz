@@ -7,6 +7,7 @@ use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 
 use JSON::XS::VersionOneAndTwo;
+use List::Util qw(min max);
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
 
@@ -18,7 +19,8 @@ use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
 use constant USER_DATA_EXPIRY => 60;            # user want to see changes in purchases, playlists etc. ASAP
 
 use constant DEFAULT_LIMIT  => 200;
-use constant USERDATA_LIMIT => 500;				# users know how many results to expect - let's be a bit more generous :-)
+use constant QOBUZ_LIMIT    => 500;
+use constant USERDATA_LIMIT => 5000;				# users know how many results to expect - let's be a bit more generous :-)
 
 use constant STREAMING_MP3  => 5;
 use constant STREAMING_FLAC => 6;
@@ -321,7 +323,7 @@ sub checkPurchase {
 sub getUserFavorites {
 	my ($class, $cb, $force) = @_;
 
-	_get('favorite/getUserFavorites', sub {
+	_pagingGet('favorite/getUserFavorites', sub {
 		my ($favorites) = @_;
 
 		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
@@ -329,8 +331,32 @@ sub getUserFavorites {
 
 		$cb->($favorites);
 	},{
-		limit    => USERDATA_LIMIT,
-		_ttl     => USER_DATA_EXPIRY,
+		limit      => USERDATA_LIMIT,
+		_extractor => sub {
+			my ($favorites) = @_;
+			my $collectedFavorites;
+
+			map {
+				my $offset = $_;
+				if ($collectedFavorites) {
+					foreach my $category (qw(albums artists tracks)) {
+						push @{$collectedFavorites->{$category}->{items}}, @{$favorites->{$offset}->{$category}->{items}};
+					}
+				}
+				else {
+					$collectedFavorites = $favorites->{$offset};
+				}
+			} sort {
+				$a <=> $b
+			} keys %$favorites;
+
+			return $collectedFavorites;
+		},
+		_getMaxFn   => sub {
+			my ($favorites) = @_;
+			return max($favorites->{albums}->{total}, $favorites->{artists}->{total}, $favorites->{tracks}->{total});
+		},
+		_ttl       => USER_DATA_EXPIRY,
 		_use_token => 1,
 		_wipecache => $force,
 	});
@@ -397,7 +423,7 @@ sub getPublicPlaylists {
 sub getPlaylistTracks {
 	my ($class, $cb, $playlistId) = @_;
 
-	_get('playlist/get', sub {
+	_pagingGet('playlist/get', sub {
 		my $tracks = shift;
 
 		$tracks->{tracks}->{items} = _precacheTracks($tracks->{tracks}->{items});
@@ -407,6 +433,11 @@ sub getPlaylistTracks {
 		playlist_id => $playlistId,
 		extra       => 'tracks',
 		limit       => USERDATA_LIMIT,
+		_extractor  => 'tracks',
+		_maxKey     => sub {
+			my ($results) = @_;
+			$results->{tracks_count};
+		},
 		_ttl        => USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
@@ -600,7 +631,7 @@ my @artistsToLookUp;
 my $artistLookup;
 sub _precacheArtistPictures {
 	my ($artists) = @_;
-	
+
 	return unless $artists && ref $artists eq 'ARRAY';
 
 	foreach my $artist (@$artists) {
@@ -782,6 +813,81 @@ sub _get {
 			timeout => 15,
 		},
 	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
+}
+
+sub _pagingGet {
+	my ( $url, $cb, $params ) = @_;
+
+	my $limit = $params->{limit};
+	$params->{limit} = min($params->{limit}, QOBUZ_LIMIT);
+
+	my $getMaxFn = ref $params->{_maxKey} ? delete $params->{_maxKey} : sub {
+		my ($results) = @_;
+		# warn Data::Dump::dump($results);
+		# warn $params->{_maxKey};
+		# warn $results->{$params->{_maxKey}};
+		$results->{$params->{_maxKey}}->{total};
+	};
+
+	my $extractorFn = ref $params->{_extractor} ? delete $params->{_extractor} : sub {
+		my ($results) = @_;
+		my $extractor = $params->{_extractor};
+
+		my $collector;
+		map {
+			if ($collector) {
+				push @{$collector->{$extractor}->{items}}, @{$results->{$_}->{$extractor}->{items}};
+			}
+			else {
+				$collector = $results->{$_};
+			}
+		} sort {
+			$a <=> $b
+		} keys %$results;
+
+		return $collector;
+	};
+
+	_get($url, sub {
+		my ($result) = @_;
+
+		my $total = $getMaxFn->($result);
+
+		main::DEBUGLOG && $log->is_debug && $log->debug("Neet to page?" . Data::Dump::dump({
+			total => $total,
+			pageSize => $params->{limit},
+			requested => $limit
+		}));
+
+		if ($total > $params->{limit} && $limit > $params->{limit}) {
+			my $chunks = {};
+
+			for (my $offset = $params->{limit}; $offset <= min($total, $limit); $offset += $params->{limit}) {
+				my $params2 = Storable::dclone($params);
+				$params2->{offset} = $offset;
+
+				$chunks->{$offset} = $params2;
+			}
+
+			my $results = {
+				0 => $result
+			};
+
+			while (my ($id, $params) = each %$chunks) {
+				_get($url, sub {
+					$results->{$id} = shift;
+					delete $chunks->{$id};
+
+					if (!scalar keys %$chunks) {
+						$cb->($extractorFn->($results));
+					}
+				}, $params);
+			}
+		}
+		else {
+			$cb->($extractorFn->({ 0 => $result }));
+		}
+	}, $params);
 }
 
 sub cache { wantarray ? ($cache, $memcache) : $cache }
