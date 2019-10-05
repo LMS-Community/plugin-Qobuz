@@ -352,7 +352,7 @@ sub getUserFavorites {
 
 			return $collectedFavorites;
 		},
-		_getMaxFn   => sub {
+		_maxKey   => sub {
 			my ($favorites) = @_;
 			return max($favorites->{albums}->{total}, $favorites->{artists}->{total}, $favorites->{tracks}->{total});
 		},
@@ -767,10 +767,10 @@ sub _get {
 
 	$url = BASE_URL . $url . '?' . join('&', sort @query);
 
-	if (main::DEBUGLOG && $log->is_debug) {
+	if (main::INFOLOG && $log->is_info) {
 		my $data = $url;
 		$data =~ s/(?:$aid|$token)//g;
-		$log->debug($data);
+		$log->info($data);
 	}
 
 	if ($params->{_wipecache}) {
@@ -851,9 +851,9 @@ sub _pagingGet {
 	_get($url, sub {
 		my ($result) = @_;
 
-		my $total = $getMaxFn->($result);
+		my $total = $getMaxFn->($result) || QOBUZ_LIMIT;
 
-		main::DEBUGLOG && $log->is_debug && $log->debug("Neet to page?" . Data::Dump::dump({
+		main::INFOLOG && $log->is_info && $log->info("Need another page? " . Data::Dump::dump({
 			total => $total,
 			pageSize => $params->{limit},
 			requested => $limit
