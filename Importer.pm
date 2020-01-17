@@ -3,7 +3,6 @@ package Plugins::Qobuz::Importer;
 use strict;
 
 use Date::Parse qw(str2time);
-# use Digest::MD5 qw(md5_hex);
 
 use Slim::Music::Import;
 use Slim::Utils::Log;
@@ -72,14 +71,28 @@ sub startScan {
 
 		my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
 
-		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), 86400);
-		
 		$progress->total(scalar @$albums + 2);
 
-		foreach my $album (@$albums) {
-			my $album = Plugins::Qobuz::API::Sync->getAlbum($album->{id});
+		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), 86400);
 
-# warn Data::Dump::dump($tracks);
+		my @albums;
+
+		foreach my $album (@$albums) {
+			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
+
+			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
+				_storeTracks($album, $albumDetails->{tracks}->{items})
+			}
+			else {
+				push @missingAlbums, $album->{id};
+			}
+		}
+
+		foreach my $albumId (@missingAlbums) {
+			my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
+
+			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
+
 			_storeTracks($album, $album->{tracks}->{items});
 		}
 	}
@@ -167,40 +180,43 @@ sub _storeTracks {
 	my $sth = $dbh->prepare_cached("INSERT OR IGNORE INTO library_track (library, track) VALUES (?, ?)") if $libraryId;
 	my $c = 0;
 
-	# my $splitChar = substr(preferences('server')->get('splitList'), 0, 1) || ' ';
-
 	foreach my $track (@$tracks) {
-		# my $item = $libraryCache->get($track->{uri}) || $track;
-		my $item = $track;
+		my $url = Plugins::Qobuz::API::Common->getUrl($track);
+		my $ct  = Slim::Music::Info::typeFromPath($url);
 
-		my $artist = $album->{artist}->{name};
-		# TODO my $composer
-		# my $extId = join(',', map { $_->{uri} } @{ $item->{album}->{artists} || [$item->{artists}->[0]] });
-		my $url = Plugins::Qobuz::API::Common->getUrl($item);
+		my $attributes = {
+			TITLE        => $track->{title},
+			ARTIST       => $album->{artist}->{name},
+			ARTIST_EXTID => $album->{artist}->{id},
+			TRACKARTIST  => $track->{performer}->{name},
+			ALBUM        => $album->{title},
+			ALBUM_EXTID  => $album->{id},
+			TRACKNUM     => $track->{track_number},
+			GENRE        => $album->{genre},
+			DISC         => $track->{media_number},
+			DISCC        => $track->{tracks_count},
+			SECS         => $track->{duration},
+			YEAR         => (localtime($album->{released_at}))[5] + 1900,
+			COVER        => $album->{image},
+			AUDIO        => 1,
+			EXTID        => $track->{id},
+			# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
+			TIMESTAMP    => str2time($album->{favorited_at} || 0),
+			CONTENT_TYPE => $ct,
+			SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
+			SAMPLESIZE   => $track->{maximum_bit_depth},
+			CHANNELS     => $track->{maximum_channel_count},
+			LOSSLESS     => $ct eq 'flc',
+		};
+
+		if ($track->{composer}) {
+			$attributes->{COMPOSER} = $track->{composer}->{name};
+		}
 
 		my $trackObj = Slim::Schema->updateOrCreate({
 			url        => $url,
 			integrateRemote => 1,
-			attributes => {
-				TITLE        => $item->{title},
-				ARTIST       => $artist,
-				ARTIST_EXTID => $album->{artist}->{id},
-				# TRACKARTIST  => join($splitChar, map { $_->{name} } @{ $item->{artists} }),
-				ALBUM        => $album->{title},
-				ALBUM_EXTID  => $album->{id},
-				TRACKNUM     => $item->{track_number},
-				GENRE        => $album->{genre}->{name},
-				DISC         => $item->{media_number},
-				DISCC        => $item->{tracks_count},
-				SECS         => $item->{duration},
-				YEAR         => substr($album->{release_date_original}, 0, 4),
-				COVER        => $album->{image}->{large} || $album->{image}->{small} || $album->{image}->{thumbnail},
-				AUDIO        => 1,
-				EXTID        => $item->{id},
-				# COMPILATION  => $item->{album}->{album_type} eq 'compilation',
-				TIMESTAMP    => str2time($album->{favorited_at} || 0),
-				CONTENT_TYPE => Slim::Music::Info::typeFromPath($url),
-			},
+			attributes => $attributes,
 		});
 
 		if ($libraryId) {

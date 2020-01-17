@@ -2,9 +2,10 @@ package Plugins::Qobuz::API::Sync;
 
 use strict;
 
-use JSON::XS::VersionOneAndTwo;
-use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
+use JSON::XS::VersionOneAndTwo;
+use List::Util qw(max);
+use URI::Escape qw(uri_escape_utf8);
 
 use Slim::Networking::SimpleSyncHTTP;
 use Slim::Utils::Log;
@@ -60,7 +61,7 @@ sub myAlbums {
 	my ($class) = @_;
 
 	my $offset = 0;
-	my $albums = [];
+	my $allAlbums = [];
 	my $libraryMeta;
 
 	my $args = {
@@ -70,29 +71,53 @@ sub myAlbums {
 		_use_token => 1,
 	};
 
-	do {
-		$args->{offset} = $offset;
+	my ($total, $lastAdded) = (0, 0);
 
-		my $response = $class->_get('favorite/getUserFavorites', $args);
+	foreach my $query ('favorite/getUserFavorites', 'purchase/getUserPurchases') {
+		my $gotMeta;
+		my $albums = [];
 
-		$offset = 0;
+		do {
+			$args->{offset} = $offset;
 
-		if ( $response && $response->{albums} && ref $response->{albums} && $response->{albums}->{items} && ref $response->{albums}->{items} ) {
-			# keep track of some meta-information about the album collection
-			$libraryMeta ||= {
-				total => $response->{albums}->{total} || 0,
-				lastAdded => $response->{albums}->{items}->[0]->{favorited_at} || ''
-			};
+			my $response = $class->_get($query, $args);
 
-			$albums = _precacheAlbum($response->{albums}->{items});
+			$offset = 0;
 
-			if (scalar @$albums < $libraryMeta->{total}) {
-				$offset = $response->{albums}->{offset} + 1;
+			if ( $response && ref $response && $response->{albums} && ref $response->{albums} && $response->{albums}->{items} && ref $response->{albums}->{items} ) {
+				if (!$gotMeta) {
+					if ($query =~ /purchase/) {
+						my @timestamps = map { $_->{purchased_at} } @{ $response->{albums}->{items} };
+						$lastAdded = max($lastAdded, @timestamps);
+					}
+					else {
+						$lastAdded = max($lastAdded, $response->{albums}->{items}->[0]->{favorited_at} || 0);
+					}
+
+					$total += $response->{albums}->{total};
+					$gotMeta = 1;
+				}
+
+				push @$albums, @{ _precacheAlbum($response->{albums}->{items}) };
+
+				if (scalar @$albums < $libraryMeta->{total}) {
+					$offset = $response->{albums}->{offset} + 1;
+				}
 			}
-		}
-	} while $offset;
+		} while $offset;
 
-	return wantarray ? ($albums, $libraryMeta) : $albums;
+		push @$allAlbums, @$albums;
+	}
+
+	if ($total && $lastAdded) {
+		# keep track of some meta-information about the album collection
+		$libraryMeta = {
+			total => $total,
+			lastAdded => $lastAdded
+		};
+	}
+
+	return wantarray ? ($allAlbums, $libraryMeta) : $allAlbums;
 }
 
 sub getAlbum {

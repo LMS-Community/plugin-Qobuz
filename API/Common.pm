@@ -38,7 +38,7 @@ sub init {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 8);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 1);
 }
 
 sub getUserdata {
@@ -90,8 +90,17 @@ sub _precacheAlbum {
 	$albums = __PACKAGE__->filterPlayables($albums);
 
 	foreach my $album (@$albums) {
-		delete $album->{articles};
-		delete $album->{article_ids};
+		foreach (qw(composer duration genres_list articles article_ids description copyright catchline label 
+			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
+			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
+			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_stream release_date_original
+			product_sales_factors_monthly product_sales_factors_weekly product_sales_factors_yearly)) 
+		{
+			delete $album->{$_};
+		}
+
+		$album->{genre} = $album->{genre}->{name};
+		$album->{image} = $album->{image}->{large} || $album->{image}->{small} || $album->{image}->{thumbnail} || ''; 
 
 		my $albumInfo = {
 			title  => $album->{title},
@@ -102,10 +111,10 @@ sub _precacheAlbum {
 			goodies=> $album->{goodies},
 		};
 
-		foreach my $track (@{$album->{tracks}->{items}}) {
-			$track->{album} = $albumInfo;
-			precacheTrack($track);
-		}
+		_precacheTracks([ map {
+			$_->{album} = $albumInfo;
+			$_;
+		} @{$album->{tracks}->{items}} ]);
 	}
 
 	return $albums;
@@ -119,6 +128,10 @@ sub _precacheTracks {
 	$tracks = __PACKAGE__->filterPlayables($tracks);
 
 	foreach my $track (@$tracks) {
+		foreach (qw(article_ids copyright downloadable isrc previewable purchasable purchasable_at)) {
+			delete $track->{$_};
+		}
+
 		precacheTrack($track)
 	}
 
@@ -145,7 +158,7 @@ sub precacheTrack {
 		composer => $track->{composer}->{name} || '',
 		composerId => $track->{composer}->{id} || '',
 		performers => $track->{performers} || '',
-		cover    => $album->{image}->{large} || '',
+		cover    => $album->{image},
 		duration => $track->{duration} || 0,
 		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
 		goodies  => $album->{goodies},

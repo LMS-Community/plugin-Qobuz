@@ -842,7 +842,7 @@ sub QobuzGetTracks {
 		}
 
 		push @$items,{
-			name  => $album->{genre}->{name},
+			name  => $album->{genre},
 			label => 'GENRE',
 			type  => 'text'
 		},{
@@ -924,13 +924,13 @@ sub _albumItem {
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 
-	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::Common->getStreamingFormat($album) eq 'flac' ) {
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
 	my $item = {
 		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
-		image => $album->{image}->{large},
+		image => $album->{image},
 	};
 
 	if ($albumName) {
@@ -1012,10 +1012,10 @@ sub _trackItem {
 		name  => sprintf('%s %s %s %s %s', $track->{title}, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
 		line1 => $track->{title},
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
-		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
+		image => $track->{album}->{image},
 	};
 
-	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
+	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
