@@ -1,7 +1,6 @@
 package Plugins::Qobuz::API;
 
 use strict;
-use base qw(Slim::Plugin::OPMLBased);
 
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
@@ -11,28 +10,16 @@ use List::Util qw(min max);
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
 
-use constant BASE_URL => 'http://www.qobuz.com/api.json/0.2/';
-
-use constant DEFAULT_EXPIRY   => 86400 * 30;
-use constant EDITORIAL_EXPIRY => 60 * 60;       # editorial content like recommendations, new releases etc.
-use constant URL_EXPIRY       => 60 * 10;       # Streaming URLs are short lived
-use constant USER_DATA_EXPIRY => 60;            # user want to see changes in purchases, playlists etc. ASAP
-
-use constant DEFAULT_LIMIT  => 200;
-use constant QOBUZ_LIMIT    => 500;
-use constant USERDATA_LIMIT => 5000;				# users know how many results to expect - let's be a bit more generous :-)
-
-use constant STREAMING_MP3  => 5;
-use constant STREAMING_FLAC => 6;
-use constant STREAMING_FLAC_HIRES => 7;
-use constant STREAMING_FLAC_HIRES2 => 27;
-
-use Slim::Utils::Cache;
+use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
+use Plugins::Qobuz::API::Common;
+
+use constant URL_EXPIRY => 60 * 10;       # Streaming URLs are short lived
+
 # bump the second parameter if you decide to change the schema of cached data
-my $cache = Slim::Utils::Cache->new('qobuz', 8);
+my $cache = Plugins::Qobuz::API::Common->getCache();
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -44,10 +31,10 @@ my ($aid, $as);
 
 sub init {
 	my $class = shift;
-	($aid, $as) = pack('H*', $_[0]) =~ /^(\d{9})(.*)/;
+	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
 
 	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {}, !$class->getCredentials);
+	$class->getToken(sub {}, !Plugins::Qobuz::API::Common->getCredentials);
 }
 
 sub getToken {
@@ -93,9 +80,9 @@ sub getToken {
 			return;
 		}
 
-		$memcache->set('token_' . $username . $password, $token, DEFAULT_EXPIRY);
+		$memcache->set('token_' . $username . $password, $token, QOBUZ_DEFAULT_EXPIRY);
 		# keep the user data around longer than the token
-		$cache->set('userdata', $result->{user}, time() + DEFAULT_EXPIRY*2);
+		$cache->set('userdata', $result->{user}, time() + QOBUZ_DEFAULT_EXPIRY*2);
 
 		$cb->($token) if $cb;
 	},{
@@ -106,30 +93,6 @@ sub getToken {
 	});
 
 	return;
-}
-
-sub getUserdata {
-	my ($class, $item) = @_;
-
-	my $userdata = $cache->get('userdata') || {};
-
-	return $item ? $userdata->{$item} : $userdata;
-}
-
-sub getCredentials {
-	my $credentials = $_[0]->getUserdata('credential');
-
-	if ($credentials && ref $credentials) {
-		return $credentials;
-	}
-}
-
-sub getDevicedata {
-	$_[0]->getUserdata('device') || {};
-}
-
-sub username {
-	return $_[0]->getUserdata('login') || $prefs->get('username');
 }
 
 sub search {
@@ -148,8 +111,8 @@ sub search {
 		return;
 	}
 
-	$args->{limit} ||= DEFAULT_LIMIT;
-	$args->{_ttl}  ||= EDITORIAL_EXPIRY;
+	$args->{limit} ||= QOBUZ_DEFAULT_LIMIT;
+	$args->{_ttl}  ||= QOBUZ_EDITORIAL_EXPIRY;
 	$args->{query} ||= $search;
 	$args->{type}  ||= $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
 
@@ -189,7 +152,7 @@ sub getArtist {
 	}, {
 		artist_id => $artistId,
 		extra     => 'albums',
-		limit     => DEFAULT_LIMIT,
+		limit     => QOBUZ_DEFAULT_LIMIT,
 	});
 }
 
@@ -232,7 +195,7 @@ sub getGenre {
 	_get('genre/get', $cb, {
 		genre_id => $genreId,
 		extra => 'subgenresCount,albums',
-		_ttl  => EDITORIAL_EXPIRY,
+		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
 	});
 }
 
@@ -255,8 +218,8 @@ sub getFeaturedAlbums {
 
 	my $args = {
 		type     => $type,
-		limit    => DEFAULT_LIMIT,
-		_ttl     => EDITORIAL_EXPIRY,
+		limit    => QOBUZ_DEFAULT_LIMIT,
+		_ttl     => QOBUZ_EDITORIAL_EXPIRY,
 	};
 
 	$args->{genre_id} = $genreId if $genreId;
@@ -281,8 +244,8 @@ sub getUserPurchases {
 
 		$cb->($purchases);
 	},{
-		limit    => USERDATA_LIMIT,
-		_ttl     => USER_DATA_EXPIRY,
+		limit    => QOBUZ_USERDATA_LIMIT,
+		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
 }
@@ -331,7 +294,7 @@ sub getUserFavorites {
 
 		$cb->($favorites);
 	},{
-		limit      => USERDATA_LIMIT,
+		limit      => QOBUZ_USERDATA_LIMIT,
 		_extractor => sub {
 			my ($favorites) = @_;
 			my $collectedFavorites;
@@ -356,10 +319,35 @@ sub getUserFavorites {
 			my ($favorites) = @_;
 			return max($favorites->{albums}->{total}, $favorites->{artists}->{total}, $favorites->{tracks}->{total});
 		},
-		_ttl       => USER_DATA_EXPIRY,
+		_ttl       => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
 		_wipecache => $force,
 	});
+}
+
+sub myAlbumsMeta {
+	my ($class, $cb) = @_;
+
+	_get('favorite/getUserFavorites', sub {
+		my ($results) = @_;
+
+		my $libraryMeta = {};
+		if ($results && ref $results && $results->{albums} && ref $results->{albums}) {
+			# keep track of some meta-information about the
+			$libraryMeta = {
+				total => $results->{albums}->{total} || 0,
+				lastAdded => $results->{albums}->{items}->[0]->{favorited_at} || ''
+			};
+		}
+
+		$cb->($libraryMeta);
+	}, {
+		limit => 1,
+		type => 'albums',
+		limit => 1,
+		_use_token => 1,
+		_nocache => 1
+	})
 }
 
 sub createFavorite {
@@ -398,9 +386,9 @@ sub getUserPlaylists {
 
 		$cb->($playlists);
 	}, {
-		username => $user || __PACKAGE__->username,
-		limit    => USERDATA_LIMIT,
-		_ttl     => USER_DATA_EXPIRY,
+		username => $user || Plugins::Qobuz::API::Common->username,
+		limit    => QOBUZ_USERDATA_LIMIT,
+		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
 }
@@ -411,7 +399,7 @@ sub getPublicPlaylists {
 	my $args = {
 		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
 		limit => 100,		# for whatever reason this query doesn't accept more than 100 results
-		_ttl  => EDITORIAL_EXPIRY,
+		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
 	};
 
 	$args->{genre_ids} = $genreId if $genreId;
@@ -432,13 +420,13 @@ sub getPlaylistTracks {
 	},{
 		playlist_id => $playlistId,
 		extra       => 'tracks',
-		limit       => USERDATA_LIMIT,
+		limit       => QOBUZ_USERDATA_LIMIT,
 		_extractor  => 'tracks',
 		_maxKey     => sub {
 			my ($results) = @_;
 			$results->{tracks_count};
 		},
-		_ttl        => USER_DATA_EXPIRY,
+		_ttl        => QOBUZ_USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
 }
@@ -515,18 +503,18 @@ sub getFileInfo {
 
 	if ($format =~ /fl.c/i) {
 		$preferredFormat = $prefs->get('preferredFormat');
-		if ($preferredFormat < STREAMING_FLAC_HIRES) {
-			$preferredFormat = STREAMING_FLAC;
+		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES) {
+			$preferredFormat = QOBUZ_STREAMING_MP3;
 		}
-		elsif ($preferredFormat > STREAMING_FLAC_HIRES) {
-			$preferredFormat = STREAMING_FLAC_HIRES2;
+		elsif ($preferredFormat > QOBUZ_STREAMING_FLAC_HIRES) {
+			$preferredFormat = QOBUZ_STREAMING_FLAC_HIRES2;
 		}
 	}
 	elsif ($format =~ /mp3/i) {
-		$preferredFormat = STREAMING_MP3 ;
+		$preferredFormat = QOBUZ_STREAMING_MP3 ;
 	}
 
-	$preferredFormat ||= $prefs->get('preferredFormat') || STREAMING_MP3;
+	$preferredFormat ||= $prefs->get('preferredFormat') || QOBUZ_STREAMING_MP3;
 
 	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly, $preferredFormat) ) {
 		$cb->($cached);
@@ -541,8 +529,8 @@ sub getFileInfo {
 
 			# cache urls for a short time only
 			$cache->set("trackUrl_${trackId}_${preferredFormat}", $url, URL_EXPIRY);
-			$cache->set("trackId_$url", $trackId, DEFAULT_EXPIRY);
-			$cache->set("fileInfo_${trackId}_${preferredFormat}", $track, DEFAULT_EXPIRY);
+			$cache->set("trackId_$url", $trackId, QOBUZ_DEFAULT_EXPIRY);
+			$cache->set("fileInfo_${trackId}_${preferredFormat}", $track, QOBUZ_DEFAULT_EXPIRY);
 			$track = $url if $urlOnly;
 		}
 
@@ -556,27 +544,6 @@ sub getFileInfo {
 	});
 }
 
-# figure out what streaming format we can use
-# - check preference
-# - fall back to mp3 samples if not streamable
-# - check user's subscription level
-sub getStreamingFormat {
-	my ($class, $track) = @_;
-
-	if (
-		# user prefers mp3 over flac anyway
-		$prefs->get('preferredFormat') < STREAMING_FLAC
-		# user is not allowed to stream losslessly
-		|| !Plugins::Qobuz::Plugin->canLossless()
-		# track is not available in flac
-		|| !($track && ref $track eq 'HASH' && $track->{streamable})
-	) {
-		return 'mp3';
-	}
-
-	return 'flac';
-}
-
 # this call is synchronous, as it's only working on cached data
 sub getCachedFileInfo {
 	my ($class, $trackId, $urlOnly, $preferredFormat) = @_;
@@ -588,43 +555,6 @@ sub getCachedFileInfo {
 	}
 
 	return $cache->get($urlOnly ? "trackUrl_${trackId}_$preferredFormat" : "fileInfo_${trackId}_$preferredFormat");
-}
-
-sub filterPlayables {
-	my ($class, $items) = @_;
-
-	return $items if $prefs->get('playSamples');
-
-	my $t = time;
-	return [ grep {
-		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
-	} @$items ];
-}
-
-sub _precacheAlbum {
-	my ($albums) = @_;
-
-	return unless $albums && ref $albums eq 'ARRAY';
-
-	$albums = __PACKAGE__->filterPlayables($albums);
-
-	foreach my $album (@$albums) {
-		my $albumInfo = {
-			title  => $album->{title},
-			id     => $album->{id},
-			artist => $album->{artist},
-			image  => $album->{image},
-			year   => (localtime($album->{released_at}))[5] + 1900,
-			goodies=> $album->{goodies},
-		};
-
-		foreach my $track (@{$album->{tracks}->{items}}) {
-			$track->{album} = $albumInfo;
-			precacheTrack($track);
-		}
-	}
-
-	return $albums;
 }
 
 my @artistsToLookUp;
@@ -655,57 +585,6 @@ sub _lookupArtistPicture {
 		$artistLookup = 1;
 		__PACKAGE__->getArtist(\&_lookupArtistPicture, shift @artistsToLookUp);
 	}
-}
-
-sub _precacheTracks {
-	my ($tracks) = @_;
-
-	return unless $tracks && ref $tracks eq 'ARRAY';
-
-	$tracks = __PACKAGE__->filterPlayables($tracks);
-
-	foreach my $track (@$tracks) {
-		precacheTrack($track)
-	}
-
-	return $tracks;
-}
-
-sub precacheTrack {
-	my ($class, $track) = @_;
-
-	if ( !$track && ref $class eq 'HASH' ) {
-		$track = $class;
-		$class = __PACKAGE__;
-	}
-
-	my $album = $track->{album} || {};
-	$track->{composer} ||= $album->{composer} || {};
-
-	my $meta = {
-		title    => $track->{title} || $track->{id},
-		album    => $album->{title} || '',
-		albumId  => $album->{id},
-		artist   => $class->getArtistName($track, $album),
-		artistId => $album->{artist}->{id} || '',
-		composer => $track->{composer}->{name} || '',
-		composerId => $track->{composer}->{id} || '',
-		performers => $track->{performers} || '',
-		cover    => $album->{image}->{large} || '',
-		duration => $track->{duration} || 0,
-		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
-		goodies  => $album->{goodies},
-	};
-
-	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? DEFAULT_EXPIRY : EDITORIAL_EXPIRY));
-
-	return $meta;
-}
-
-sub getArtistName {
-	my ($class, $track, $album) = @_;
-	$track->{performer} ||= $album->{performer} || {};
-	return $track->{performer}->{name} || $album->{artist}->{name} || '',
 }
 
 sub _get {
@@ -765,7 +644,7 @@ sub _get {
 		$params->{_nocache} = 1;
 	}
 
-	$url = BASE_URL . $url . '?' . join('&', sort @query);
+	$url = QOBUZ_BASE_URL . $url . '?' . join('&', sort @query);
 
 	if (main::INFOLOG && $log->is_info) {
 		my $data = $url;
@@ -793,7 +672,7 @@ sub _get {
 			main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i && $log->debug(Data::Dump::dump($result));
 
 			if ($result && !$params->{_nocache}) {
-				$cache->set($url, $result, $params->{_ttl} || DEFAULT_EXPIRY);
+				$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
 			}
 
 			$cb->($result);
@@ -907,7 +786,7 @@ sub new {
 sub set {
 	my ($class, $key, $value, $timeout) = @_;
 
-	$timeout ||= Plugins::Qobuz::API::DEFAULT_EXPIRY;
+	$timeout ||= Plugins::Qobuz::API::QOBUZ_DEFAULT_EXPIRY;
 
 	$class->{md5_hex($key)} = {
 		v => $value,

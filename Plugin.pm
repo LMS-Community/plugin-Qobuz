@@ -13,8 +13,10 @@ use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string cstring);
 
 use Plugins::Qobuz::API;
+use Plugins::Qobuz::API::Common;
 use Plugins::Qobuz::ProtocolHandler;
 
+use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
 use constant CLICOMMAND => 'qobuzquery';
 
 # Keep in sync with Music & Artist Information plugin
@@ -143,8 +145,19 @@ sub postinitPlugin {
 		if (!$@) {
 			main::INFOLOG && $log->info("LastMix plugin is available - let's use it!");
 			require Plugins::Qobuz::LastMix;
-			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix', canLossless());
+			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix', Plugins::Qobuz::API::Common->canLossless());
 		}
+	}
+}
+
+sub onlineLibraryNeedsUpdate {
+	if (CAN_IMPORTER) {
+		my $class = shift;
+		require Plugins::Qobuz::Importer;
+		return Plugins::Qobuz::Importer->needsUpdate(@_);
+	}
+	else {
+		$log->warn('The library importer feature requires at least Logitech Media Server 8');
 	}
 }
 
@@ -911,7 +924,7 @@ sub _albumItem {
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 
-	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($album) eq 'flac' ) {
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::Common->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
@@ -992,7 +1005,7 @@ sub _playlistItem {
 sub _trackItem {
 	my ($client, $track, $isWeb) = @_;
 
-	my $artist = Plugins::Qobuz::API->getArtistName($track, $track->{album});
+	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {
@@ -1002,7 +1015,7 @@ sub _trackItem {
 		image => $track->{album}->{image}->{large} || $track->{album}->{image}->{small},
 	};
 
-	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($track->{album}) eq 'flac' ) {
+	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
@@ -1022,7 +1035,7 @@ sub _trackItem {
 	else {
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
 		$item->{line1}     = '* ' . $item->{line1} if !$track->{streamable};
-		$item->{play}      = Plugins::Qobuz::ProtocolHandler->getUrl($track);
+		$item->{play}      = Plugins::Qobuz::API::Common->getUrl($track);
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;
 	}
@@ -1318,7 +1331,7 @@ sub cliQobuzPlayAlbum {
 		my $tracks = [];
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
-			push @$tracks, Plugins::Qobuz::ProtocolHandler->getUrl($track);
+			push @$tracks, Plugins::Qobuz::API::Common->getUrl($track);
 		}
 
 		my $action = $request->isCommand([['qobuz'], ['addalbum']]) ? 'addtracks' : 'playtracks';
@@ -1327,11 +1340,6 @@ sub cliQobuzPlayAlbum {
 	}, $albumId);
 
 	$request->setStatusDone();
-}
-
-sub canLossless {
-	my $credentials = Plugins::Qobuz::API->getCredentials;
-	return ($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming});
 }
 
 sub _canWeblink {

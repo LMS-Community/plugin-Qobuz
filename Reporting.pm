@@ -9,6 +9,7 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
 use Plugins::Qobuz::API;
+use Plugins::Qobuz::API::Common;
 use Plugins::Qobuz::ProtocolHandler;
 
 # don't report the same track twice
@@ -42,18 +43,18 @@ sub startStreaming {
 	$reportedTracks{"start_$track_id"} = 1;
 
 	$format ||= Plugins::Qobuz::ProtocolHandler->getFormatForURL($url);
-	my $devicedata = Plugins::Qobuz::API->getDevicedata();
-	my $credentials = Plugins::Qobuz::API->getCredentials() || {};
+	my $devicedata = Plugins::Qobuz::API::Common->getDevicedata();
+	my $credentials = Plugins::Qobuz::API::Common->getCredentials() || {};
 
-	my $format_id = Plugins::Qobuz::API::STREAMING_MP3();
+	my $format_id = QOBUZ_STREAMING_MP3;
 	if ($format ne 'mp3') {
-		$format_id = ($prefs->get('preferredFormat') || 0) < Plugins::Qobuz::API::STREAMING_FLAC_HIRES()
-			? Plugins::Qobuz::API::STREAMING_FLAC()
-			: Plugins::Qobuz::API::STREAMING_FLAC_HIRES();
+		$format_id = ($prefs->get('preferredFormat') || 0) < QOBUZ_STREAMING_FLAC_HIRES
+			? QOBUZ_STREAMING_MP3
+			: QOBUZ_STREAMING_FLAC_HIRES;
 	}
 
 	my $event = {
-		user_id  => Plugins::Qobuz::API->getUserdata('id'),
+		user_id  => Plugins::Qobuz::API::Common->getUserdata('id'),
 		duration => 0,
 		'date'   => time(),
 		online   => JSON::XS::true,
@@ -140,7 +141,7 @@ sub _getTrackInfo {
 sub _post {
 	my ( $url, $cb, $event ) = @_;
 
-	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
+	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::QOBUZ_BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
 	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), Plugins::Qobuz::API->getToken());
 
 	main::INFOLOG && $log->is_info && $log->info("$url: $body");

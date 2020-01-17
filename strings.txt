@@ -186,3 +186,11 @@ PLUGIN_QOBUZ_TRACKS_COUNT
 	DE	Anzahl Titel
 	EN	Tracks count
 
+PLUGIN_QOBUZ_ALBUMS_PROGRESS
+	DE	Qobuz Alben
+	EN	Qobuz Albums
+
+PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
+	DE	Lese Alben...
+	EN	Fetching Albums...
+

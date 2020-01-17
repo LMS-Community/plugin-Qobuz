@@ -11,6 +11,7 @@ use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
 
 use Plugins::Qobuz::API;
+use Plugins::Qobuz::API::Common;
 use Plugins::Qobuz::Reporting;
 
 use constant MP3_BITRATE => 320_000;
@@ -83,7 +84,7 @@ sub getFormatForURL {
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 
 	# fall back to whatever the user can play
-	return Plugins::Qobuz::API->getStreamingFormat();
+	return Plugins::Qobuz::API::Common->getStreamingFormat();
 }
 
 sub canDirectStreamSong {
@@ -233,18 +234,6 @@ sub getNextTrack {
 	}, $id, $format);
 }
 
-sub getUrl {
-	my ($class, $id) = @_;
-
-	return '' unless $id;
-
-	my $ext = Plugins::Qobuz::API->getStreamingFormat($id);
-
-	$id = $id->{id} if $id && ref $id eq 'HASH';
-
-	return 'qobuz://' . $id . '.' . $ext;
-}
-
 sub crackUrl {
 	my ($class, $url) = @_;
 
@@ -255,7 +244,7 @@ sub crackUrl {
 	# compatibility with old urls without extension
 	($id) = $url =~ m{^qobuz://([^\.]+)$} unless $id;
 
-	return ($id, $format || Plugins::Qobuz::API->getStreamingFormat());
+	return ($id, $format || Plugins::Qobuz::API::Common->getStreamingFormat());
 }
 
 sub audioScrobblerSource {
