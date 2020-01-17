@@ -340,7 +340,17 @@ sub myAlbumsMeta {
 			};
 		}
 
-		$cb->($libraryMeta);
+		$class->getUserPurchases(sub {
+			my ($purchases) = @_;
+
+			if ($purchases && ref $purchases && $purchases->{albums}) {
+				my @timestamps = map { $_->{purchased_at} } @{ $purchases->{albums}->{items} };
+				$libraryMeta->{lastAdded} = max($libraryMeta->{lastAdded}, @timestamps);
+				$libraryMeta->{total} += $purchases->{albums}->{total};
+			}
+
+			$cb->($libraryMeta);
+		});
 	}, {
 		limit => 1,
 		type => 'albums',

@@ -70,7 +70,6 @@ sub startScan {
 		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
 
 		my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
-
 		$progress->total(scalar @$albums + 2);
 
 		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), 86400);
@@ -81,7 +80,10 @@ sub startScan {
 			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
 			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
-				_storeTracks($album, $albumDetails->{tracks}->{items})
+				$progress->update($album->{title});
+				_storeTracks($album, $albumDetails->{tracks}->{items});
+
+				main::SCANNER && Slim::Schema->forceCommit;
 			}
 			else {
 				push @missingAlbums, $album->{id};
@@ -90,11 +92,17 @@ sub startScan {
 
 		foreach my $albumId (@missingAlbums) {
 			my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
+			$progress->update($album->{title});
 
 			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
 
 			_storeTracks($album, $album->{tracks}->{items});
+
+			main::SCANNER && Slim::Schema->forceCommit;
 		}
+
+		$progress->final();
+		main::SCANNER && Slim::Schema->forceCommit;
 	}
 
 };
