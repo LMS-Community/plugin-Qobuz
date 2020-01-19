@@ -132,6 +132,52 @@ sub getAlbum {
 	return $album;
 }
 
+sub myPlaylists {
+	my ($class, $limit) = @_;
+
+	my $playlists = $class->_get('playlist/getUserPlaylists', {
+		username => Plugins::Qobuz::API::Common->username,
+		limit    => QOBUZ_DEFAULT_LIMIT,
+		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_use_token => 1,
+	});
+
+	return ($playlists && ref $playlists && $playlists->{playlists} && ref $playlists->{playlists}) 
+		? $playlists->{playlists}->{items}
+		: [];
+}
+
+sub getPlaylistTrackIDs {
+	my ($class, $playlistId) = @_;
+
+	my $offset = 0;
+	my @playlistTrackIds;
+
+	do {
+		my $response = $class->_get('playlist/get', {
+			playlist_id => $playlistId,
+			extra       => 'tracks',
+			limit       => QOBUZ_DEFAULT_LIMIT,
+			offset      => $offset,
+			_ttl        => QOBUZ_USER_DATA_EXPIRY,
+			_use_token  => 1,
+		});
+
+		$offset = 0;
+
+		if ($response && ref $response && $response->{tracks} && ref $response->{tracks} && $response->{tracks}->{items} && ref $response->{tracks}->{items}) {
+			my $tracks = $response->{tracks}->{items};
+			push @playlistTrackIds, map { $_->{id} } @{_precacheTracks($tracks)};
+
+			if (scalar $tracks && $response->{tracks}->{total} > $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT) {
+				$offset = $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT;
+			}
+		}
+	} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
+
+	return \@playlistTrackIds;
+}
+
 sub _get {
 	my ( $class, $url, $params ) = @_;
 

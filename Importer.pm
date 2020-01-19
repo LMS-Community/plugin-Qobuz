@@ -2,7 +2,7 @@ package Plugins::Qobuz::Importer;
 
 use strict;
 
-use Date::Parse qw(str2time);
+use List::Util qw(max);
 
 use Slim::Music::Import;
 use Slim::Utils::Log;
@@ -72,7 +72,7 @@ sub startScan {
 		my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
 		$progress->total(scalar @$albums + 2);
 
-		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), 86400);
+		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), time() + 360 * 86400);
 
 		my @albums;
 
@@ -105,6 +105,60 @@ sub startScan {
 		main::SCANNER && Slim::Schema->forceCommit;
 	}
 
+	my $progress = Slim::Utils::Progress->new({
+		'type'  => 'importer',
+		'name'  => 'plugin_qobuz_playlists',
+		'total' => 1,
+		'every' => 1,
+	});
+
+	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS'));
+
+	main::INFOLOG && $log->is_info && $log->info("Reading playlists...");
+	my $playlists = Plugins::Qobuz::API::Sync->myPlaylists();
+
+	$progress->total(scalar @$playlists);
+
+	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_TRACKS'));
+	my %tracks;
+	my $c = my $latestPlaylistUpdate = 0;
+
+	main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks...");
+
+	# we need to get the tracks first
+	foreach my $playlist (@{$playlists || []}) {
+		next unless $playlist->{id} && $playlist->{duration};
+
+		$latestPlaylistUpdate = max($latestPlaylistUpdate, $playlist->{updated_at});
+
+		$progress->update($playlist->{name});
+		main::SCANNER && Slim::Schema->forceCommit;
+
+		my $playlistObj = Slim::Schema->updateOrCreate({
+			url        => 'qobuz://' . $playlist->{id} . '.qbz',
+			playlist   => 1,
+			integrateRemote => 1,
+			attributes => {
+				TITLE        => $playlist->{name},
+				COVER        => Plugins::Qobuz::API::Common->getPlaylistImage($playlist),
+				AUDIO        => 1,
+				EXTID        => $playlist->{id},
+				CONTENT_TYPE => 'ssp'
+			},
+		});
+
+		my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl($_) } @{Plugins::Qobuz::API::Sync->getPlaylistTrackIDs($playlist->{id})};
+		$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
+		$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
+	}
+
+	$cache->set('playlist_last_update', $latestPlaylistUpdate, time() + 86400 * 360);
+
+	main::INFOLOG && $log->is_info && $log->info("Done, finally!");
+
+	$progress->final();
+
+	Slim::Music::Import->endImporter($class);
 };
 
 
@@ -124,27 +178,26 @@ sub needsUpdate {
 			# don't run any further test in the queue if we already have a result
 			return $acb->($result) if $result;
 
-		# 	my $snapshotIds = $cache->get('spotty_snapshot_ids' . $accountId);
+			my $previousPlaylistUpdate = $cache->get('playlist_last_update');
 
-		# 	my $api = Plugins::Spotty::Plugin->getAPIHandler($client);
-		# 	$api->playlists(sub {
-		# 		my ($playlists) = @_;
-
+			Plugins::Qobuz::API->getUserPlaylists(sub {
+				my ($result) = @_;
 				my $needUpdate;
-		# 		for my $playlist (@$playlists) {
-		# 			my $snapshotId = $snapshotIds->{$playlist->{id}};
-		# 			# we need an update if
-		# 			# - we haven't a snapshot ID for this playlist, OR
-		# 			# - the snapshot ID doesn't match, OR
-		# 			# - the playlist is Spotify generated and older than a day
-		# 			if ( !$snapshotId || ($snapshotId =~ /^\d{10}$/ ? $snapshotId < $timestamp : $snapshotId ne $playlist->{snapshot_id}) ) {
-		# 				$needUpdate = 1;
-		# 				last;
-		# 			}
-		# 		}
+
+				if ($result && ref $result && $result->{playlists} && ref $result->{playlists} && $result->{playlists}->{items} && ref $result->{playlists}->{items}) {
+					my $playlists = $result->{playlists}->{items};
+					my $latestPlaylistUpdate = 0;
+
+					foreach (@$playlists) {
+						if ($_->{updated_at} > $previousPlaylistUpdate) {
+							$needUpdate = 1;
+							last;
+						}
+					}
+				}
 
 				$acb->($needUpdate);
-		# 	});
+			});
 		}, sub {
 			my ($result, $acb) = @_;
 
@@ -209,7 +262,7 @@ sub _storeTracks {
 			AUDIO        => 1,
 			EXTID        => $track->{id},
 			# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
-			TIMESTAMP    => str2time($album->{favorited_at} || 0),
+			TIMESTAMP    => $album->{favorited_at} || $album->{purchased_at},
 			CONTENT_TYPE => $ct,
 			SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
 			SAMPLESIZE   => $track->{maximum_bit_depth},

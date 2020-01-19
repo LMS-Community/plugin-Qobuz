@@ -209,4 +209,20 @@ sub getUrl {
 	return 'qobuz://' . $id . '.' . $ext;
 }
 
+sub getPlaylistImage {
+	my ($class, $playlist) = @_;
+
+	my $image;
+	# pick the last image, as this is what is shown top most in the Qobuz Desktop client
+	foreach ('image_rectangle', 'images300', 'images_300', 'images150', 'images_150', 'images') {
+		if ($playlist->{$_} && ref $playlist->{$_} eq 'ARRAY') {
+			$image = $playlist->{$_}->[-1];
+			last;
+		}
+	}
+	$image =~ s/([a-z\d]{13}_)[\d]+(\.jpg)/${1}600$2/;
+
+	return $image;
+}
+
 1;

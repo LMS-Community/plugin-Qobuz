@@ -203,6 +203,10 @@ sub getMetadataFor {
 		$meta->{artist} .= ', ' . $meta->{composer};
 	}
 
+	if ($meta->{cover} && ref $meta->{cover}) {
+		$meta->{cover} = $meta->{cover}->{large} || $meta->{cover}->{small} || $meta->{cover}->{thumbnail};
+	}
+
 	return $meta;
 }
 

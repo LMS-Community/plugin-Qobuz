@@ -64,6 +64,8 @@ sub initPlugin {
 		qobuz => 'Plugins::Qobuz::ProtocolHandler'
 	);
 
+	Slim::Formats::Playlists->registerParser('qbz', 'Plugins::Qobuz::PlaylistParser');
+
 	Slim::Player::ProtocolHandlers->registerIconHandler(
 		qr|\.qobuz\.com/|,
 		sub { $class->_pluginDataFor('icon') }
@@ -978,15 +980,7 @@ sub _artistItem {
 sub _playlistItem {
 	my ($playlist, $showOwner, $isWeb) = @_;
 
-	# pick the last image, as this is what is shown top most in the Qobuz Desktop client
-	my $image;
-	foreach ('image_rectangle', 'images_300', 'images_150', 'images') {
-		if ($playlist->{$_} && ref $playlist->{$_} eq 'ARRAY') {
-			$image = $playlist->{$_}->[-1];
-			last;
-		}
-	}
-	$image =~ s/([a-z\d]{13}_)[\d]+(\.jpg)/${1}600$2/;
+	my $image = Plugins::Qobuz::API::Common->getPlaylistImage($playlist);
 
 	my $owner = $showOwner ? $playlist->{owner}->{name} : undef;
 
