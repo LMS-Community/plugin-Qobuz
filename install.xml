@@ -4,7 +4,7 @@
 	<name>PLUGIN_QOBUZ</name>
 	<module>Plugins::Qobuz::Plugin</module>
 	<importmodule>Plugins::Qobuz::Importer</importmodule>
-	<version>1.531</version>
+	<version>1.900</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger</creator>
 	<email>slim@herger.net</email>
