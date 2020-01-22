@@ -514,7 +514,7 @@ sub getFileInfo {
 	if ($format =~ /fl.c/i) {
 		$preferredFormat = $prefs->get('preferredFormat');
 		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES) {
-			$preferredFormat = QOBUZ_STREAMING_MP3;
+			$preferredFormat = QOBUZ_STREAMING_FLAC;
 		}
 		elsif ($preferredFormat > QOBUZ_STREAMING_FLAC_HIRES) {
 			$preferredFormat = QOBUZ_STREAMING_FLAC_HIRES2;
