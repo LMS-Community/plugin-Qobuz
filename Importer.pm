@@ -2,6 +2,8 @@ package Plugins::Qobuz::Importer;
 
 use strict;
 
+use base qw(Slim::Plugin::OnlineLibraryBase);
+
 use List::Util qw(max);
 
 use Slim::Music::Import;
@@ -12,6 +14,8 @@ use Slim::Utils::Strings qw(string);
 
 use Plugins::Qobuz::API::Common;
 
+use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
+
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
@@ -20,41 +24,31 @@ my $cache = Plugins::Qobuz::API::Common->getCache();
 sub initPlugin {
 	my $class = shift;
 
-	# return unless $prefs->get('integrateWithMyMusic');
-
-	my $pluginData = Slim::Utils::PluginManager->dataForPlugin($class);
-
-	my $aid;
-	if ($pluginData && ref $pluginData) {
-		$aid = $pluginData->{aid};
-	}
-
-	eval {
-		require Plugins::Qobuz::API::Sync;
-		Plugins::Qobuz::API::Sync->init($aid);
-	};
-
-	if ($@) {
-		$log->error($@);
-		$log->warn("Please update your LMS to be able to use online library integration in My Music");
+	if (!CAN_IMPORTER) {
+		$log->warn('The library importer feature requires at least Logitech Media Server 8.');
 		return;
 	}
 
-	Slim::Music::Import->addImporter($class, {
-		'type'         => 'file',
-		'weight'       => 200,
-		'use'          => 1,
-		'playlistOnly' => 1,
-		'onlineLibraryOnly' => 1,
-	});
+	my $pluginData = Slim::Utils::PluginManager->dataForPlugin($class) || return;
 
-	return 1;
+	my $aid = $pluginData->{aid};
+
+	require Plugins::Qobuz::API::Sync;
+	Plugins::Qobuz::API::Sync->init($aid);
+
+	$class->SUPER::initPlugin(@_)
 }
 
 sub startScan {
 	my $class = shift;
 
 	my $playlistsOnly = Slim::Music::Import->scanPlaylistsOnly();
+
+	$class->initOnlineTracksTable();
+
+	my $dbh = Slim::Schema->dbh();
+	my $deletePlaylists_sth = $dbh->prepare_cached("DELETE FROM tracks WHERE url LIKE 'qobuz://%.qbz' AND content_type = 'ssp'");
+	my $insertTrackInTempTable_sth = $dbh->prepare_cached("INSERT OR IGNORE INTO online_tracks (url) VALUES (?)") if main::SCANNER && !$main::wipe;
 
 	if (!$playlistsOnly) {
 		my $progress = Slim::Utils::Progress->new({
@@ -72,7 +66,7 @@ sub startScan {
 		my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
 		$progress->total(scalar @$albums + 2);
 
-		$cache->set('latest_album_update', _libraryMetaId($libraryMeta), time() + 360 * 86400);
+		$cache->set('latest_album_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
 
 		my @albums;
 
@@ -81,7 +75,9 @@ sub startScan {
 
 			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
-				_storeTracks($album, $albumDetails->{tracks}->{items});
+				$class->storeTracks([
+					map { _prepareTrack($album, $_) } @{ $albumDetails->{tracks}->{items} }
+				]);
 
 				main::SCANNER && Slim::Schema->forceCommit;
 			}
@@ -96,7 +92,9 @@ sub startScan {
 
 			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
 
-			_storeTracks($album, $album->{tracks}->{items});
+			$class->storeTracks([
+				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
+			]);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
@@ -108,16 +106,20 @@ sub startScan {
 	my $progress = Slim::Utils::Progress->new({
 		'type'  => 'importer',
 		'name'  => 'plugin_qobuz_playlists',
-		'total' => 1,
+		'total' => 2,
 		'every' => 1,
 	});
+
+	main::INFOLOG && $log->is_info && $log->info("Removing playlists...");
+	$progress->update(string('PLAYLIST_DELETED_PROGRESS'));
+	$deletePlaylists_sth->execute();
 
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS'));
 
 	main::INFOLOG && $log->is_info && $log->info("Reading playlists...");
 	my $playlists = Plugins::Qobuz::API::Sync->myPlaylists();
 
-	$progress->total(scalar @$playlists);
+	$progress->total((scalar @$playlists) + 2);
 
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_TRACKS'));
 	my %tracks;
@@ -126,6 +128,7 @@ sub startScan {
 	main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks...");
 
 	# we need to get the tracks first
+	my $prefix = 'Qobuz' . string('COLON') . ' ';
 	foreach my $playlist (@{$playlists || []}) {
 		next unless $playlist->{id} && $playlist->{duration};
 
@@ -134,12 +137,14 @@ sub startScan {
 		$progress->update($playlist->{name});
 		main::SCANNER && Slim::Schema->forceCommit;
 
+		my $url = 'qobuz://' . $playlist->{id} . '.qbz';
+
 		my $playlistObj = Slim::Schema->updateOrCreate({
-			url        => 'qobuz://' . $playlist->{id} . '.qbz',
+			url        => $url,
 			playlist   => 1,
 			integrateRemote => 1,
 			attributes => {
-				TITLE        => $playlist->{name},
+				TITLE        => $prefix . $playlist->{name},
 				COVER        => Plugins::Qobuz::API::Common->getPlaylistImage($playlist),
 				AUDIO        => 1,
 				EXTID        => $playlist->{id},
@@ -149,7 +154,9 @@ sub startScan {
 
 		my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl($_) } @{Plugins::Qobuz::API::Sync->getPlaylistTrackIDs($playlist->{id})};
 		$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
+
 		$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
+		$insertTrackInTempTable_sth && $insertTrackInTempTable_sth->execute($url);
 	}
 
 	$cache->set('playlist_last_update', $latestPlaylistUpdate, time() + 86400 * 360);
@@ -158,9 +165,12 @@ sub startScan {
 
 	$progress->final();
 
+	$class->deleteRemovedTracks();
+
 	Slim::Music::Import->endImporter($class);
 };
 
+sub trackUriPrefix { 'qobuz://' }
 
 # This code is not run in the scanner, but in LMS
 sub needsUpdate {
@@ -207,7 +217,7 @@ sub needsUpdate {
 			my $lastUpdateData = $cache->get('latest_album_update') || '';
 
 			Plugins::Qobuz::API->myAlbumsMeta(sub {
-				$acb->(_libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
+				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
 			});
 		}
 	);
@@ -227,70 +237,43 @@ sub needsUpdate {
 	}
 }
 
-sub _libraryMetaId {
-	my $libraryMeta = $_[0];
-	return ($libraryMeta->{total} || '') . '|' . ($libraryMeta->{lastAdded} || '');
-}
+sub _prepareTrack {
+	my ($album, $track) = @_;
 
-sub _storeTracks {
-	my ($album, $tracks, $libraryId) = @_;
+	my $url = Plugins::Qobuz::API::Common->getUrl($track) || return;
+	my $ct  = Slim::Music::Info::typeFromPath($url);
 
-	return unless $tracks && ref $tracks;
+	my $attributes = {
+		url          => $url,
+		TITLE        => $track->{title},
+		ARTIST       => $album->{artist}->{name},
+		ARTIST_EXTID => $album->{artist}->{id},
+		TRACKARTIST  => $track->{performer}->{name},
+		ALBUM        => $album->{title},
+		ALBUM_EXTID  => $album->{id},
+		TRACKNUM     => $track->{track_number},
+		GENRE        => $album->{genre},
+		DISC         => $track->{media_number},
+		DISCC        => $track->{tracks_count},
+		SECS         => $track->{duration},
+		YEAR         => (localtime($album->{released_at}))[5] + 1900,
+		COVER        => $album->{image},
+		AUDIO        => 1,
+		EXTID        => $track->{id},
+		# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
+		TIMESTAMP    => $album->{favorited_at} || $album->{purchased_at},
+		CONTENT_TYPE => $ct,
+		SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
+		SAMPLESIZE   => $track->{maximum_bit_depth},
+		CHANNELS     => $track->{maximum_channel_count},
+		LOSSLESS     => $ct eq 'flc',
+	};
 
-	my $dbh = Slim::Schema->dbh();
-	my $sth = $dbh->prepare_cached("INSERT OR IGNORE INTO library_track (library, track) VALUES (?, ?)") if $libraryId;
-	my $c = 0;
-
-	foreach my $track (@$tracks) {
-		my $url = Plugins::Qobuz::API::Common->getUrl($track);
-		my $ct  = Slim::Music::Info::typeFromPath($url);
-
-		my $attributes = {
-			TITLE        => $track->{title},
-			ARTIST       => $album->{artist}->{name},
-			ARTIST_EXTID => $album->{artist}->{id},
-			TRACKARTIST  => $track->{performer}->{name},
-			ALBUM        => $album->{title},
-			ALBUM_EXTID  => $album->{id},
-			TRACKNUM     => $track->{track_number},
-			GENRE        => $album->{genre},
-			DISC         => $track->{media_number},
-			DISCC        => $track->{tracks_count},
-			SECS         => $track->{duration},
-			YEAR         => (localtime($album->{released_at}))[5] + 1900,
-			COVER        => $album->{image},
-			AUDIO        => 1,
-			EXTID        => $track->{id},
-			# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
-			TIMESTAMP    => $album->{favorited_at} || $album->{purchased_at},
-			CONTENT_TYPE => $ct,
-			SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
-			SAMPLESIZE   => $track->{maximum_bit_depth},
-			CHANNELS     => $track->{maximum_channel_count},
-			LOSSLESS     => $ct eq 'flc',
-		};
-
-		if ($track->{composer}) {
-			$attributes->{COMPOSER} = $track->{composer}->{name};
-		}
-
-		my $trackObj = Slim::Schema->updateOrCreate({
-			url        => $url,
-			integrateRemote => 1,
-			attributes => $attributes,
-		});
-
-		if ($libraryId) {
-			$sth->execute($libraryId, $trackObj->id);
-		}
-
-		if (!main::SCANNER && ++$c % 20 == 0) {
-			main::idle();
-		}
+	if ($track->{composer}) {
+		$attributes->{COMPOSER} = $track->{composer}->{name};
 	}
 
-	main::idle() if !main::SCANNER;
+	return $attributes;
 }
-
 
 1;
