@@ -2,7 +2,13 @@ package Plugins::Qobuz::Importer;
 
 use strict;
 
-use base qw(Slim::Plugin::OnlineLibraryBase);
+# can't "use base ()", as this would fail in LMS 7
+BEGIN {
+	eval {
+		require Slim::Plugin::OnlineLibraryBase;
+		our @ISA = qw(Slim::Plugin::OnlineLibraryBase);
+	};
+}
 
 use List::Util qw(max);
 
