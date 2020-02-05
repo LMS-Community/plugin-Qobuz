@@ -45,7 +45,7 @@ sub initPlugin {
 	$class->SUPER::initPlugin(@_)
 }
 
-sub startScan {
+sub startScan { if (main::SCANNER) {
 	my $class = shift;
 
 	my $playlistsOnly = Slim::Music::Import->scanPlaylistsOnly();
@@ -174,7 +174,14 @@ sub startScan {
 	$class->deleteRemovedTracks();
 
 	Slim::Music::Import->endImporter($class);
-};
+} };
+
+sub getArtistPicture { if (main::SCANNER) {
+	my ($class, $id) = @_;
+
+	my $artist = Plugins::Qobuz::API::Sync->getArtist($id);
+	return ($artist && ref $artist) ? $artist->{picture} : '';
+} }
 
 sub trackUriPrefix { 'qobuz://' }
 

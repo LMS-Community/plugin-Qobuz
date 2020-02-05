@@ -178,6 +178,27 @@ sub getPlaylistTrackIDs {
 	return \@playlistTrackIds;
 }
 
+sub getArtist {
+	my ($class, $artistId, $extra) = @_;
+
+	$artistId =~ s/^qobuz:artist://;
+
+	my $artist = $class->_get('artist/get', {
+		artist_id => $artistId,
+		(extra    => $extra || undef),
+		limit     => QOBUZ_DEFAULT_LIMIT,
+	});
+
+	if ( $artist && (my $images = $artist->{image}) ) {
+		my $pic = $images->{mega} || $images->{extralarge} || $images->{large} || $images->{large} || $images->{medium} || $images->{small};
+		$artist->{picture} ||= $pic if $pic;
+	}
+
+	$artist->{albums}->{items} = _precacheAlbum($artist->{albums}->{items}) if $artist->{albums};
+
+	return $artist;
+}
+
 sub _get {
 	my ( $class, $url, $params ) = @_;
 
@@ -230,7 +251,9 @@ sub _get {
 		return $result;
 	}
 	else {
-		warn Data::Dump::dump($response);
+		$url =~ s/app_id=\d*//;
+		$log->error("Request failed for $url");
+		main::INFOLOG && $log->info(Data::Dump::dump($response));
 		# # login failed due to invalid username/password: delete password
 		# if ($error =~ /^401/ && $http->url =~ m|user/login|i) {
 		# 	$prefs->remove('password_md5_hash');
