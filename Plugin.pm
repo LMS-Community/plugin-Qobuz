@@ -129,6 +129,11 @@ sub initPlugin {
 		);
 	}
 
+	if (CAN_IMPORTER) {
+		# tell LMS that we need to run the external scanner
+		Slim::Music::Import->addImporter('Plugins::Qobuz::Importer', { use => 1 });
+	}
+
 	$class->SUPER::initPlugin(
 		feed   => \&handleFeed,
 		tag    => PLUGIN_TAG,
