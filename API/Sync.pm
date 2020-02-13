@@ -190,7 +190,7 @@ sub getArtist {
 	});
 
 	if ( $artist && (my $images = $artist->{image}) ) {
-		my $pic = $images->{mega} || $images->{extralarge} || $images->{large} || $images->{large} || $images->{medium} || $images->{small};
+		my $pic = Plugins::Qobuz::API::Common->getImageFromImagesHash($images);
 		$artist->{picture} ||= $pic if $pic;
 	}
 

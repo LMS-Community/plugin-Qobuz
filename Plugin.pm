@@ -377,7 +377,7 @@ sub QobuzArtist {
 			my $images = $artist->{image} || {};
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_BIOGRAPHY'),
-				image => $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png',
+				image => Plugins::Qobuz::API::Common->getImageFromImagesHash($images) || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png',
 				items => [{
 					name => _stripHTML($artist->{biography}->{content}),
 					type => 'textarea',
@@ -1015,7 +1015,7 @@ sub _trackItem {
 		name  => sprintf('%s %s %s %s %s', $track->{title}, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
 		line1 => $track->{title},
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
-		image => $track->{album}->{image},
+		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 	};
 
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {

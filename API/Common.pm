@@ -100,7 +100,7 @@ sub _precacheAlbum {
 		}
 
 		$album->{genre} = $album->{genre}->{name};
-		$album->{image} = $album->{image}->{large} || $album->{image}->{small} || $album->{image}->{thumbnail} || ''; 
+		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || ''; 
 
 		my $albumInfo = {
 			title  => $album->{title},
@@ -207,6 +207,13 @@ sub getUrl {
 	$id = $id->{id} if $id && ref $id eq 'HASH';
 
 	return 'qobuz://' . $id . '.' . $ext;
+}
+
+sub getImageFromImagesHash {
+	my ($class, $images) = @_;
+	
+	return $images unless ref $images;
+	return $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || $images->{thumbnail};
 }
 
 sub getPlaylistImage {

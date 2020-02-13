@@ -204,7 +204,7 @@ sub getMetadataFor {
 	}
 
 	if ($meta->{cover} && ref $meta->{cover}) {
-		$meta->{cover} = $meta->{cover}->{large} || $meta->{cover}->{small} || $meta->{cover}->{thumbnail};
+		$meta->{cover} = Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
 	}
 
 	return $meta;

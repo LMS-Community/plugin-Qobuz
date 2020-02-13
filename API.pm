@@ -140,7 +140,7 @@ sub getArtist {
 		my $results = shift;
 
 		if ( $results && (my $images = $results->{image}) ) {
-			my $pic = $images->{mega} || $images->{extralarge} || $images->{large} || $images->{large} || $images->{medium} || $images->{small};
+			my $pic = Plugins::Qobuz::API::Common->getImageFromImagesHash($images);
 			_precacheArtistPictures([
 				{ id => $artistId, picture => $pic }
 			]) if $pic;
