@@ -182,6 +182,10 @@ PLUGIN_QOBUZ_LABEL
 	DE	Musiklabel
 	EN	Music Label
 
+PLUGIN_QOBUZ_AWARDS
+	DE	Auszeichnungen
+	EN	Awards
+
 PLUGIN_QOBUZ_TRACKS_COUNT
 	DE	Anzahl Titel
 	EN	Tracks count
