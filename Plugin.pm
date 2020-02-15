@@ -819,7 +819,9 @@ sub QobuzGetTracks {
 
 		my $items = [];
 
+		my $totalDuration = 0;
 		foreach my $track (@{$album->{tracks}->{items}}) {
+			$totalDuration += $track->{duration};
 			push @$items, _trackItem($client, $track);
 		}
 
@@ -833,7 +835,7 @@ sub QobuzGetTracks {
 			label => 'GENRE',
 			type  => 'text'
 		},{
-			name  => Slim::Utils::DateTime::timeFormat($album->{duration}),
+			name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
 			label => 'ALBUMLENGTH',
 			type  => 'text'
 		},{
@@ -858,12 +860,23 @@ sub QobuzGetTracks {
 		}
 
 		push @$items, {
-			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . ': ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
-			type  => 'text'
-		},{
-			name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . ': ' . $album->{label}->{name},
+			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
 			type  => 'text'
 		};
+
+		if ($album->{label} && $album->{label}->{name}) {
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
+				type  => 'text'
+			};
+		}
+
+		if ($album->{awards} && ref $album->{awards}) {
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS') . cstring($client, 'COLON') . ' ' . join(', ', map { $_->{name} } @{$album->{awards}}),
+				type  => 'text'
+			};
+		}
 
 		if ($album->{copyright}) {
 			push @$items, {
