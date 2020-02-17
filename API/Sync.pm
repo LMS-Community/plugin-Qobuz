@@ -142,16 +142,16 @@ sub myPlaylists {
 		_use_token => 1,
 	});
 
-	return ($playlists && ref $playlists && $playlists->{playlists} && ref $playlists->{playlists}) 
+	return ($playlists && ref $playlists && $playlists->{playlists} && ref $playlists->{playlists})
 		? $playlists->{playlists}->{items}
 		: [];
 }
 
-sub getPlaylistTrackIDs {
+sub getPlaylistTracks {
 	my ($class, $playlistId) = @_;
 
 	my $offset = 0;
-	my @playlistTrackIds;
+	my @playlistTracks;
 
 	do {
 		my $response = $class->_get('playlist/get', {
@@ -167,7 +167,7 @@ sub getPlaylistTrackIDs {
 
 		if ($response && ref $response && $response->{tracks} && ref $response->{tracks} && $response->{tracks}->{items} && ref $response->{tracks}->{items}) {
 			my $tracks = $response->{tracks}->{items};
-			push @playlistTrackIds, map { $_->{id} } @{_precacheTracks($tracks)};
+			push @playlistTracks, map { $_->{id} } @{_precacheTracks($tracks)};
 
 			if (scalar $tracks && $response->{tracks}->{total} > $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT) {
 				$offset = $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT;
@@ -175,7 +175,7 @@ sub getPlaylistTrackIDs {
 		}
 	} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
 
-	return \@playlistTrackIds;
+	return \@playlistTracks;
 }
 
 sub getArtist {

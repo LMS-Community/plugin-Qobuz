@@ -172,15 +172,15 @@ sub getMetadataFor {
 	my $meta;
 
 	# grab metadata from backend if needed, otherwise use cached values
-	if ($id && $client->master->pluginData('fetchingMeta')) {
+	if ($id && $client && $client->master->pluginData('fetchingMeta')) {
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $client;
 		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
 	}
 	elsif ($id) {
-		$client->master->pluginData( fetchingMeta => 1 );
+		$client->master->pluginData( fetchingMeta => 1 ) if $client;
 
 		$meta = Plugins::Qobuz::API->getTrackInfo(sub {
-			$client->master->pluginData( fetchingMeta => 0 );
+			$client->master->pluginData( fetchingMeta => 0 ) if $client;
 		}, $id);
 	}
 

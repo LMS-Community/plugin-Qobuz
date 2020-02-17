@@ -158,7 +158,7 @@ sub startScan { if (main::SCANNER) {
 			},
 		});
 
-		my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl($_) } @{Plugins::Qobuz::API::Sync->getPlaylistTrackIDs($playlist->{id})};
+		my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl($_) } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($playlist->{id})};
 		$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
 
 		$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
