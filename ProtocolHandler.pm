@@ -247,8 +247,9 @@ sub crackUrl {
 
 	# compatibility with old urls without extension
 	($id) = $url =~ m{^qobuz://([^\.]+)$} unless $id;
+	($id) = $url =~ m{^https?://.*?eid=(\d+)} unless $id;
 
-	return ($id, $format || Plugins::Qobuz::API::Common->getStreamingFormat());
+	return ($id, $format || Plugins::Qobuz::API::Common->getStreamingFormat($url));
 }
 
 sub audioScrobblerSource {

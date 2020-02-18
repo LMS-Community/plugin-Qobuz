@@ -44,7 +44,7 @@ sub getToken {
 		_nocache => 1,
 	});
 
-	main::INFOLOG && $log->is_info && !$log->is_debug && $log->info(Data::Dump::dump($result));
+	main::INFOLOG && $log->is_info && !$log->is_info && $log->info(Data::Dump::dump($result));
 
 	if ( ! ($result && ($token = $result->{user_auth_token})) ) {
 		$log->warn('Failed to get token');
@@ -167,7 +167,7 @@ sub getPlaylistTracks {
 
 		if ($response && ref $response && $response->{tracks} && ref $response->{tracks} && $response->{tracks}->{items} && ref $response->{tracks}->{items}) {
 			my $tracks = $response->{tracks}->{items};
-			push @playlistTracks, map { $_->{id} } @{_precacheTracks($tracks)};
+			push @playlistTracks, @{_precacheTracks($tracks)};
 
 			if (scalar $tracks && $response->{tracks}->{total} > $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT) {
 				$offset = $response->{tracks}->{offset} + QOBUZ_DEFAULT_LIMIT;

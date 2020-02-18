@@ -90,17 +90,17 @@ sub _precacheAlbum {
 	$albums = __PACKAGE__->filterPlayables($albums);
 
 	foreach my $album (@$albums) {
-		foreach (qw(composer duration genres_list articles article_ids description copyright catchline label 
+		foreach (qw(composer duration genres_list articles article_ids description copyright catchline label
 			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
 			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
 			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_stream release_date_original
-			product_sales_factors_monthly product_sales_factors_weekly product_sales_factors_yearly)) 
+			product_sales_factors_monthly product_sales_factors_weekly product_sales_factors_yearly))
 		{
 			delete $album->{$_};
 		}
 
 		$album->{genre} = $album->{genre}->{name};
-		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || ''; 
+		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
 
 		my $albumInfo = {
 			title  => $album->{title},
@@ -181,9 +181,16 @@ sub getStreamingFormat {
 		$prefs->get('preferredFormat') < QOBUZ_STREAMING_FLAC
 		# user is not allowed to stream losslessly
 		|| !$class->canLossless()
-		# track is not available in flac
-		|| !($track && ref $track eq 'HASH' && $track->{streamable})
 	) {
+		return 'mp3';
+	}
+
+	if ($track && !ref $track && $track =~ /fmt=(\d+)/) {
+		return $1 >= QOBUZ_STREAMING_FLAC ? 'flac' : 'mp3';
+	}
+
+	# track is not available in flac
+	if (!($track && ref $track eq 'HASH' && $track->{streamable})) {
 		return 'mp3';
 	}
 
@@ -198,20 +205,20 @@ sub canLossless {
 }
 
 sub getUrl {
-	my ($class, $id) = @_;
+	my ($class, $track) = @_;
 
-	return '' unless $id;
+	return '' unless $track;
 
-	my $ext = $class->getStreamingFormat($id);
+	my $ext = $class->getStreamingFormat($track);
 
-	$id = $id->{id} if $id && ref $id eq 'HASH';
+	$track = $track->{id} if $track && ref $track eq 'HASH';
 
-	return 'qobuz://' . $id . '.' . $ext;
+	return 'qobuz://' . $track . '.' . $ext;
 }
 
 sub getImageFromImagesHash {
 	my ($class, $images) = @_;
-	
+
 	return $images unless ref $images;
 	return $images->{mega} || $images->{extralarge} || $images->{large} || $images->{medium} || $images->{small} || $images->{thumbnail};
 }

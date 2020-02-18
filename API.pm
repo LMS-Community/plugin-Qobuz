@@ -69,7 +69,7 @@ sub getToken {
 	_get('user/login', sub {
 		my $result = shift;
 
-		main::INFOLOG && $log->is_info && !$log->is_debug && $log->info(Data::Dump::dump($result));
+		main::INFOLOG && $log->is_info && !$log->is_info && $log->info(Data::Dump::dump($result));
 
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
