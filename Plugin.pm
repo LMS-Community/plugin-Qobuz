@@ -144,6 +144,8 @@ sub initPlugin {
 }
 
 sub postinitPlugin {
+	my $class = shift;
+
 	if ( Slim::Utils::PluginManager->isEnabled('Plugins::LastMix::Plugin') ) {
 		eval {
 			require Plugins::LastMix::Services;
@@ -158,6 +160,19 @@ sub postinitPlugin {
 
 	if ( Slim::Utils::PluginManager->isEnabled('Slim::Plugin::OnlineLibrary::Plugin') ) {
 		Slim::Plugin::OnlineLibrary::Plugin->addLibraryIconProvider('qobuz', '/plugins/Qobuz/html/images/icon.png');
+
+		Slim::Plugin::OnlineLibrary::BrowseArtist->registerBrowseArtistItem( qobuz => sub {
+			my ( $client ) = @_;
+
+			return {
+				name => cstring($client, 'BROWSE_ON_SERVICE', 'Qobuz'),
+				type => 'link',
+				icon => $class->_pluginDataFor('icon'),
+				url  => \&browseArtistMenu,
+			};
+		} );
+
+		main::INFOLOG && $log->is_info && $log->info("Successfully registered BrowseArtist handler for Qobuz");
 	}
 }
 
@@ -339,6 +354,58 @@ sub QobuzSearch {
 			items => $items
 		} );
 	}, $search, $type);
+}
+
+sub browseArtistMenu {
+	my ($client, $cb, $params, $args) = @_;
+
+	my $items = [];
+
+	my $artistId = $params->{artist_id} || $args->{artist_id};
+	if ( defined($artistId) && $artistId =~ /^\d+$/ && (my $artistObj = Slim::Schema->resultset("Contributor")->find($artistId))) {
+		if (my ($extId) = grep /qobuz:artist:(\d+)/, @{$artistObj->extIds}) {
+			($args->{artistId}) = $extId =~ /qobuz:artist:(\d+)/;
+			return QobuzArtist($client, $cb, $params, $args);
+		}
+		else {
+			$args->{q}    = $artistObj->name;
+			$args->{type} = 'artists';
+
+			QobuzSearch($client, sub {
+				my $items = shift || { items => [] };
+
+				my $id;
+				if (scalar @{$items->{items}} == 1) {
+					$id = $items->{items}->[0]->{passthrough}->[0]->{artistId};
+				}
+				else {
+					my @ids = map {
+						$_->{passthrough}->[0]->{artistId}
+					} grep {
+						Slim::Utils::Text::ignoreCase($_->{name} ) eq $artistObj->namesearch
+					} @{$items->{items}};
+
+					if (scalar @ids == 1) {
+						$id = shift @ids;
+					}
+				}
+
+				if ($id) {
+					$args->{artistId} = $id;
+					return QobuzArtist($client, $cb, $params, $args);
+				}
+
+				$cb->($items);
+			}, $params, $args);
+
+			return;
+		}
+	}
+
+	$cb->([{
+		type  => 'text',
+		title => cstring($client, 'EMPTY'),
+	}]);
 }
 
 sub QobuzArtist {
