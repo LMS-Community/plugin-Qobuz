@@ -57,6 +57,63 @@ sub getToken {
 	return $token;
 }
 
+sub myArtists {
+	my ($class) = @_;
+
+	my $args = {
+		type  => 'artists',
+		limit => QOBUZ_LIMIT,
+		_ttl => QOBUZ_USER_DATA_EXPIRY,
+		_use_token => 1,
+	};
+
+	my ($total, $lastAdded) = (0, 0);
+
+	my $offset = 0;
+	my $libraryMeta;
+	my $gotMeta;
+	my $artists = [];
+
+	do {
+		$args->{offset} = $offset;
+
+		my $response = $class->_get('favorite/getUserFavorites', $args);
+
+		$offset = 0;
+
+		if ( $response && ref $response && $response->{artists} && ref $response->{artists} && $response->{artists}->{items} && ref $response->{artists}->{items} ) {
+			if (!$gotMeta) {
+				$lastAdded = max($lastAdded, $response->{artists}->{items}->[0]->{favorited_at} || 0);
+
+				$total += $response->{artists}->{total};
+				$gotMeta = 1;
+			}
+
+			push @$artists, map {
+				{
+					id => $_->{id},
+					name => $_->{name},
+					image => Plugins::Qobuz::API::Common->getImageFromImagesHash($_->{image}),
+				}
+			} @{ $response->{artists}->{items} };
+
+			if (scalar @$artists < $libraryMeta->{total}) {
+				$offset = $response->{artists}->{offset} + 1;
+			}
+		}
+	} while $offset;
+
+	if ($total && $lastAdded) {
+		# keep track of some meta-information about the album collection
+		$libraryMeta = {
+			total => $total,
+			lastAdded => $lastAdded
+		};
+	}
+
+	return wantarray ? ($artists, $libraryMeta) : $artists;
+}
+
 sub myAlbums {
 	my ($class) = @_;
 

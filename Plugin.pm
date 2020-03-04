@@ -379,11 +379,13 @@ sub browseArtistMenu {
 					$id = $items->{items}->[0]->{passthrough}->[0]->{artistId};
 				}
 				else {
-					my @ids = map {
-						$_->{passthrough}->[0]->{artistId}
+					my @ids;
+					$items->{items} = [ map {
+						push @ids, $_->{passthrough}->[0]->{artistId};
+						$_;
 					} grep {
 						Slim::Utils::Text::ignoreCase($_->{name} ) eq $artistObj->namesearch
-					} @{$items->{items}};
+					} @{$items->{items}} ];
 
 					if (scalar @ids == 1) {
 						$id = shift @ids;

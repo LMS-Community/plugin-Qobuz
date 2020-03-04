@@ -52,62 +52,113 @@ sub startScan { if (main::SCANNER) {
 
 	$class->initOnlineTracksTable();
 
-	my $dbh = Slim::Schema->dbh();
-	my $deletePlaylists_sth = $dbh->prepare_cached("DELETE FROM tracks WHERE url LIKE 'qobuz://%.qbz' AND content_type = 'ssp'");
-	my $insertTrackInTempTable_sth = $dbh->prepare_cached("INSERT OR IGNORE INTO online_tracks (url) VALUES (?)") if main::SCANNER && !$main::wipe;
-
 	if (!$playlistsOnly) {
-		my $progress = Slim::Utils::Progress->new({
-			'type'  => 'importer',
-			'name'  => 'plugin_qobuz_albums',
-			'total' => 1,
-			'every' => 1,
-		});
+		$class->scanAlbums();
+		$class->scanArtists();
+	}
 
-		my @missingAlbums;
+	$class->scanPlaylists();
 
-		main::INFOLOG && $log->is_info && $log->info("Reading albums...");
-		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
+	$class->deleteRemovedTracks();
 
-		my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
-		$progress->total(scalar @$albums + 2);
+	Slim::Music::Import->endImporter($class);
+} };
 
-		$cache->set('latest_album_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
+sub scanAlbums {
+	my ($class) = @_;
 
-		my @albums;
+	my $progress = Slim::Utils::Progress->new({
+		'type'  => 'importer',
+		'name'  => 'plugin_qobuz_albums',
+		'total' => 1,
+		'every' => 1,
+	});
 
-		foreach my $album (@$albums) {
-			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
+	my @missingAlbums;
 
-			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
-				$progress->update($album->{title});
-				$class->storeTracks([
-					map { _prepareTrack($album, $_) } @{ $albumDetails->{tracks}->{items} }
-				]);
+	main::INFOLOG && $log->is_info && $log->info("Reading albums...");
+	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
 
-				main::SCANNER && Slim::Schema->forceCommit;
-			}
-			else {
-				push @missingAlbums, $album->{id};
-			}
-		}
+	my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
+	$progress->total(scalar @$albums + 2);
 
-		foreach my $albumId (@missingAlbums) {
-			my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
+	$cache->set('latest_album_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
+
+	my @albums;
+
+	foreach my $album (@$albums) {
+		my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
+
+		if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 			$progress->update($album->{title});
-
-			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
-
 			$class->storeTracks([
-				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
+				map { _prepareTrack($album, $_) } @{ $albumDetails->{tracks}->{items} }
 			]);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
+		else {
+			push @missingAlbums, $album->{id};
+		}
+	}
 
-		$progress->final();
+	foreach my $albumId (@missingAlbums) {
+		my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
+		$progress->update($album->{title});
+
+		$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
+
+		$class->storeTracks([
+			map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
+		]);
+
 		main::SCANNER && Slim::Schema->forceCommit;
 	}
+
+	$progress->final();
+	main::SCANNER && Slim::Schema->forceCommit;
+}
+
+sub scanArtists {
+	my ($class) = @_;
+
+	my $progress = Slim::Utils::Progress->new({
+		'type'  => 'importer',
+		'name'  => 'plugin_qobuz_artists',
+		'total' => 1,
+		'every' => 1,
+	});
+
+	main::INFOLOG && $log->is_info && $log->info("Reading artists...");
+	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS'));
+
+	my ($artists, $libraryMeta) = Plugins::Qobuz::API::Sync->myArtists();
+	$cache->set('latest_artist_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
+
+	$progress->total($progress->total + scalar @$artists);
+
+	foreach my $artist (@$artists) {
+		my $name = $artist->{name};
+
+		$progress->update($name);
+		main::SCANNER && Slim::Schema->forceCommit;
+
+		Slim::Schema->rs('Contributor')->update_or_create({
+			'name'       => $name,
+			'namesort'   => Slim::Utils::Text::ignoreCaseArticles($name),
+			'namesearch' => Slim::Utils::Text::ignoreCase($name, 1),
+			'extid'      => 'qobuz:artist:' . $artist->{id},
+		}, { 'key' => 'namesearch' });
+	}
+
+	$progress->final();
+	main::SCANNER && Slim::Schema->forceCommit;
+}
+
+sub scanPlaylists {
+	my ($class) = @_;
+
+	my $dbh = Slim::Schema->dbh();
 
 	my $progress = Slim::Utils::Progress->new({
 		'type'  => 'importer',
@@ -118,6 +169,7 @@ sub startScan { if (main::SCANNER) {
 
 	main::INFOLOG && $log->is_info && $log->info("Removing playlists...");
 	$progress->update(string('PLAYLIST_DELETED_PROGRESS'));
+	my $deletePlaylists_sth = $dbh->prepare_cached("DELETE FROM tracks WHERE url LIKE 'qobuz://%.qbz' AND content_type = 'ssp'");
 	$deletePlaylists_sth->execute();
 
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS'));
@@ -132,6 +184,8 @@ sub startScan { if (main::SCANNER) {
 	my $c = my $latestPlaylistUpdate = 0;
 
 	main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks...");
+
+	my $insertTrackInTempTable_sth = $dbh->prepare_cached("INSERT OR IGNORE INTO online_tracks (url) VALUES (?)") if main::SCANNER && !$main::wipe;
 
 	# we need to get the tracks first
 	my $prefix = 'Qobuz' . string('COLON') . ' ';
@@ -170,11 +224,8 @@ sub startScan { if (main::SCANNER) {
 	main::INFOLOG && $log->is_info && $log->info("Done, finally!");
 
 	$progress->final();
-
-	$class->deleteRemovedTracks();
-
-	Slim::Music::Import->endImporter($class);
-} };
+	main::SCANNER && Slim::Schema->forceCommit;
+}
 
 sub getArtistPicture { if (main::SCANNER) {
 	my ($class, $id) = @_;
@@ -230,6 +281,17 @@ sub needsUpdate {
 			my $lastUpdateData = $cache->get('latest_album_update') || '';
 
 			Plugins::Qobuz::API->myAlbumsMeta(sub {
+				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
+			});
+		}, sub {
+			my ($result, $acb) = @_;
+
+			# don't run any further test in the queue if we already have a result
+			return $acb->($result) if $result;
+
+			my $lastUpdateData = $cache->get('latest_artist_update') || '';
+
+			Plugins::Qobuz::API->myArtistsMeta(sub {
 				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
 			});
 		}
