@@ -819,10 +819,33 @@ sub QobuzGetTracks {
 
 		my $items = [];
 
-		my $totalDuration = 0;
+		my $totalDuration = my $i = 0;
+		my $works = {};
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
-			push @$items, _trackItem($client, $track);
+			my $formattedTrack = _trackItem($client, $track);
+			if (my $work = delete $formattedTrack->{work}) {
+				$works->{$work} = {
+					index => $i++,
+					image => $formattedTrack->{image},
+					tracks => []
+				} unless $works->{$work};
+
+				push @{$works->{$work}->{tracks}}, $formattedTrack;
+			}
+			else {
+				push @$items, $formattedTrack;
+			}
+		}
+
+		foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+			push @$items, {
+				name => $work,
+				image => $works->{$work}->{image},
+				type => 'playlist',
+				playall => 1,
+				items => $works->{$work}->{tracks}
+			};
 		}
 
 		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
@@ -1018,6 +1041,10 @@ sub _trackItem {
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
+	}
+
+	if ( $track->{work} ) {
+		$item->{work} = $track->{work};
 	}
 
 	if ($track->{released_at} && $track->{released_at} > time) {
