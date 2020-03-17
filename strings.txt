@@ -128,6 +128,10 @@ PLUGIN_QOBUZ_SIMILAR_ARTISTS
 	EN	Similar Artists
 	FR	Artistes similaires
 
+PLUGIN_QOBUZ_BY_WORK
+	DE	Nach Werk gruppiert
+	EN	Browse by Work
+
 PLUGIN_QOBUZ_FILTER_SEARCH
 	DE	Suchresultate filtern
 	EN	Filter search results

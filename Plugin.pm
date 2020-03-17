@@ -824,6 +824,7 @@ sub QobuzGetTracks {
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
+
 			if (my $work = delete $formattedTrack->{work}) {
 				$works->{$work} = {
 					index => $i++,
@@ -833,18 +834,26 @@ sub QobuzGetTracks {
 
 				push @{$works->{$work}->{tracks}}, $formattedTrack;
 			}
-			else {
-				push @$items, $formattedTrack;
-			}
+
+			push @$items, $formattedTrack;
 		}
 
-		foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-			push @$items, {
-				name => $work,
-				image => $works->{$work}->{image},
-				type => 'playlist',
-				playall => 1,
-				items => $works->{$work}->{tracks}
+		if (scalar keys %$works) {
+			my $worksItems = [];
+			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+				push @$worksItems, {
+					name => $work,
+					image => $works->{$work}->{image},
+					type => 'playlist',
+					playall => 1,
+					items => $works->{$work}->{tracks}
+				};
+			}
+
+			unshift @$items, {
+				name => cstring($client, 'PLUGIN_QOBUZ_BY_WORK'),
+				image => 'html/images/albums.png',
+				items => $worksItems
 			};
 		}
 
