@@ -919,13 +919,18 @@ sub QobuzGetTracks {
 			my $formattedTrack = _trackItem($client, $track);
 
 			if (my $work = delete $formattedTrack->{work}) {
-				$works->{$work} = {
+				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
+				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
+				$workId =~ s/\s//g;
+
+				$works->{$workId} = {
 					index => $i++,
+					title => $work,
 					image => $formattedTrack->{image},
 					tracks => []
-				} unless $works->{$work};
+				} unless $works->{$workId};
 
-				push @{$works->{$work}->{tracks}}, $formattedTrack;
+				push @{$works->{$workId}->{tracks}}, $formattedTrack;
 			}
 
 			push @$items, $formattedTrack;
@@ -935,7 +940,7 @@ sub QobuzGetTracks {
 			my $worksItems = [];
 			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 				push @$worksItems, {
-					name => $work,
+					name => $works->{$work}->{title},
 					image => $works->{$work}->{image},
 					type => 'playlist',
 					playall => 1,
