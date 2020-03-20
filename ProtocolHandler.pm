@@ -189,6 +189,7 @@ sub getMetadataFor {
 		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
 	}
 	$meta->{type} ||= $class->getFormatForURL($url);
+	$meta->{ct} = $meta->{type};
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? MP3_BITRATE : 750_000;
 
 	if ($meta->{type} ne 'mp3' && $client && $client->playingSong && $client->playingSong->track->url eq $url) {
