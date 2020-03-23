@@ -131,6 +131,7 @@ PLUGIN_QOBUZ_SIMILAR_ARTISTS
 PLUGIN_QOBUZ_BY_WORK
 	DE	Nach Werk gruppiert
 	EN	Browse by Work
+	FR	Grouper par œuvre
 
 PLUGIN_QOBUZ_FILTER_SEARCH
 	DE	Suchresultate filtern
@@ -140,7 +141,7 @@ PLUGIN_QOBUZ_FILTER_SEARCH
 PLUGIN_QOBUZ_FILTER_SEARCH_DESC
 	DE	Qobuz Suchresultate sind leider häufig unübersichtlich und unlogisch sortiert. Das Plugin kann versuchen, dies zu verbessern. Allerdings kann dies auf langsamen Servern die Antwortzeit verlängern.
 	EN	Qobuz search results often are confusing and poorly sorted. This plugin can try to improve the situation. But this comes at a cost: on slower systems you might experience a performance hit.
-	FR	Les recherches sur Qobuz souvent rendent des listes assez troublantes. Cette extension essaye d'améliorer la situations. Sur des systèmes peu performants ce processus peut ralentir le service.
+	FR	Les recherches sur Qobuz rendent souvent des listes assez troublantes. Cette extension essaie d'améliorer la situation. Sur des systèmes peu performant, ce processus peut ralentir le service.
 
 PLUGIN_QOBUZ_PLAY_SAMPLES
 	DE	Hörproben wiedergeben
@@ -150,7 +151,7 @@ PLUGIN_QOBUZ_PLAY_SAMPLES
 PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
 	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
 	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
-	FR	Certains albums sont uniquement disponible à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes ?
+	FR	Certains albums sont uniquement disponibles à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes ?
 
 PLUGIN_QOBUZ_LABEL_HIRES
 	DE	Hi-Res Alben als solche markieren
@@ -166,10 +167,6 @@ PLUGIN_QOBUZ_BOOKLET
 	EN	Booklet
 	FR	Livret
 
-PLUGIN_QOBUZ_PERFORMERS
-	DE	Performer
-	EN	Personnel
-
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
 	EN	Show Composer with Artist
@@ -181,43 +178,39 @@ PLUGIN_QOBUZ_HIRES
 PLUGIN_QOBUZ_RELEASED_AT
 	DE	Erschienen am
 	EN	Released at
+	FR	Sortie le
 
 PLUGIN_QOBUZ_LABEL
 	DE	Musiklabel
 	EN	Music Label
+	FR	Label
 
 PLUGIN_QOBUZ_AWARDS
 	DE	Auszeichnungen
 	EN	Awards
+	FR	Récompenses
 
 PLUGIN_QOBUZ_TRACKS_COUNT
 	DE	Anzahl Titel
 	EN	Tracks count
-
-PLUGIN_QOBUZ_ALBUMS_PROGRESS
-	DE	Qobuz Alben
-	EN	Qobuz Albums
+	FR	Nombre de pistes
 
 PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
 	DE	Lese Alben...
 	EN	Fetching Albums...
-
-PLUGIN_QOBUZ_ARTISTS_PROGRESS
-	DE	Qobuz Interpreten
-	EN	Qobuz Artists
+	FR	Chargement des albums...
 
 PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
 	DE	Lese Interpreten...
 	EN	Fetching Artists...
+	FR	Chargement des artistes...
 
 PLUGIN_QOBUZ_PROGRESS_READ_TRACKS
 	DE	Lese Titel-Informationen...
 	EN	Fetching Title Information...
-
-PLUGIN_QOBUZ_PLAYLISTS_PROGRESS
-	DE	Qobuz Wiedergabelisten
-	EN	Qobuz Playlists
+	FR	Chargement des titres...
 
 PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	DE	Lese Wiedergabelisten...
 	EN	Fetching Playlists...
+	FR	Chargement des listes de lecture...
