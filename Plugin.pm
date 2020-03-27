@@ -37,6 +37,7 @@ $prefs->init({
 	preferredFormat => 6,
 	filterSearchResults => 0,
 	playSamples => 1,
+	dontImportPurchases => 1,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {

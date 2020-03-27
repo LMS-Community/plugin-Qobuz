@@ -20,38 +20,39 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums');
+	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums', 'dontImportPurchases');
 }
 
 sub handler {
 	my ($class, $client, $params) = @_;
-	
+
 	if ($params->{'saveSettings'} && $params->{'username'}) {
 		if ($params->{'username'}) {
 			my $username = $params->{'username'};
 			$prefs->set('username', "$username"); # add a leading space to make the message display nicely
 		}
-	
+
 		if ($params->{'password'} && ($params->{'password'} ne "****")) {
 			my $password_md5_hash = md5_hex($params->{'password'});
 			$prefs->set('password_md5_hash', "$password_md5_hash"); # add a leading space to make the message display nicely
 		}
-		
+
 		if ($params->{'preferredFormat'}) {
 			my $preferredFormat = $params->{'preferredFormat'};
 			$prefs->set('preferredFormat', "$preferredFormat"); # add a leading space to make the message display nicely
 		}
-		
+
 		$params->{pref_filterSearchResults} ||= 0;
 		$params->{pref_playSamples} ||= 0;
+		$params->{pref_dontImportPurchases} ||= 0;
 	}
-	
-	# This puts the value on the webpage. 
+
+	# This puts the value on the webpage.
 	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
 	$params->{'prefs'}->{'username'} = $prefs->get('username');
 	$params->{'prefs'}->{'password_md5_hash'} = "****";
 	$params->{'prefs'}->{'preferredFormat'} = $prefs->get('preferredFormat');
-	
+
 	# I have no idea what this does, but it seems important and it's not plugin-specific.
 	return $class->SUPER::handler($client, $params);
 }
