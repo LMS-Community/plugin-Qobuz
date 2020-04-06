@@ -165,6 +165,10 @@ PLUGIN_QOBUZ_BOOKLET
 	EN	Booklet
 	FR	Livret
 
+PLUGIN_QOBUZ_PERFORMERS
+	DE	Performer
+	EN	Personnel
+
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
 	EN	Show Composer with Artist
@@ -193,10 +197,18 @@ PLUGIN_QOBUZ_TRACKS_COUNT
 	EN	Tracks count
 	FR	Nombre de pistes
 
+PLUGIN_QOBUZ_ALBUMS_PROGRESS
+	DE	Qobuz Alben
+	EN	Qobuz Albums
+
 PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
 	DE	Lese Alben...
 	EN	Fetching Albums...
 	FR	Chargement des albums...
+
+PLUGIN_QOBUZ_ARTISTS_PROGRESS
+	DE	Qobuz Interpreten
+	EN	Qobuz Artists
 
 PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
 	DE	Lese Interpreten...
@@ -207,6 +219,10 @@ PLUGIN_QOBUZ_PROGRESS_READ_TRACKS
 	DE	Lese Titel-Informationen...
 	EN	Fetching Title Information...
 	FR	Chargement des titres...
+
+PLUGIN_QOBUZ_PLAYLISTS_PROGRESS
+	DE	Qobuz Wiedergabelisten
+	EN	Qobuz Playlists
 
 PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	DE	Lese Wiedergabelisten...
