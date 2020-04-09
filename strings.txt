@@ -136,10 +136,12 @@ PLUGIN_QOBUZ_BY_WORK
 PLUGIN_QOBUZ_IMPORT
 	DE	Musiksammlungsintegration
 	EN	Music Library Integration
+	FR	Intégration de la bibliothèque musicale
 
 PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES
 	DE	Gekaufte Alben nicht importieren. Wählen Sie diese Option, falls Sie die Einkäufe sowieso schon heruntergeladen haben.
 	EN	Don't import purchased albums. Check this option if you've downloaded your purchases anyway.
+	FR	Ne pas importer les albums achetés. Cochez cette option si vous avez déjà téléchargé vos musiques achetées.
 
 PLUGIN_QOBUZ_PLAY_SAMPLES
 	DE	Hörproben wiedergeben
