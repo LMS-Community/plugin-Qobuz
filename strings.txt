@@ -133,15 +133,13 @@ PLUGIN_QOBUZ_BY_WORK
 	EN	Browse by Work
 	FR	Grouper par œuvre
 
-PLUGIN_QOBUZ_FILTER_SEARCH
-	DE	Suchresultate filtern
-	EN	Filter search results
-	FR	Trier les résultats des recherches
+PLUGIN_QOBUZ_IMPORT
+	DE	Musiksammlungsintegration
+	EN	Music Library Integration
 
-PLUGIN_QOBUZ_FILTER_SEARCH_DESC
-	DE	Qobuz Suchresultate sind leider häufig unübersichtlich und unlogisch sortiert. Das Plugin kann versuchen, dies zu verbessern. Allerdings kann dies auf langsamen Servern die Antwortzeit verlängern.
-	EN	Qobuz search results often are confusing and poorly sorted. This plugin can try to improve the situation. But this comes at a cost: on slower systems you might experience a performance hit.
-	FR	Les recherches sur Qobuz rendent souvent des listes assez troublantes. Cette extension essaie d'améliorer la situation. Sur des systèmes peu performant, ce processus peut ralentir le service.
+PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES
+	DE	Gekaufte Alben nicht importieren. Wählen Sie diese Option, falls Sie die Einkäufe sowieso schon heruntergeladen haben.
+	EN	Don't import purchased albums. Check this option if you've downloaded your purchases anyway.
 
 PLUGIN_QOBUZ_PLAY_SAMPLES
 	DE	Hörproben wiedergeben
@@ -166,6 +164,10 @@ PLUGIN_QOBUZ_GOODIES
 PLUGIN_QOBUZ_BOOKLET
 	EN	Booklet
 	FR	Livret
+
+PLUGIN_QOBUZ_PERFORMERS
+	DE	Performer
+	EN	Personnel
 
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
@@ -195,10 +197,18 @@ PLUGIN_QOBUZ_TRACKS_COUNT
 	EN	Tracks count
 	FR	Nombre de pistes
 
+PLUGIN_QOBUZ_ALBUMS_PROGRESS
+	DE	Qobuz Alben
+	EN	Qobuz Albums
+
 PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
 	DE	Lese Alben...
 	EN	Fetching Albums...
 	FR	Chargement des albums...
+
+PLUGIN_QOBUZ_ARTISTS_PROGRESS
+	DE	Qobuz Interpreten
+	EN	Qobuz Artists
 
 PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
 	DE	Lese Interpreten...
@@ -209,6 +219,10 @@ PLUGIN_QOBUZ_PROGRESS_READ_TRACKS
 	DE	Lese Titel-Informationen...
 	EN	Fetching Title Information...
 	FR	Chargement des titres...
+
+PLUGIN_QOBUZ_PLAYLISTS_PROGRESS
+	DE	Qobuz Wiedergabelisten
+	EN	Qobuz Playlists
 
 PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	DE	Lese Wiedergabelisten...

@@ -115,7 +115,7 @@ sub myArtists {
 }
 
 sub myAlbums {
-	my ($class) = @_;
+	my ($class, $noPurchases) = @_;
 
 	my $offset = 0;
 	my $allAlbums = [];
@@ -130,7 +130,10 @@ sub myAlbums {
 
 	my ($total, $lastAdded) = (0, 0);
 
-	foreach my $query ('favorite/getUserFavorites', 'purchase/getUserPurchases') {
+	my @categories = ('favorite/getUserFavorites');
+	push @categories, 'purchase/getUserPurchases' if !($noPurchases);
+
+	foreach my $query (@categories) {
 		my $gotMeta;
 		my $albums = [];
 

@@ -79,7 +79,7 @@ sub scanAlbums {
 	main::INFOLOG && $log->is_info && $log->info("Reading albums...");
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
 
-	my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums();
+	my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums($prefs->get('dontImportPurchases'));
 	$progress->total(scalar @$albums + 2);
 
 	$cache->set('latest_album_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
