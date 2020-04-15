@@ -44,6 +44,7 @@ my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.qobuz',
 	defaultLevel => 'ERROR',
 	description  => 'PLUGIN_QOBUZ',
+	logGroups    => 'SCANNER',
 } );
 
 use constant PLUGIN_TAG => 'qobuz';
