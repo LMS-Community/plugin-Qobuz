@@ -280,7 +280,7 @@ sub needsUpdate {
 
 			Plugins::Qobuz::API->myAlbumsMeta(sub {
 				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
-			});
+			}, $prefs->get('dontImportPurchases'));
 		}, sub {
 			my ($result, $acb) = @_;
 

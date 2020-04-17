@@ -326,7 +326,7 @@ sub getUserFavorites {
 }
 
 sub myAlbumsMeta {
-	my ($class, $cb) = @_;
+	my ($class, $cb, $noPurchases) = @_;
 
 	_get('favorite/getUserFavorites', sub {
 		my ($results) = @_;
@@ -339,17 +339,22 @@ sub myAlbumsMeta {
 			};
 		}
 
-		$class->getUserPurchases(sub {
-			my ($purchases) = @_;
-
-			if ($purchases && ref $purchases && $purchases->{albums}) {
-				my @timestamps = map { $_->{purchased_at} } @{ $purchases->{albums}->{items} };
-				$libraryMeta->{lastAdded} = max($libraryMeta->{lastAdded}, @timestamps);
-				$libraryMeta->{total} += $purchases->{albums}->{total};
-			}
-
+		if ($noPurchases) {
 			$cb->($libraryMeta);
-		});
+		}
+		else {
+			$class->getUserPurchases(sub {
+				my ($purchases) = @_;
+
+				if ($purchases && ref $purchases && $purchases->{albums}) {
+					my @timestamps = map { $_->{purchased_at} } @{ $purchases->{albums}->{items} };
+					$libraryMeta->{lastAdded} = max($libraryMeta->{lastAdded}, @timestamps);
+					$libraryMeta->{total} += $purchases->{albums}->{total};
+				}
+
+				$cb->($libraryMeta);
+			});
+		}
 	}, {
 		limit => 1,
 		type => 'albums',
