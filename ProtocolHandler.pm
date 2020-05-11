@@ -87,6 +87,34 @@ sub getFormatForURL {
 	return Plugins::Qobuz::API::Common->getStreamingFormat();
 }
 
+sub explodePlaylist {
+	my ( $class, $client, $url, $cb ) = @_;
+
+	if ( $url =~ m{^qobuz://(playlist|album)?:?([0-9a-z]+)\.qbz}i ) {
+		my $type = $1;
+		my $id = $2;
+
+		my $getter = $type eq 'album' ? 'getAlbum' : 'getPlaylistTracks';
+
+		Plugins::Qobuz::API->$getter(sub {
+			my $response = shift || [];
+
+			my $uris = [];
+
+			if ($response && ref $response && $response->{tracks}) {
+				$uris = [ map {
+					Plugins::Qobuz::API::Common->getUrl($_);
+				} @{$response->{tracks}->{items}} ]
+			}
+
+			$cb->($uris);
+		}, $id);
+	}
+	else {
+		$cb->([$url])
+	}
+}
+
 sub canDirectStreamSong {
 	my ( $class, $client, $song ) = @_;
 
