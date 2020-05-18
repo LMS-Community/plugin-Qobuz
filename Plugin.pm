@@ -189,6 +189,12 @@ sub onlineLibraryNeedsUpdate {
 	}
 }
 
+sub getLibraryStats { if (CAN_IMPORTER) {
+	require Plugins::Qobuz::Importer;
+	my $totals = Plugins::Qobuz::Importer->getLibraryStats();
+	return wantarray ? ('PLUGIN_QOBUZ', $totals) : $totals;
+} }
+
 sub getDisplayName { 'PLUGIN_QOBUZ' }
 
 # don't add this plugin to the Extras menu
