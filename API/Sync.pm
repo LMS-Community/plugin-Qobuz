@@ -97,11 +97,11 @@ sub myArtists {
 				}
 			} @{ $response->{artists}->{items} };
 
-			if (scalar @$artists < $libraryMeta->{total}) {
-				$offset = $response->{artists}->{offset} + 1;
+			if (scalar @$artists < $total) {
+				$offset = $response->{artists}->{offset} + QOBUZ_LIMIT;
 			}
 		}
-	} while $offset;
+	} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
 
 	if ($total && $lastAdded) {
 		# keep track of some meta-information about the album collection
@@ -136,6 +136,7 @@ sub myAlbums {
 	foreach my $query (@categories) {
 		my $gotMeta;
 		my $albums = [];
+		my $subTotal = 0;
 
 		do {
 			$args->{offset} = $offset;
@@ -154,17 +155,17 @@ sub myAlbums {
 						$lastAdded = max($lastAdded, $response->{albums}->{items}->[0]->{favorited_at} || 0);
 					}
 
-					$total += $response->{albums}->{total};
+					$total += $subTotal = $response->{albums}->{total};
 					$gotMeta = 1;
 				}
 
 				push @$albums, @{ _precacheAlbum($response->{albums}->{items}) };
 
-				if (scalar @$albums < $libraryMeta->{total}) {
-					$offset = $response->{albums}->{offset} + 1;
+				if (scalar @$albums < $subTotal) {
+					$offset = $response->{albums}->{offset} + QOBUZ_LIMIT;
 				}
 			}
-		} while $offset;
+		} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
 
 		push @$allAlbums, @$albums;
 	}

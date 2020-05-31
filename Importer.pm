@@ -269,7 +269,7 @@ sub needsUpdate {
 				}
 
 				$acb->($needUpdate);
-			});
+			}, undef, 1);
 		}, sub {
 			my ($result, $acb) = @_;
 

@@ -234,7 +234,7 @@ sub getFeaturedAlbums {
 }
 
 sub getUserPurchases {
-	my ($class, $cb) = @_;
+	my ($class, $cb, $limit) = @_;
 
 	_get('purchase/getUserPurchases', sub {
 		my $purchases = shift;
@@ -244,7 +244,7 @@ sub getUserPurchases {
 
 		$cb->($purchases);
 	},{
-		limit    => QOBUZ_USERDATA_LIMIT,
+		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
@@ -353,7 +353,7 @@ sub myAlbumsMeta {
 				}
 
 				$cb->($libraryMeta);
-			});
+			}, 1);
 		}
 	}, {
 		limit => 1,
@@ -413,7 +413,7 @@ sub deleteFavorite {
 }
 
 sub getUserPlaylists {
-	my ($class, $cb, $user) = @_;
+	my ($class, $cb, $user, $limit) = @_;
 
 	_get('playlist/getUserPlaylists', sub {
 		my $playlists = shift;
@@ -425,7 +425,7 @@ sub getUserPlaylists {
 		$cb->($playlists);
 	}, {
 		username => $user || Plugins::Qobuz::API::Common->username,
-		limit    => QOBUZ_USERDATA_LIMIT,
+		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
 	});
