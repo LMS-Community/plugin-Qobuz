@@ -3,230 +3,278 @@
 PLUGIN_QOBUZ
 	EN	Qobuz
 	FR	Qobuz
+	NL	Qobuz
 
 PLUGIN_QOBUZ_DESC
 	DE	Erweiterung, um auf Qobuz Inhalte zuzugreifen
 	EN	Plugin to listen to Qobuz streams
 	FR	Extension pour l'écoute de flux Qobuz
+	NL	Plugin om te luisteren naar Qobuz streams
 
 PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
 	DE	Bitte geben Sie in den Server-Einstellungen unter Erweitert/Qobuz Benutzernamen und Passwort ein.
 	EN	Please enter Qobuz username and password in Server Settings/Advanced/Qobuz.
 	FR	Spécifiez votre nom d'utilisateur Qobuz dans Paramètres/Avancé/Qobuz.
+	NL	Vul alsjeblieft bij de Server instellingen jouw Qobuz gebruikersnaam en wachtwoord in. 
 
 PLUGIN_QOBUZ_PREFS
 	DE	Einstellungen
 	EN	Preferences
 	FR	Préférences
+	NL	Voorkeuren
 
 PLUGIN_QOBUZ_PREFS_USER
 	DE	Qobuz Konto
 	EN	Qobuz account
 	FR	Compte Qobuz
+	NL	Qobuz account
 
 PLUGIN_QOBUZ_PREFS_PASSWORD
 	DE	Passwort
 	EN	Password
 	FR	Mot de passe
+	NL	Wachtwoord
 
 PLUGIN_QOBUZ_PREFS_FORMAT
 	DE	Bevorzugtes Format (FLAC funktioniert nur mit einem "hifi" Premium Konto)
 	EN	Preferred format (FLAC works only with 'hifi' premium account)
 	FR	Format préféré (FLAC ne fonctionnera qu'avec un abonnement 'hi-fi')
+	NL	Voorkeursformaat (ondersteuning van FLAC is afhankelijk van jouw Qobuz abonnement)
 
 PLUGIN_QOBUZ_SUB_GENRES
 	DE	Unterteilungen
 	EN	Subgenres
 	FR	Sous-genres
+	NL	Subgenres
 
 PLUGIN_QOBUZ_BESTSELLERS
 	EN	Bestsellers
 	FR	Meilleures Ventes
+	NL	Meest Verkocht
 
 PLUGIN_QOBUZ_NEW_RELEASES
 	DE	Neue Veröffentlichungen
 	EN	New Releases
 	FR	Nouveautés
+	NL	Nieuwe Muziek
 
 PLUGIN_QOBUZ_PRESS
 	DE	In der Presse
 	EN	In the Press
 	FR	Vu dans la Presse
+	NL	In Het Nieuws
 
 PLUGIN_QOBUZ_EDITOR_PICKS
 	DE	Qobuz Auswahl
 	EN	Qobuz Selection
 	FR	Sélection Qobuz
+	NL	Qobuz Selectie
 
 PLUGIN_QOBUZ_USERPURCHASES
 	DE	Meine Einkäufe
 	EN	My Purchases
 	FR	Mes Achats
+	NL	Mijn Aankopen
 
 PLUGIN_QOBUZ_USERPLAYLISTS
 	DE	Meine Wiedergabelisten
 	EN	My Playlists
 	FR	Mes Listes de Lecture
+	NL	Mijn Afspeellijsten
 
 PLUGIN_QOBUZ_USER_FAVORITES
 	DE	Meine Favoriten
 	EN	My Favorites
 	FR	Mes Favoris
+	NL	Mijn Favorieten
 
 PLUGIN_QOBUZ_MANAGE_FAVORITES
 	DE	Favoriten verwalten
 	EN	Manage Favorites
 	FR	Gestion des Favoris
+	NL	Beheer Favorieten
 
 PLUGIN_QOBUZ_ADD_FAVORITE
 	DE	Favorit '%s' erstellen
 	EN	Add '%s' to favorites
 	FR	Ajouter '%s' à mes favoris
+	NL	Voeg '%s' toe aan favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE
 	DE	Entferne '%s' aus Favoriten
 	EN	Remove '%s' from favorites
 	FR	Retirer '%s' des favoris
+	NL	Verwijder '%s' van favorieten
 
 PLUGIN_QOBUZ_SEARCH
 	DE	Suche '%s'
 	EN	Search '%s'
 	FR	Rechercher '%s'
+	NL	Zoek '%s'
 
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
 	DE	Qobuz Wiedergabelisten
 	EN	Qobuz Playlists
 	FR	Listes de Lecture Qobuz
+	NL	Qobuz Afspeellijsten
 
 PLUGIN_QOBUZ_LATESTPLAYLISTS
 	DE	Benutzer Wiedergabelisten
 	EN	User Playlists
 	FR	Listes de Lecture d'utilisateurs
+	NL	Gebruikers Afspeellijsten
 
 PLUGIN_ON_QOBUZ
 	DE	Auf Qobuz
 	EN	On Qobuz
 	FR	Sur Qobuz
+	NL	Op Qobuz
 
 PLUGIN_QOBUZ_NOT_RELEASED
 	DE	Tut uns leid: dieses Werk steht noch nicht zum Hören bereit. Es wird bald verfügbar sein.
 	EN	We're sorry, this work is not available for streaming just yet. It soon will be.
 	FR	Nous sommes désolés : cette œuvre n'est pas encore disponible à l'écoute. À paraître bientôt.
+	NL	Helaas, deze muziek is nog niet beschikbaar om te luisteren. Binnenkort komt dit beschikbaar. 
 
 PLUGIN_QOBUZ_NOT_AVAILABLE
 	DE	Tut uns leid: dieses Werk kann aus rechtlichen Gründen nicht wiedergegeben werden.
 	EN	We're sorry, this work is not available for streaming.
 	FR	Nous sommes désolés : cette œuvre n'est pas disponible à l'écoute.
+	NL	Helaas, deze muziek is niet beschikbaar om te luisteren.
 
 PLUGIN_QOBUZ_BIOGRAPHY
 	DE	Biographie
 	EN	Biography
 	FR	Biographie
+	NL	Biografie
 
 PLUGIN_QOBUZ_SIMILAR_ARTISTS
 	DE	Ähnliche Interpreten
 	EN	Similar Artists
 	FR	Artistes similaires
+	NL	Vergelijkbare Artiesten
 
 PLUGIN_QOBUZ_BY_WORK
 	DE	Nach Werk gruppiert
 	EN	Browse by Work
 	FR	Grouper par œuvre
+	NL	Blader op Werk
 
 PLUGIN_QOBUZ_IMPORT
 	DE	Musiksammlungsintegration
 	EN	Music Library Integration
 	FR	Intégration de la bibliothèque musicale
+	NL	Muziekcollectie Integratie
 
 PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES
 	DE	Gekaufte Alben nicht importieren. Wählen Sie diese Option, falls Sie die Einkäufe sowieso schon heruntergeladen haben.
 	EN	Don't import purchased albums. Check this option if you've downloaded your purchases anyway.
 	FR	Ne pas importer les albums achetés. Cochez cette option si vous avez déjà téléchargé vos musiques achetées.
+	NL	Gekochte albums niet importeren. Vink deze optie aan als je jouw gekochte albums hebt gedownload.
 
 PLUGIN_QOBUZ_PLAY_SAMPLES
 	DE	Hörproben wiedergeben
 	EN	Play samples
 	FR	Écouter les extraits
+	NL	Sample afspelen 
 
 PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
 	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
 	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
 	FR	Certains albums sont uniquement disponibles à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez vous écouter des extraits de 60 secondes ?
+	NL	Sommige nummers zijn niet beschikbaar voor streaming. In plaats daarvan kan een sample van 60 seconden worden gespeeld. Deze worden aangegeven met een asterisk (*).
 
 PLUGIN_QOBUZ_LABEL_HIRES
 	DE	Hi-Res Alben als solche markieren
 	EN	Show Hi-Res label where applicable
 	FR	Taguer les albums Hi-Res
+	NL	Toon Hi-Res label indien van toepassing
 
 PLUGIN_QOBUZ_GOODIES
 	DE	Qobuz Extras
 	EN	Qobuz Goodies
 	FR	Qobuz Extras
+	NL	Qobuz Extras
 
 PLUGIN_QOBUZ_BOOKLET
 	EN	Booklet
 	FR	Livret
+	NL	Boekje
 
 PLUGIN_QOBUZ_PERFORMERS
 	DE	Performer
 	EN	Personnel
+	NL	Performer
 
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
 	EN	Show Composer with Artist
 	FR	Afficher le compositeur avec l'interprète
+	NL	Toon Componisten met Artiest 
 
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
+	NL	Hi-Res
 
 PLUGIN_QOBUZ_RELEASED_AT
 	DE	Erschienen am
 	EN	Released at
 	FR	Sortie le
+	NL	Verschenen op
 
 PLUGIN_QOBUZ_LABEL
 	DE	Musiklabel
 	EN	Music Label
 	FR	Label
+	NL	Muzieklabel
 
 PLUGIN_QOBUZ_AWARDS
 	DE	Auszeichnungen
 	EN	Awards
 	FR	Récompenses
+	NL	Prijzen
 
 PLUGIN_QOBUZ_TRACKS_COUNT
 	DE	Anzahl Titel
 	EN	Tracks count
 	FR	Nombre de pistes
+	NL	Aantal nummers
 
 PLUGIN_QOBUZ_ALBUMS_PROGRESS
 	DE	Qobuz Alben
 	EN	Qobuz Albums
+	NL	Qobuz Albums
 
 PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
 	DE	Lese Alben...
 	EN	Fetching Albums...
 	FR	Chargement des albums...
+	NL	Albums ophalen...
 
 PLUGIN_QOBUZ_ARTISTS_PROGRESS
 	DE	Qobuz Interpreten
 	EN	Qobuz Artists
+	NL	Qobuz Artiesten
 
 PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
 	DE	Lese Interpreten...
 	EN	Fetching Artists...
 	FR	Chargement des artistes...
+	NL	Artiesten ophalen...
 
 PLUGIN_QOBUZ_PROGRESS_READ_TRACKS
 	DE	Lese Titel-Informationen...
 	EN	Fetching Title Information...
 	FR	Chargement des titres...
+	NL	Nummer informatie ophalen...
 
 PLUGIN_QOBUZ_PLAYLISTS_PROGRESS
 	DE	Qobuz Wiedergabelisten
 	EN	Qobuz Playlists
+	NL	Qobuz Afspeellijsten
 
 PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	DE	Lese Wiedergabelisten...
 	EN	Fetching Playlists...
 	FR	Chargement des listes de lecture...
+	NL	Afspeellijsten ophalen...
