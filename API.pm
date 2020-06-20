@@ -104,7 +104,7 @@ sub search {
 
 	main::DEBUGLOG && $log->debug('Search : ' . $search);
 
-	my $key = "search_${search}_${type}_" . ($args->{_dontPreCache} || 0);
+	my $key = ("search_${search}_${type}_" . ($args->{_dontPreCache} || 0));
 
 	if ( my $cached = $cache->get($key) ) {
 		$cb->($cached);
