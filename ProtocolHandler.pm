@@ -16,6 +16,9 @@ use Plugins::Qobuz::Reporting;
 
 use constant MP3_BITRATE => 320_000;
 
+use constant PAGE_URL_REGEXP => qr{open.qobuz.com/(.+)/([a-z0-9]+)};
+Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__) if Slim::Player::ProtocolHandlers->can('registerURLHandler');
+
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
@@ -89,6 +92,15 @@ sub getFormatForURL {
 
 sub explodePlaylist {
 	my ( $class, $client, $url, $cb ) = @_;
+
+	if (my ($type, $id) = $url =~ PAGE_URL_REGEXP) {
+		if ($type eq 'track') {
+			$url = "qobuz://$id." . Plugins::Qobuz::API::Common->getStreamingFormat($url);
+		}
+		else {
+			$url = "qobuz://$type:$id.qbz";
+		}
+	}
 
 	if ( $url =~ m{^qobuz://(playlist|album)?:?([0-9a-z]+)\.qbz}i ) {
 		my $type = $1;
