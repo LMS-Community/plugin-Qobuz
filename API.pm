@@ -524,12 +524,13 @@ sub getTrackInfo {
 }
 
 sub getFileUrl {
-	my ($class, $cb, $trackId, $format) = @_;
-	$class->getFileInfo($cb, $trackId, $format, 'url');
+	my ($class, $cb, $trackId, $format, $client) = @_;
+	my $maxSupportedSamplerate = $client ? $client->maxSupportedSamplerate : 0;
+	$class->getFileInfo($cb, $trackId, $format, 'url', $maxSupportedSamplerate);
 }
 
 sub getFileInfo {
-	my ($class, $cb, $trackId, $format, $urlOnly) = @_;
+	my ($class, $cb, $trackId, $format, $urlOnly, $maxSupportedSamplerate) = @_;
 
 	$cb->() unless $trackId;
 
@@ -541,7 +542,7 @@ sub getFileInfo {
 
 	if ($format =~ /fl.c/i) {
 		$preferredFormat = $prefs->get('preferredFormat');
-		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES) {
+		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES || ($maxSupportedSamplerate && $maxSupportedSamplerate <= 48_000)) {
 			$preferredFormat = QOBUZ_STREAMING_FLAC;
 		}
 		elsif ($preferredFormat > QOBUZ_STREAMING_FLAC_HIRES) {

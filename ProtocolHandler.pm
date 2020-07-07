@@ -271,7 +271,7 @@ sub getNextTrack {
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
 				$successCb->();
-			}, $id, $format);
+			}, $id, $format, $song->master);
 			return;
 		}
 
