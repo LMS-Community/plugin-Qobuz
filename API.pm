@@ -184,9 +184,10 @@ sub getSimilarArtists {
 sub getGenres {
 	my ($class, $cb, $genreId) = @_;
 
-	_get('genre/list', $cb, {
-		parent_id => $genreId
-	});
+	my $params = {};
+	$params->{parent_id} = $genreId if $genreId;
+
+	_get('genre/list', $cb, $params);
 }
 
 sub getGenre {
