@@ -1,28 +1,37 @@
 [% PROCESS settings/header.html %]
 
-	[% WRAPPER setting title="PLUGIN_QOBUZ" desc="" %]
-		<div class="prefDesc">[% "PLUGIN_QOBUZ_PREFS" | string %]</div>
-	[% END %]
-
 	[% WRAPPER settingSection %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" value="[% prefs.password_md5_hash %]" size="20" />[% END %]
 
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_FORMAT" desc="" %]
-			<select name="preferredFormat" id="preferredFormat"> 
-			  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >MP3 320 kbps </option>
-			  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >FLAC 16 bits / 44.1 kHz</option>
-			  <option [% prefs.preferredFormat == "27" ? "selected" : "" %] value="27" >FLAC Hi-Res</option>
-			</select>	
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST" desc="" %]
+			<select name="pref_showComposerWithArtist" id="showComposerWithArtist">
+				<option [% prefs.showComposerWithArtist ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.showComposerWithArtist ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>
 		[% END %]
 
-<!-- 
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_FILTER_SEARCH" desc="" %]
-			<input type="checkbox" [% IF prefs.pref_filterSearchResults %]checked [% END %] class="stdedit" name="pref_filterSearchResults" id="pref_filterSearchResults" value="1" />
-			<label for="pref_filterSearchResults" class="stdlabel">[% "PLUGIN_QOBUZ_FILTER_SEARCH_DESC" | string %]</label>
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_IMPORT" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_dontImportPurchases %]checked [% END %] class="stdedit" name="pref_dontImportPurchases" id="pref_dontImportPurchases" value="1" />
+			<label for="pref_dontImportPurchases" class="stdlabel">[% "PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES" | string %]</label>
 		[% END %]
- -->
- 
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_LABEL_HIRES" desc="" %]
+			<select name="pref_labelHiResAlbums" id="labelHiResAlbums">
+				<option [% prefs.labelHiResAlbums ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.labelHiResAlbums ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_FORMAT" desc="" %]
+			<select name="preferredFormat" id="preferredFormat">
+			  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >MP3 320 kbps </option>
+			  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >FLAC 16 bits / 44.1 kHz</option>
+			  <option [% prefs.preferredFormat == "7" ? "selected" : "" %] value="7" >FLAC Hi-Res 24 bits / 96 kHz</option>
+			  <option [% prefs.preferredFormat == "27" ? "selected" : "" %] value="27" >FLAC Hi-Res 24 bits / >96 kHz</option>
+			</select>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PLAY_SAMPLES" desc="" %]
 			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
 			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>

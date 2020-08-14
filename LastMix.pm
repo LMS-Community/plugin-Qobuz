@@ -37,7 +37,7 @@ sub lookup {
 		
 		my %tracks;
 		
-		for my $track ( @{ Plugins::Qobuz::API->filterPlayables($searchResult->{tracks}->{items}) } ) {
+		for my $track ( @{ Plugins::Qobuz::API::Common->filterPlayables($searchResult->{tracks}->{items}) } ) {
 			next unless $track->{performer} && $track->{id} && $track->{title};
 			
 			my $artist = '';
@@ -48,7 +48,7 @@ sub lookup {
 			
 			next unless $artist;
 
-			my $url = Plugins::Qobuz::ProtocolHandler->getUrl($track);
+			my $url = Plugins::Qobuz::API::Common->getUrl($track);
 			
 			$tracks{$url} = $track;
 			
@@ -61,7 +61,7 @@ sub lookup {
 
 		my $track = $class->extractTrack($candidates);
 		
-		Plugins::Qobuz::API->precacheTrack($tracks{$track}) if $tracks{$track};
+		Plugins::Qobuz::API::Common->precacheTrack($tracks{$track}) if $tracks{$track};
 
 		$class->cb->($track);
 	}, $class->args->{title}, 'tracks', {
