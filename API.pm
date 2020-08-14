@@ -643,20 +643,19 @@ sub _get {
 	
 	if (main::DEBUGLOG && $log->is_debug) {
 		my $data = $url;
-		$data =~ s/(?:$aid|$token)//g;
+		#$data =~ s/(?:$aid|$token)//g; don't remove the api key.
 		$log->debug($data);
 	}
 	
 	if ($params->{_wipecache}) {
 		$cache->remove($url);
 	}
-	
-	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
-		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
-		$cb->($cached);
-		return;
+	# don't use cached 
+	#if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
+	#	main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
+	#	$cb->($cached);
+	#	return;
 	}
-
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
