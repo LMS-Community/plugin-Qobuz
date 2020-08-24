@@ -526,7 +526,13 @@ sub getTrackInfo {
 
 sub getFileUrl {
 	my ($class, $cb, $trackId, $format, $client) = @_;
-	my $maxSupportedSamplerate = $client ? $client->maxSupportedSamplerate : 0;
+
+	my $maxSupportedSamplerate = min(map {
+		$_->maxSupportedSamplerate
+	} grep {
+		$_->maxSupportedSamplerate
+	} $client->syncGroupActiveMembers);
+
 	$class->getFileInfo($cb, $trackId, $format, 'url', $maxSupportedSamplerate);
 }
 
