@@ -15,6 +15,7 @@ use Plugins::Qobuz::API::Common;
 use Plugins::Qobuz::Reporting;
 
 use constant MP3_BITRATE => 320_000;
+use constant CAN_FLAC_SEEK => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
 
 use constant PAGE_URL_REGEXP => qr{open.qobuz.com/(.+)/([a-z0-9]+)};
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__) if Slim::Player::ProtocolHandlers->can('registerURLHandler');
@@ -48,21 +49,30 @@ sub new {
 
 sub canSeek { 1 }
 
-sub getSeekDataByPosition { undef }
-
+sub getSeekDataByPosition {
+	my $class = shift;
+	$class->SUPER::getSeekDataByPosition(@_) if CAN_FLAC_SEEK;
+}
 sub getSeekData {
-	my ( $class, $client, $song, $newtime ) = @_;
+	my $class = shift;
+	my ( $client, $song, $newtime ) = @_;
 
 	my $url = $song->currentTrack()->url() || return;
 
 	my ($id, $type) = $class->crackUrl($url);
 
-	my $bitrate = $type eq 'mp3' ? MP3_BITRATE : $song->bitrate();
+	if ($type eq 'mp3' && !$song->bitrate()) {
+		$song->bitrate(MP3_BITRATE);
+	}
+
+	return $class->SUPER::getSeekData(@_) if CAN_FLAC_SEEK;
+
+	my $bitrate = $song->bitrate();
 
 	return unless $bitrate;
 
 	return {
-		sourceStreamOffset => ( $bitrate  * $newtime ) / 8,
+		sourceStreamOffset => ( $bitrate * $newtime ) / 8,
 		timeOffset         => $newtime,
 	};
 }
@@ -129,6 +139,8 @@ sub explodePlaylist {
 
 sub canDirectStreamSong {
 	my ( $class, $client, $song ) = @_;
+
+	return $class->SUPER::canDirectStreamSong($client, $song) if CAN_FLAC_SEEK;
 
 	# We need to check with the base class (HTTP) to see if we
 	# are synced or if the user has set mp3StreamingMethod
@@ -270,7 +282,23 @@ sub getNextTrack {
 
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
-				$successCb->();
+
+				if (CAN_FLAC_SEEK && $format =~ /fla?c/i) {
+					main::INFOLOG && $log->is_info && $log->info("Getting flac header information...");
+					my $http = Slim::Networking::Async::HTTP->new;
+					$http->send_request( {
+						request     => HTTP::Request->new( GET => $song->streamUrl ),
+						onStream    => \&Slim::Utils::Scanner::Remote::parseFlacHeader,
+						onError     => sub {
+							my ($self, $error) = @_;
+							$log->warn( "could not find $format header $error" );
+							$successCb->();
+						},
+						passthrough => [ $song->track, { cb => $successCb }, $song->streamUrl ],
+					} );
+				} else {
+					$successCb->();
+				}
 			}, $id, $format, $song->master);
 			return;
 		}
