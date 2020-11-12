@@ -421,7 +421,7 @@ sub getUserPlaylists {
 
 		$playlists->{playlists}->{items} = [ sort {
 			lc($a->{name}) cmp lc($b->{name})
-		} @{$playlists->{playlists}->{items}} ];
+		} @{$playlists->{playlists}->{items} || []} ];
 
 		$cb->($playlists);
 	}, {
