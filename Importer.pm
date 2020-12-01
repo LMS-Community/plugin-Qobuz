@@ -327,7 +327,7 @@ sub _prepareTrack {
 		TRACKNUM     => $track->{track_number},
 		GENRE        => $album->{genre},
 		DISC         => $track->{media_number},
-		DISCC        => $track->{tracks_count},
+		DISCC        => $album->{media_count},
 		SECS         => $track->{duration},
 		YEAR         => (localtime($album->{released_at}))[5] + 1900,
 		COVER        => $album->{image},
