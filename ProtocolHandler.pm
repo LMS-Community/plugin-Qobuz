@@ -284,7 +284,7 @@ sub getNextTrack {
 				$song->streamUrl(shift);
 
 				if (CAN_FLAC_SEEK && $format =~ /fla?c/i) {
-					main::INFOLOG && $log->is_info && $log->info("Getting flac header information...");
+					main::INFOLOG && $log->is_info && $log->info("Getting flac header information for: " . $song->streamUrl);
 					my $http = Slim::Networking::Async::HTTP->new;
 					$http->send_request( {
 						request     => HTTP::Request->new( GET => $song->streamUrl ),
