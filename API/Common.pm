@@ -13,7 +13,7 @@ use Slim::Utils::Cache;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 
-use constant QOBUZ_BASE_URL => 'https://www.qobuz.com/api.json/0.2/';
+use constant QOBUZ_BASE_URL => 'http://www.qobuz.com/api.json/0.2/';
 
 use constant QOBUZ_DEFAULT_EXPIRY   => 86400 * 30;
 use constant QOBUZ_USER_DATA_EXPIRY => 60;            # user want to see changes in purchases, playlists etc. ASAP
