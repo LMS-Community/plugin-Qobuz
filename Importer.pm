@@ -129,6 +129,17 @@ sub scanArtists {
 		'every' => 1,
 	});
 
+	# backwards compatibility for 8.1 and older...
+	my $contributorNameNormalizer;
+	if ($class->can('normalizeContributorName')) {
+		$contributorNameNormalizer = sub {
+			$class->normalizeContributorName($_[0]);
+		};
+	}
+	else {
+		$contributorNameNormalizer = sub { $_[0] };
+	}
+
 	main::INFOLOG && $log->is_info && $log->info("Reading artists...");
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS'));
 
@@ -144,7 +155,7 @@ sub scanArtists {
 		main::SCANNER && Slim::Schema->forceCommit;
 
 		Slim::Schema::Contributor->add({
-			'artist' => $name,
+			'artist' => $contributorNameNormalizer->($name),
 			'extid'  => 'qobuz:artist:' . $artist->{id},
 		});
 	}
