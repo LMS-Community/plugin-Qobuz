@@ -88,17 +88,18 @@ sub initPlugin {
 		after => 'qobuzTrackInfo'
 	) );
 
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuzFrequency => (
-		parent => 'moreinfo',
-		after  => 'bitrate',
-		func   => \&infoSamplerate,
-	) );
+	# XXX items are duplicating default track info values - see http://forums.slimdevices.com/showthread.php?t=113910
+	# Slim::Menu::TrackInfo->registerInfoProvider( qobuzFrequency => (
+	# 	parent => 'moreinfo',
+	# 	after  => 'bitrate',
+	# 	func   => \&infoSamplerate,
+	# ) );
 
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBitsperSample => (
-		parent => 'moreinfo',
-		after  => 'qobuzFrequency',
-		func   => \&infoBitsperSample,
-	) );
+	# Slim::Menu::TrackInfo->registerInfoProvider( qobuzBitsperSample => (
+	# 	parent => 'moreinfo',
+	# 	after  => 'qobuzFrequency',
+	# 	func   => \&infoBitsperSample,
+	# ) );
 
 	Slim::Menu::ArtistInfo->registerInfoProvider( qobuzArtistInfo => (
 		func => \&artistInfoMenu
@@ -881,29 +882,29 @@ sub _playlistCallback {
 	} );
 }
 
-sub infoSamplerate {
-	my ( $client, $url, $track, $remoteMeta ) = @_;
+# sub infoSamplerate {
+# 	my ( $client, $url, $track, $remoteMeta ) = @_;
 
-	if ( my $sampleRate = $remoteMeta->{samplerate} ) {
-		return {
-			type  => 'text',
-			label => 'SAMPLERATE',
-			name  => sprintf('%.1f kHz', $sampleRate)
-		};
-	}
-}
+# 	if ( my $sampleRate = $remoteMeta->{samplerate} ) {
+# 		return {
+# 			type  => 'text',
+# 			label => 'SAMPLERATE',
+# 			name  => sprintf('%.1f kHz', $sampleRate)
+# 		};
+# 	}
+# }
 
-sub infoBitsperSample {
-	my ( $client, $url, $track, $remoteMeta ) = @_;
+# sub infoBitsperSample {
+# 	my ( $client, $url, $track, $remoteMeta ) = @_;
 
-	if ( my $samplesize = $remoteMeta->{samplesize} ) {
-		return {
-			type  => 'text',
-			label => 'SAMPLESIZE',
-			name  => $samplesize . ' ' . cstring($client, 'BITS'),
-		};
-	}
-}
+# 	if ( my $samplesize = $remoteMeta->{samplesize} ) {
+# 		return {
+# 			type  => 'text',
+# 			label => 'SAMPLESIZE',
+# 			name  => $samplesize . ' ' . cstring($client, 'BITS'),
+# 		};
+# 	}
+# }
 
 sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
@@ -1307,6 +1308,8 @@ sub trackInfoMenuPerformers {
 			items => \@performers,
 		};
 	}
+
+	return [];
 }
 
 sub trackInfoMenuBooklet {
