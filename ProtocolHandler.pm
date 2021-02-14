@@ -17,7 +17,7 @@ use Plugins::Qobuz::Reporting;
 use constant MP3_BITRATE => 320_000;
 use constant CAN_FLAC_SEEK => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0 && UNIVERSAL::can('Slim::Utils::Scanner::Remote', 'parseFlacHeader'));
 
-use constant PAGE_URL_REGEXP => qr{open.qobuz.com/(.+)/([a-z0-9]+)};
+use constant PAGE_URL_REGEXP => qr{(?:open|play)\.qobuz\.com/(.+)/([a-z0-9]+)};
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__) if Slim::Player::ProtocolHandlers->can('registerURLHandler');
 
 my $log   = logger('plugin.qobuz');
