@@ -696,8 +696,10 @@ sub QobuzUserFavorites {
 		my $items = [];
 
 		my @artists;
-		for my $artist ( @{$favorites->{artists}->{items}} ) {
-			push @artists, _artistItem($client, $artist, 'withIcon');
+		for my $artist ( sort {
+			Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name})
+		} @{$favorites->{artists}->{items}} ) {
+			push @artists,  _artistItem($client, $artist, 'withIcon');
 		}
 
 		push @$items, {
