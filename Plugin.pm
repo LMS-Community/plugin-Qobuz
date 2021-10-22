@@ -948,10 +948,9 @@ sub QobuzGetTracks {
 		}
 
 		if (scalar keys %$works) {
-			my $trackItems = Storable::dclone($items);
-			$items = [];
+			my $worksItems = [];
 			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-				push @$items, {
+				push @$worksItems, {
 					name => $works->{$work}->{title},
 					image => $works->{$work}->{image},
 					type => 'playlist',
@@ -960,10 +959,10 @@ sub QobuzGetTracks {
 				};
 			}
 
-			push @$items, {
-				name => cstring($client, 'ALL_SONGS'),
-				image => 'html/images/playall.png',
-				items => $trackItems
+			unshift @$items, {
+				name => cstring($client, 'PLUGIN_QOBUZ_BY_WORK'),
+				image => 'html/images/albums.png',
+				items => $worksItems
 			};
 		}
 
