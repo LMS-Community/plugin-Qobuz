@@ -948,22 +948,20 @@ sub QobuzGetTracks {
 		}
 
 		if (scalar keys %$works) {
-			my $worksItems = [];
+			$items = [];
 			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-				push @$worksItems, {
+				my $workTracks = $works->{$work}->{tracks};
+
+				push @$items, {
 					name => $works->{$work}->{title},
 					image => $works->{$work}->{image},
 					type => 'playlist',
 					playall => 1,
-					items => $works->{$work}->{tracks}
-				};
-			}
+					items => $workTracks
+				} if scalar @$workTracks > 1;
 
-			unshift @$items, {
-				name => cstring($client, 'PLUGIN_QOBUZ_BY_WORK'),
-				image => 'html/images/albums.png',
-				items => $worksItems
-			};
+				push @$items, @$workTracks;
+			}
 		}
 
 		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
