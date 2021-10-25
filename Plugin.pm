@@ -957,6 +957,10 @@ sub QobuzGetTracks {
 					image => $works->{$work}->{image},
 					type => 'playlist',
 					playall => 1,
+					url => \&QobuzWorkGetTracks,
+					passthrough => [{
+						tracks => $workTracks
+					}],
 					items => $workTracks
 				} if scalar @$workTracks > 1;
 
@@ -1031,6 +1035,17 @@ sub QobuzGetTracks {
 			items => $items,
 		}, @_ );
 	}, $albumId);
+}
+
+sub QobuzWorkGetTracks {
+	my ($client, $cb, $params, $args) = @_;
+	my $tracks = $args->{tracks};
+
+	$cb->({
+		type => 'playlist',
+		playall => 1,
+		items => $tracks
+	});
 }
 
 sub QobuzPlaylistGetTracks {
