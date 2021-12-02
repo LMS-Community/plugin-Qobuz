@@ -935,7 +935,7 @@ sub QobuzGetTracks {
 				$workId =~ s/\s//g;
 
 				$works->{$workId} = {
-					index => $i++,
+					index => $i,
 					title => $work,
 					image => $formattedTrack->{image},
 					tracks => []
@@ -944,15 +944,17 @@ sub QobuzGetTracks {
 				push @{$works->{$workId}->{tracks}}, $formattedTrack;
 			}
 
+			$i++;
+
 			push @$items, $formattedTrack;
 		}
 
 		if (scalar keys %$works) {
-			$items = [];
-			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+			foreach my $work (sort { $works->{$b}->{index} <=> $works->{$a}->{index} } keys %$works) {
 				my $workTracks = $works->{$work}->{tracks};
 
-				push @$items, {
+				# insert works item before the first of its tracks
+				splice @$items, $works->{$work}->{index}, 0, {
 					name => $works->{$work}->{title},
 					image => $works->{$work}->{image},
 					type => 'playlist',
@@ -963,8 +965,6 @@ sub QobuzGetTracks {
 					}],
 					items => $workTracks
 				} if scalar @$workTracks > 1;
-
-				push @$items, @$workTracks;
 			}
 		}
 
