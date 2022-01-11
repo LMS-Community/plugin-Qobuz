@@ -516,7 +516,16 @@ sub QobuzArtist {
 			passthrough => [{
 				artistId  => $artist->{id},
 			}],
+		},{
+			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
+			image => 'html/images/favorites.png',
+			url  => \&QobuzAddFavorite,
+			passthrough => [{
+				artist_ids => $artist->{id},
+			}],
+			nextWindow => 'parent'
 		};
+;
 
 		$cb->( {
 			items => $items
@@ -797,11 +806,11 @@ sub QobuzAddFavorite {
 
 	Plugins::Qobuz::API->createFavorite(sub {
 		my $result = shift;
-		$cb->({
-			text        => $result->{status},
+		$cb->({ items => [{
+			name        => cstring($client, 'PLUGIN_QOBUZ_MUSIC_ADDED'),
 			showBriefly => 1,
 			nextWindow  => 'grandparent',
-		});
+		}] });
 	}, $args);
 }
 
@@ -972,6 +981,16 @@ sub QobuzGetTracks {
 			$artistItem->{label} = 'ARTIST';
 			push @$items, $artistItem;
 		}
+
+		push @$items, {
+			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
+			image => 'html/images/favorites.png',
+			url  => \&QobuzAddFavorite,
+			passthrough => [{
+				album_ids => $albumId
+			}],
+			nextWindow => 'parent'
+		};
 
 		push @$items,{
 			name  => $album->{genre},
