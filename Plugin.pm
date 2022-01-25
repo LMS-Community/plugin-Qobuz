@@ -260,7 +260,7 @@ sub handleFeed {
 			url  => \&QobuzFeaturedAlbums,
 			image => 'html/images/albums.png',
 			passthrough => [{
-				type    => 'new-releases',
+				type    => 'new-releases-full',
 			}]
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
@@ -596,7 +596,7 @@ sub QobuzGenre {
 			image => 'html/images/albums.png',
 			passthrough => [{
 				genreId => $genreId,
-				type    => 'new-releases',
+				type    => 'new-releases-full',
 			}]
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
