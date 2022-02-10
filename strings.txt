@@ -85,12 +85,14 @@ PLUGIN_QOBUZ_USERPLAYLISTS
 PLUGIN_QOBUZ_USER_FAVORITES
 	DE	Meine Favoriten
 	EN	My Favorites
+	EN_GB	My Favourites
 	FR	Mes Favoris
 	NL	Mijn Favorieten
 
 PLUGIN_QOBUZ_MANAGE_FAVORITES
 	DE	Favoriten verwalten
 	EN	Manage Favorites
+	EN_GB	Manage Favourites
 	FR	Gestion des Favoris
 	NL	Beheer Favorieten
 
@@ -112,12 +114,14 @@ PLUGIN_QOBUZ_MUSIC_ADDED
 PLUGIN_QOBUZ_ADD_FAVORITE
 	DE	Favorit '%s' erstellen
 	EN	Add '%s' to favorites
+	EN_GB	Add '%s' to favourites
 	FR	Ajouter "%s" à mes favoris
 	NL	Voeg '%s' toe aan favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE
 	DE	Entferne '%s' aus Favoriten
 	EN	Remove '%s' from favorites
+	EN_GB	Remove '%s' from favourites
 	FR	Retirer "%s" des favoris
 	NL	Verwijder '%s' van favorieten
 
