@@ -1016,9 +1016,8 @@ sub QobuzGetTracks {
 			};
 		};
 
-		if ($album->{goodies}) {
-			my $item = trackInfoMenuBooklet($client, undef, undef, $album);
-			push @$items, $item if $item;
+		if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
+			push @$items, $item;
 		}
 
 		push @$items, {
@@ -1033,10 +1032,18 @@ sub QobuzGetTracks {
 			};
 		}
 
-		if ($album->{awards} && ref $album->{awards}) {
+		my $awards = $album->{awards};
+		if ($awards && ref $awards && scalar @$awards) {
+			my $awItems = [ map {
+				{
+					name => Slim::Utils::DateTime::shortDateF($_->{awarded_at}) . ' - ' . $_->{name},
+					type => 'text'
+				}
+			} @$awards ];
+
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS') . cstring($client, 'COLON') . ' ' . join(', ', map { $_->{name} } @{$album->{awards}}),
-				type  => 'text'
+				name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
+				items => $awItems
 			};
 		}
 
@@ -1350,7 +1357,8 @@ sub trackInfoMenuBooklet {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
 
 	eval {
-		if ( my $goodies = $remoteMeta->{goodies} ) {
+		my $goodies = $remoteMeta->{goodies};
+		if ($goodies && ref $goodies && scalar @$goodies) {
 			# jive clients like iPeng etc. can display web content, but need special handling...
 			if ( _canWeblink($client) )  {
 				return {
@@ -1385,6 +1393,8 @@ sub trackInfoMenuBooklet {
 			}
 		}
 	};
+
+	return;
 }
 
 sub _localizeGoodies {
