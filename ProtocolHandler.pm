@@ -3,7 +3,7 @@ package Plugins::Qobuz::ProtocolHandler;
 # Handler for qobuz:// URLs
 
 use strict;
-use base qw(Slim::Player::Protocols::HTTP);
+use base qw(Slim::Player::Protocols::HTTPS);
 use Scalar::Util qw(blessed);
 
 use Slim::Utils::Log;
