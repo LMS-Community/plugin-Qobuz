@@ -236,6 +236,7 @@ PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
 	DE	Aufnahmeversion mit Titel anzeigen
 	EN	Show recording version with track titles
 	FR	Afficher la version d'enregistrement avec le titre
+	NL	Toon opnameversie bij de titel van nummers
 
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
