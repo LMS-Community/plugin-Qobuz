@@ -260,6 +260,8 @@ sub getMetadataFor {
 		$meta->{cover} = Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
 	}
 
+	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
+
 	return $meta;
 }
 

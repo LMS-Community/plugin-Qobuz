@@ -232,6 +232,11 @@ PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	FR	Afficher le compositeur avec l'interprète
 	NL	Toon Componisten met Artiest
 
+PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
+	DE	Aufnahmeversion mit Titel anzeigen
+	EN	Show recording version with track titles
+	FR	Afficher la version d'enregistrement avec le titre
+
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
 	NL	Hi-Res

@@ -11,6 +11,13 @@
 			</select>
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE" desc="" %]
+			<select name="pref_appendVersionToTitle" id="appendVersionToTitle">
+				<option [% prefs.appendVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.appendVersionToTitle ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_IMPORT" desc="" %]
 			<input type="checkbox" [% IF prefs.pref_dontImportPurchases %]checked [% END %] class="stdedit" name="pref_dontImportPurchases" id="pref_dontImportPurchases" value="1" />
 			<label for="pref_dontImportPurchases" class="stdlabel">[% "PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES" | string %]</label>

@@ -1177,12 +1177,13 @@ sub _playlistItem {
 sub _trackItem {
 	my ($client, $track, $isWeb) = @_;
 
+	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
 
 	my $item = {
-		name  => sprintf('%s %s %s %s %s', $track->{title}, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
-		line1 => $track->{title},
+		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		line1 => $title,
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 	};

@@ -162,11 +162,22 @@ sub precacheTrack {
 		duration => $track->{duration} || 0,
 		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
 		goodies  => $album->{goodies},
+		version  => $track->{version},
 	};
 
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));
 
 	return $meta;
+}
+
+sub addVersionToTitle {
+	my ($class, $track) = @_;
+
+	if ($track->{version} && $prefs->get('appendVersionToTitle')) {
+		$track->{title} .= " ($track->{version})";
+	}
+
+	return $track->{title};
 }
 
 # figure out what streaming format we can use

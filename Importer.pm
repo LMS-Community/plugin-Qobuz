@@ -329,7 +329,7 @@ sub _prepareTrack {
 
 	my $attributes = {
 		url          => $url,
-		TITLE        => $track->{title},
+		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
 		ARTIST       => $album->{artist}->{name},
 		ARTIST_EXTID => 'qobuz:artist:' . $album->{artist}->{id},
 		TRACKARTIST  => $track->{performer}->{name},
