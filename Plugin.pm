@@ -1357,12 +1357,14 @@ sub trackInfoMenuPerformers {
 sub trackInfoMenuBooklet {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
 
+	my $item;
+
 	eval {
 		my $goodies = $remoteMeta->{goodies};
 		if ($goodies && ref $goodies && scalar @$goodies) {
 			# jive clients like iPeng etc. can display web content, but need special handling...
 			if ( _canWeblink($client) )  {
-				return {
+				$item = {
 					name => cstring($client, 'PLUGIN_QOBUZ_GOODIES'),
 					itemActions => {
 						items => {
@@ -1386,7 +1388,7 @@ sub trackInfoMenuBooklet {
 				}
 
 				if (scalar @$items) {
-					return {
+					$item = {
 						name => cstring($client, 'PLUGIN_QOBUZ_GOODIES'),
 						items => $items
 					};
@@ -1395,7 +1397,7 @@ sub trackInfoMenuBooklet {
 		}
 	};
 
-	return;
+	return $item;
 }
 
 sub _localizeGoodies {
