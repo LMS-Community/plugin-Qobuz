@@ -22,9 +22,7 @@ my ($token, $aid, $as);
 sub init {
 	my $class = shift;
 	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
-
-	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {}, !Plugins::Qobuz::API::Common->getCredentials);
+	$class->getToken();
 }
 
 sub getToken {
@@ -34,6 +32,10 @@ sub getToken {
 	my $password = $prefs->get('password_md5_hash');
 
 	return unless $username && $password;
+
+	return $token if $token;
+
+	$token = $cache->get(Plugins::Qobuz::API::Common::getSessionCacheKey($username, $password));
 
 	return $token if $token;
 

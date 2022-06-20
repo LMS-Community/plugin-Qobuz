@@ -48,7 +48,8 @@ sub getToken {
 		return;
 	}
 
-	if ( !$force && ( (my $token = $memcache->get('token_' . $username . $password)) || !$cb ) ) {
+	my $cacheKey = Plugins::Qobuz::API::Common::getSessionCacheKey($username, $password);
+	if ( !$force && ( (my $token = $memcache->get($cacheKey)) || !$cb ) ) {
 		$cb->($token) if $cb;
 		return $token;
 	}
@@ -80,7 +81,8 @@ sub getToken {
 			return;
 		}
 
-		$memcache->set('token_' . $username . $password, $token, QOBUZ_DEFAULT_EXPIRY);
+		$memcache->set($cacheKey, $token, QOBUZ_DEFAULT_EXPIRY);
+		$cache->set($cacheKey, $token, QOBUZ_DEFAULT_EXPIRY);
 		# keep the user data around longer than the token
 		$cache->set('userdata', $result->{user}, time() + QOBUZ_DEFAULT_EXPIRY*2);
 
