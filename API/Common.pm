@@ -38,7 +38,7 @@ sub init {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 1);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 2);
 }
 
 sub getSessionCacheKey {
@@ -169,6 +169,10 @@ sub precacheTrack {
 		goodies  => $album->{goodies},
 		version  => $track->{version},
 	};
+
+	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {
+		$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+	}
 
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));
 
