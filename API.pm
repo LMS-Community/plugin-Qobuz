@@ -586,7 +586,6 @@ sub getFileInfo {
 	},{
 		track_id   => $trackId,
 		format_id  => $preferredFormat,
-		replaygain => 1,
 		_ttl       => URL_EXPIRY,
 		_sign      => 1,
 		_use_token => 1,
