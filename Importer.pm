@@ -57,7 +57,9 @@ sub startScan { if (main::SCANNER) {
 		$class->scanArtists();
 	}
 
-	$class->scanPlaylists();
+	if (!$class->can('ignorePlaylists') || !$class->ignorePlaylists) {
+		$class->scanPlaylists();
+	}
 
 	$class->deleteRemovedTracks();
 
