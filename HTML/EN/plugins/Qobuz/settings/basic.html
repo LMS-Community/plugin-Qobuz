@@ -11,6 +11,13 @@
 			</select>
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SORT_FAVORITES" desc="" %]
+			<select name="pref_sortFavsAlphabetically" id="sortFavsAlphabetically">
+				<option [% prefs.sortFavsAlphabetically ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT" | string %]</option>
+				<option [% prefs.sortFavsAlphabetically ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA" | string %]</option>
+			</select>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE" desc="" %]
 			<select name="pref_appendVersionToTitle" id="appendVersionToTitle">
 				<option [% prefs.appendVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>

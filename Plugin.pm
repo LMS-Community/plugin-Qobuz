@@ -703,6 +703,7 @@ sub QobuzUserFavorites {
 		my $favorites = shift;
 
 		my $items = [];
+		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically');
 
 		my @artists;
 		for my $artist ( sort {
@@ -713,8 +714,7 @@ sub QobuzUserFavorites {
 
 		push @$items, {
 			name => cstring($client, 'ARTISTS'),
-		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @artists ],
-			items => \@artists,		# don't sort, leave it the was it's displayed in the Qobuz Desktop, too
+			items => \@artists,
 			image => 'html/images/artists.png',
 		} if @artists;
 
@@ -725,8 +725,7 @@ sub QobuzUserFavorites {
 
 		push @$items, {
 			name => cstring($client, 'ALBUMS'),
-		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @albums ],
-			items => \@albums,		# don't sort either (Pierre)
+			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @albums ] : \@albums,
 			image => 'html/images/albums.png',
 		} if @albums;
 
@@ -737,8 +736,7 @@ sub QobuzUserFavorites {
 
 		push @$items, {
 			name => cstring($client, 'SONGS'),
-		#	items => [ sort { lc($a->{name}) cmp lc($b->{name}) } @tracks ],
-			items => \@tracks,		# don't sort either (Pierre)
+			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @tracks ] : \@tracks,
 			image => 'html/images/playlists.png',
 		} if @tracks;
 
@@ -1109,7 +1107,7 @@ sub _albumItem {
 	}
 
 	my $item = {
-		name  => $artist . ($artist && $albumName ? ' - ' : '') . $albumName,
+		name  => $prefs->get('sortFavsAlphabetically') ? ($albumName . ($artist ? ' - ' . $artist : '')) : ($artist . ($artist && $albumName ? ' - ' : '') . $albumName),
 		image => $album->{image},
 	};
 

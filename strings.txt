@@ -238,6 +238,18 @@ PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
 	FR	Afficher la version d'enregistrement avec le titre
 	NL	Toon opnameversie bij de titel van nummers
 
+PLUGIN_QOBUZ_SORT_FAVORITES
+	DE	Favoriten sortieren
+	EN	Sort Favorites
+
+PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
+	DE	Alphabetisch sortieren
+	EN	Sort alphabetically
+
+PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
+	DE	Standardsortierung beibehalten
+	EN	Keep default sort order
+
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
 	NL	Hi-Res
