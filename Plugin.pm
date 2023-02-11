@@ -703,7 +703,6 @@ sub QobuzUserFavorites {
 		my $favorites = shift;
 
 		my $items = [];
-		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically');
 
 		my @artists;
 		for my $artist ( sort {
@@ -723,9 +722,12 @@ sub QobuzUserFavorites {
 			push @albums, _albumItem($client, $album);
 		}
 
+		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
+		my $sortFavAlbumField = $sortFavsAlphabetically == 1 ? 'line1' : 'line2';
+
 		push @$items, {
 			name => cstring($client, 'ALBUMS'),
-			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @albums ] : \@albums,
+			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{$sortFavAlbumField}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{$sortFavAlbumField}) } @albums ] : \@albums,
 			image => 'html/images/albums.png',
 		} if @albums;
 
@@ -1107,9 +1109,16 @@ sub _albumItem {
 	}
 
 	my $item = {
-		name  => $prefs->get('sortFavsAlphabetically') ? ($albumName . ($artist ? ' - ' . $artist : '')) : ($artist . ($artist && $albumName ? ' - ' : '') . $albumName),
 		image => $album->{image},
 	};
+
+	my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
+	if ($sortFavsAlphabetically == 1) {
+		$item->{name} = $albumName . ($artist ? ' - ' . $artist : '');
+	}
+	else {
+		$item->{name} = $artist . ($artist && $albumName ? ' - ' : '') . $albumName;
+	}
 
 	if ($albumName) {
 		$item->{line1} = $albumName;

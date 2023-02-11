@@ -246,6 +246,10 @@ PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
 	DE	Alphabetisch sortieren
 	EN	Sort alphabetically
 
+PLUGIN_QOBUZ_SORT_FAVORITE_ALBUMS_ALPHA
+	DE	Alben alphabetisch nach Interpret sortieren
+	EN	Sort albums alphabetically by artist
+
 PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	DE	Standardsortierung beibehalten
 	EN	Keep default sort order
