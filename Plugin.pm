@@ -723,7 +723,7 @@ sub QobuzUserFavorites {
 		}
 
 		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
-		my $sortFavAlbumField = $sortFavsAlphabetically == 1 ? 'line1' : 'line2';
+		my $sortFavAlbumField = $sortFavsAlphabetically == 1 ? 'line1' : 'name';
 
 		push @$items, {
 			name => cstring($client, 'ALBUMS'),
@@ -735,10 +735,12 @@ sub QobuzUserFavorites {
 		for my $track ( @{$favorites->{tracks}->{items}} ) {
 			push @tracks, _trackItem($client, $track);
 		}
+		
+		my $sortFavSongField = $sortFavsAlphabetically == 1 ? 'name' : 'line2';
 
 		push @$items, {
 			name => cstring($client, 'SONGS'),
-			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @tracks ] : \@tracks,
+			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{$sortFavSongField}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{$sortFavSongField}) } @tracks ] : \@tracks,
 			image => 'html/images/playlists.png',
 		} if @tracks;
 
