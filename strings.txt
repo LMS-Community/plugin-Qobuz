@@ -241,18 +241,22 @@ PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
 PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
 	EN	Sort Favorites
+	NL	Sorteer Favorieten
 
 PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
 	DE	Alphabetisch sortieren
 	EN	Sort alphabetically
+	NL	Sorteer alphabetisch
 
 PLUGIN_QOBUZ_SORT_FAVORITE_ALBUMS_ALPHA
-	DE	Alben alphabetisch nach Interpret sortieren
-	EN	Sort albums alphabetically by artist
+	DE	Nach Interpret und Album sortieren
+	EN	Sort by artist and album
+	NL	Sorteer op artiest en album
 
 PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	DE	Standardsortierung beibehalten
 	EN	Keep default sort order
+	NL	Standaard sorteervolgorde behouden
 
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
