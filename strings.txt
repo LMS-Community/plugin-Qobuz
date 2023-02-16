@@ -254,8 +254,8 @@ PLUGIN_QOBUZ_SORT_FAVORITE_ALBUMS_ALPHA
 	NL	Sorteer op artiest en album
 
 PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
-	DE	Standardsortierung beibehalten
-	EN	Keep default sort order
+	DE	Nach Hinzufügedatum sortieren
+	EN	Sort by date added
 	NL	Standaard sorteervolgorde behouden
 
 PLUGIN_QOBUZ_HIRES
