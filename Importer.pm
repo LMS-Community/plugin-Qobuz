@@ -57,7 +57,7 @@ sub startScan { if (main::SCANNER) {
 		$class->scanArtists();
 	}
 
-	if (!$class->can('ignorePlaylists') || !$class->ignorePlaylists) {
+	if (!$class->_ignorePlaylists) {
 		$class->scanPlaylists();
 	}
 
@@ -260,6 +260,8 @@ sub needsUpdate {
 		sub {
 			my ($result, $acb) = @_;
 
+			return $acb->() if $class->_ignorePlaylists;
+
 			# don't run any further test in the queue if we already have a result
 			return $acb->($result) if $result;
 
@@ -321,6 +323,11 @@ sub needsUpdate {
 	else {
 		$cb->();
 	}
+}
+
+sub _ignorePlaylists {
+	my $class = shift;
+	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
 sub _prepareTrack {
