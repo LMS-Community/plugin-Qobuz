@@ -99,7 +99,7 @@ sub myArtists {
 				}
 			} @{ $response->{artists}->{items} };
 
-			if (scalar @$artists < $total) {
+			if (scalar @$artists < $total && $response->{artists}->{total} > QOBUZ_LIMIT && $response->{artists}->{offset} < $response->{artists}->{total}) {
 				$offset = $response->{artists}->{offset} + QOBUZ_LIMIT;
 			}
 		}
@@ -163,7 +163,7 @@ sub myAlbums {
 
 				push @$albums, @{ _precacheAlbum($response->{albums}->{items}) };
 
-				if (scalar @$albums < $subTotal) {
+				if (scalar @$albums < $subTotal && $response->{albums}->{total} > QOBUZ_LIMIT && $response->{albums}->{offset} < $response->{albums}->{total}) {
 					$offset = $response->{albums}->{offset} + QOBUZ_LIMIT;
 				}
 			}
