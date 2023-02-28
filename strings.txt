@@ -238,6 +238,12 @@ PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
 	FR	Afficher la version d'enregistrement avec le titre
 	NL	Toon opnameversie bij de titel van nummers
 
+PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM
+	DE	Erscheinungsjahr mit Alben anzeigen
+	EN	Show Release Year with Albums
+	FR	Afficher l'année de sortie avec les albums
+	NL	Jaar van uitgave weergeven met albums
+
 PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
 	EN	Sort Favorites
@@ -257,6 +263,26 @@ PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	DE	Nach Hinzufügedatum sortieren
 	EN	Sort by date added
 	NL	Standaard sorteervolgorde behouden
+
+PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS
+	DE	Künstleralben sortieren
+	EN	Sort Artist Albums
+	NL	Sorteer artiestenalbums
+
+PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA
+	DE	Alphabetisch sortieren
+	EN	Sort alphabetically
+	NL	Sorteer alphabetisch
+
+PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_NEW
+	DE	Nach Veröffentlichungsdatum sortieren (neueste zuerst)
+	EN	Sort by release date (newest first)
+	NL	Sorteer op releasedatum (nieuwste eerst)
+
+PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_OLD
+	DE	Nach Veröffentlichungsdatum sortieren (älteste zuerst)
+	EN	Sort by release date (oldest first)
+	NL	Sorteer op releasedatum (oudste eerst)
 
 PLUGIN_QOBUZ_HIRES
 	EN	Hi-Res
