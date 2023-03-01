@@ -1130,6 +1130,7 @@ sub _albumItem {
 	if ($albumName) {
 		$item->{line1} = $albumName;
 		$item->{line2} = $artist . ($albumYear ? ' (' . $albumYear . ')' : '');
+		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
 	if ( $album->{released_at} > time  || (!$album->{streamable} && !$prefs->get('playSamples')) ) {
