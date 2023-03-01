@@ -19,10 +19,25 @@
 			</select>
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS" desc="" %]
+			<select name="pref_sortArtistAlbums" id="sortArtistAlbums">
+				<option [% prefs.sortArtistAlbums ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA" | string %]</option>
+				<option [% prefs.sortArtistAlbums == 1 ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_NEW" | string %]</option>
+				<option [% prefs.sortArtistAlbums == 2 ? "selected" : "" %] value="2" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_OLD" | string %]</option>
+			</select>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE" desc="" %]
 			<select name="pref_appendVersionToTitle" id="appendVersionToTitle">
 				<option [% prefs.appendVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
 				<option [% prefs.appendVersionToTitle ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM" desc="" %]
+			<select name="pref_showYearWithAlbum" id="showYearWithAlbum">
+				<option [% prefs.showYearWithAlbum ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.showYearWithAlbum ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
 		[% END %]
 

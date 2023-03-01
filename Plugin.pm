@@ -467,18 +467,22 @@ sub QobuzArtist {
 		if ($artist->{albums}) {
 			my $albums = [];
 
-			my $sortByDate = (preferences('server')->get('jivealbumsort') || '') eq 'artflow';
+			# sort by release date if requested
+			my $sortByDate = $prefs->get('sortArtistAlbums');
 
 			$artist->{albums}->{items} = [ sort {
-
-				# push singles and EPs down the list
-				if ( ($a->{tracks_count} >= 4 && $b->{tracks_count} < 4) || ($a->{tracks_count} < 4 && $b->{tracks_count} >=4) ) {
-					return $b->{tracks_count} <=> $a->{tracks_count};
+				if ($sortByDate) {
+					return $sortByDate == 1 ? $b->{released_at}*1 <=> $a->{released_at}*1 : $a->{released_at}*1 <=> $b->{released_at}*1;
 				}
+				else {
+					# push singles and EPs down the list
+					if ( ($a->{tracks_count} >= 4 && $b->{tracks_count} < 4) || ($a->{tracks_count} < 4 && $b->{tracks_count} >=4) ) {
+						return $b->{tracks_count} <=> $a->{tracks_count};
+					}
 
-				return $a->{released_at}*1 <=> $b->{released_at}*1 if $sortByDate;
-				return lc($a->{title}) cmp lc($b->{title});
-
+					return lc($a->{title}) cmp lc($b->{title});
+				}
+				
 			} @{$artist->{albums}->{items} || []} ];
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
@@ -721,13 +725,12 @@ sub QobuzUserFavorites {
 		for my $album ( @{$favorites->{albums}->{items}} ) {
 			push @albums, _albumItem($client, $album);
 		}
-
+		
 		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
-		my $sortFavAlbumField = $sortFavsAlphabetically == 1 ? 'line1' : 'name';
 
 		push @$items, {
 			name => cstring($client, 'ALBUMS'),
-			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{$sortFavAlbumField}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{$sortFavAlbumField}) } @albums ] : \@albums,
+			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @albums ] : \@albums,
 			image => 'html/images/albums.png',
 		} if @albums;
 
@@ -1105,6 +1108,8 @@ sub _albumItem {
 
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
+	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
+	my $albumYear = $showYearWithAlbum ? $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0 : 0;
 
 	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
@@ -1124,7 +1129,8 @@ sub _albumItem {
 
 	if ($albumName) {
 		$item->{line1} = $albumName;
-		$item->{line2} = $artist;
+		$item->{line2} = $artist . ($albumYear ? ' (' . $albumYear . ')' : '');
+		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
 	if ( $album->{released_at} > time  || (!$album->{streamable} && !$prefs->get('playSamples')) ) {
