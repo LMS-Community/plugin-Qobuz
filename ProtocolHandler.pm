@@ -261,6 +261,10 @@ sub getMetadataFor {
 	}
 
 	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
+	
+	if ($meta->{work}) {
+		$meta->{title} = $meta->{work} . ': ' . $meta->{title};
+	}
 
 	return $meta;
 }

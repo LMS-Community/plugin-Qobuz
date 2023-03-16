@@ -168,6 +168,7 @@ sub precacheTrack {
 		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
 		goodies  => $album->{goodies},
 		version  => $track->{version},
+		work     => $track->{work},
 	};
 
 	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {
