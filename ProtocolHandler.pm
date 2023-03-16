@@ -103,7 +103,10 @@ sub getFormatForURL {
 sub explodePlaylist {
 	my ( $class, $client, $url, $cb ) = @_;
 
-	if (my ($type, $id) = $url =~ PAGE_URL_REGEXP) {
+	my ($type, $id) = $url =~ PAGE_URL_REGEXP;
+	($type, $id) = $url =~ /^qobuz:(\w+):(\w+)$/ if !($type && $id);
+
+	if ($type && $id) {
 		if ($type eq 'track') {
 			$url = "qobuz://$id." . Plugins::Qobuz::API::Common->getStreamingFormat($url);
 		}
@@ -124,9 +127,13 @@ sub explodePlaylist {
 			my $uris = [];
 
 			if ($response && ref $response && $response->{tracks}) {
-				$uris = [ map {
-					Plugins::Qobuz::API::Common->getUrl($_);
-				} @{$response->{tracks}->{items}} ]
+				$uris = {
+					items => [
+						map {
+							Plugins::Qobuz::Plugin::_trackItem($client, $_);
+						} @{$response->{tracks}->{items}}
+					]
+				};
 			}
 
 			$cb->($uris);
