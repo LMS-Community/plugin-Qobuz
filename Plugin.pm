@@ -1212,7 +1212,11 @@ sub _trackItem {
 		$item->{work} = $track->{work};
 	}
 
-	if ($track->{released_at} && $track->{released_at} > time) {
+	if ( $track->{album} ) {
+		$item->{year} = $track->{album}->{year} || (localtime($track->{album}->{released_at}))[5] + 1900 || 0;
+	}
+
+	if ($track->{album} && $track->{album}->{released_at} && $track->{album}->{released_at} > time) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
 			type => 'textarea'
