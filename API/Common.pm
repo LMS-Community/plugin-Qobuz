@@ -95,7 +95,7 @@ sub _precacheAlbum {
 	$albums = __PACKAGE__->filterPlayables($albums);
 
 	foreach my $album (@$albums) {
-		foreach (qw(composer duration genres_list articles article_ids catchline
+		foreach (qw(composer duration articles article_ids catchline
 			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
 			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
 			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_stream release_date_original
@@ -114,6 +114,8 @@ sub _precacheAlbum {
 			image  => $album->{image},
 			year   => (localtime($album->{released_at}))[5] + 1900,
 			goodies=> $album->{goodies},
+			genre  => $album->{genre},
+			genres_list => $album->{genres_list},
 		};
 
 		_precacheTracks([ map {
@@ -169,6 +171,8 @@ sub precacheTrack {
 		goodies  => $album->{goodies},
 		version  => $track->{version},
 		work     => $track->{work},
+		genre    => $album->{genre},
+		genres_list => $album->{genres_list},
 	};
 
 	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {

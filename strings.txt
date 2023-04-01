@@ -352,3 +352,20 @@ PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	EN	Fetching Playlists...
 	FR	Récupération des listes de lecture...
 	NL	Afspeellijsten ophalen...
+	
+PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS
+	EN	Enhanced display of classical works/composers
+
+PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC
+	EN	<br />Choose Yes if you want the plugin to use Qobuz data to attempt to:<br />* Show a playlist and subheadings for each work within a release<br />* Add the composer and work names to the track title in the playlist and now playing displays (the playlist cannot show subheadings)<br /><br />If you find a release for which the enhanced display does not show, add the Qobuz genre (shown in the release listing) to the "additional genres" list here (comma separated if more than one).<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do. 
+	
+PLUGIN_QOBUZ_CLASSICAL_GENRES
+	EN	Additional genres:
+	
+PLUGIN_QOBUZ_DEFAULT_CLASSICAL_GENRES
+	CS	Klasika, Avantgarda, Baroko, Komorní hudba, Zpěv, Sbor, Klasický crossover, Raná hudba, Vrcholná klasika, Impresionismus, Středověk, Minimalismus, Moderní kompozice, Opera, Orchestr, Renesance, Romantika, Symfonie, Svatební hudba, Classical, Avant-Garde, Baroque, Chamber Music, Chant, Choral, Classical Crossover, Early Music, High Classical, Impressionist, Medieval, Minimalism, Modern Composition, Opera, Orchestral, Renaissance, Romantic, Symphony, Wedding Music
+	DE	Klassik, Avantgarde, Barok, Kammermusik, Choral, Klassik-Crossover, Hochklassik, Impressionist, Mittelalterlich, Minimalismus, Moderne Komposition, Oper, Orchester, Renaissance, Romantik, Symphonie, Hochzeitsmusik
+	EN	Classical, Avant-Garde, Baroque, Chamber Music, Chant, Choral, Classical Crossover, Early Music, High Classical, Impressionist, Medieval, Minimalism, Modern Composition, Opera, Orchestral, Renaissance, Romantic, Symphony, Wedding Music, Symphonies, Violin Concerto
+	FR	Musique de film, Classique, Musique concertante, Musique de chambre, Musique symphonique, Musique vocale, Opéra, Opérette, Musique de l'Antiquité, Musique du Moyen-Age, Musique de la Renaissance, Musique baroque, Musique classique, Musique romantique, Musique moderne, Musique contemporaine, Musique électronique ou concrète
+	NL	Klassiek, Avant-Garde, Barok, Kamermuziek, Zang, Koor, Klassieke Crossover, Oude muziek, Hoogklassiek, Impressionistisch, Jazz, Middeleeuws, Minimalisme, Moderne compositie, Opera, Orkest, Renaissance, Romantisch, Symfonie, Bruiloftsmuziek
+

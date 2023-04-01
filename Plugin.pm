@@ -25,6 +25,8 @@ my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
 
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
 
+my $DEFAULT_CLASSICAL_GENRES = string('PLUGIN_QOBUZ_DEFAULT_CLASSICAL_GENRES');
+
 my $prefs = preferences('plugin.qobuz');
 
 tie my %localizationTable, 'Tie::RegexpHash';
@@ -32,6 +34,8 @@ tie my %localizationTable, 'Tie::RegexpHash';
 %localizationTable = (
 	qr/^Livret Num.rique/i => 'PLUGIN_QOBUZ_BOOKLET'
 );
+
+$prefs->set('classicalGenres','') if (! $prefs->get('classicalGenres'));
 
 $prefs->init({
 	preferredFormat => 6,
@@ -939,6 +943,9 @@ sub QobuzGetTracks {
 
 		my $totalDuration = my $i = 0;
 		my $works = {};
+		my $lastwork = "";
+		my $worksfound = 0;
+		
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
@@ -954,9 +961,34 @@ sub QobuzGetTracks {
 					image => $formattedTrack->{image},
 					tracks => []
 				} unless $works->{$workId};
-
+				
+				if ($workId ne $lastwork) {  # create a new work heading
+#					if ($i && $lastwork eq "") {  # create a separator line after previous single track#
+#						push @$items,{
+#							name  => "--------",
+#							type  => 'text'
+#						};
+#					}
+					push @$items,{
+						name  => $work,
+						type  => 'text'
+					};
+						
+					$lastwork = $workId;
+				}
+				
 				push @{$works->{$workId}->{tracks}}, $formattedTrack;
-			}
+				if (scalar @{$works->{$workId}->{tracks}} > 1) {
+					$worksfound = 1;   # we found a work with more than one track
+				}
+			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
+						push @$items,{
+							name  => "--------",
+							type  => 'text'
+						};
+						
+					$lastwork = "";
+			}	
 
 			$i++;
 
@@ -967,10 +999,10 @@ sub QobuzGetTracks {
 			foreach my $work (sort { $works->{$b}->{index} <=> $works->{$a}->{index} } keys %$works) {
 				my $workTracks = $works->{$work}->{tracks};
 
-				# insert works item before the first of its tracks
-				splice @$items, $works->{$work}->{index}, 0, {
+				# insert works items before the tracks unless there is only one work containing all tracks
+				splice @$items, 0, 0, {
 					name => $works->{$work}->{title},
-					image => $works->{$work}->{image},
+					image => 'html/images/playlists.png',
 					type => 'playlist',
 					playall => 1,
 					url => \&QobuzWorkGetTracks,
@@ -978,7 +1010,7 @@ sub QobuzGetTracks {
 						tracks => $workTracks
 					}],
 					items => $workTracks
-				} if scalar @$workTracks > 1;
+				} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
 			}
 		}
 
@@ -1195,6 +1227,7 @@ sub _trackItem {
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
+	my $genre = $track->{album}->{genre};
 
 	my $item = {
 		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
@@ -1208,8 +1241,29 @@ sub _trackItem {
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
-	if ( $track->{work} ) {
-		$item->{work} = $track->{work};
+	# Enhancements to work/composer display for classical music (tags returned from Qobuz are all over the place)
+	my $genreList = $prefs->get('classicalGenres');
+	if ( 
+	    $prefs->get('useClassicalEnhancements')
+	    && 
+	    ( grep(/Classique/,@{$track->{album}->{genres_list}}) || grep(/(^\s*$genre\s*$|^\s*\*$)/,(split ',', $genreList )) ) 
+	   ) {
+		if ( $track->{work} ) {
+#			if ( $track->{work} ne $track->{title} ) {
+				$item->{work} = $track->{work};
+#			}
+		} else {
+			# Try to extract the work from the title
+			if (index($track->{composer}->{name}, (split ':', $track->{title})[0]) == -1) {
+				$item->{work} = (split ':', $track->{title})[0];
+			} else {
+				$item->{work} = (split ':', $track->{title})[1];
+			}
+                        $item->{line1} =~ s/$item->{work}://;
+		}
+                $item->{work} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
+		my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
+		$item->{line1} =~ s/$composerSurname://;
 	}
 
 	if ( $track->{album} ) {

@@ -269,10 +269,19 @@ sub getMetadataFor {
 
 	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
 	
-	if ($meta->{work}) {
-		$meta->{title} = $meta->{work} . ': ' . $meta->{title};
+	my $genreList = $prefs->get('classicalGenres');
+	if (
+	    $prefs->get('useClassicalEnhancements') 
+	    && 
+	    ( grep(/Classique/,@{$meta->{genres_list}}) || grep(/(^\s*$meta->{genre}\s*$|^\s*\*$)/,(split ',', $genreList)) )
+	   ) {
+		if ( $meta->{work} && $meta->{work} ne $meta->{title} ) {
+			$meta->{title} =  $meta->{work} . ': ' . $meta->{title};
+		}
+		if ($meta->{composer} && (index($meta->{composer}, (split ':', $meta->{title})[0]) == -1) ) {
+			$meta->{title} =  (split ' ', $meta->{composer})[-1] . ': ' . $meta->{title};
+		}
 	}
-
 	return $meta;
 }
 
