@@ -270,11 +270,12 @@ sub getMetadataFor {
 	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
 	
 	my $genreList = $prefs->get('classicalGenres');
-	if (
-	    $prefs->get('useClassicalEnhancements') 
-	    && 
-	    ( grep(/Classique/,@{$meta->{genres_list}}) || grep(/(^\s*$meta->{genre}\s*$|^\s*\*$)/,(split ',', $genreList)) )
-	   ) {
+	if ( $prefs->get('useClassicalEnhancements') 
+		&& ( grep(/Classique/,@{$meta->{genres_list}}) || grep(/(^\s*$meta->{genre}\s*$|^\s*\*$)/,(split ',', $genreList)) )
+			 # only proceed if the title doesn't already contain the work text and at least the composer's surname:
+			&& ( index($meta->{title},$meta->{work}) == -1 || index($meta->{title},(split " ", $meta->{composer})[-1] == -1) )
+	   ) 
+	{
 		if ( $meta->{work} && $meta->{work} ne $meta->{title} ) {
 			$meta->{title} =  $meta->{work} . ': ' . $meta->{title};
 		}

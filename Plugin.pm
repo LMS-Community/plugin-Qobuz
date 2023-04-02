@@ -1243,11 +1243,10 @@ sub _trackItem {
 
 	# Enhancements to work/composer display for classical music (tags returned from Qobuz are all over the place)
 	my $genreList = $prefs->get('classicalGenres');
-	if ( 
-	    $prefs->get('useClassicalEnhancements')
-	    && 
-	    ( grep(/Classique/,@{$track->{album}->{genres_list}}) || grep(/(^\s*$genre\s*$|^\s*\*$)/,(split ',', $genreList )) ) 
-	   ) {
+	if ( $prefs->get('useClassicalEnhancements')
+		&& ( grep(/Classique/,@{$track->{album}->{genres_list}}) || grep(/(^\s*$genre\s*$|^\s*\*$)/,(split ',', $genreList )) ) 
+	   ) 
+	{
 		if ( $track->{work} ) {
 #			if ( $track->{work} ne $track->{title} ) {
 				$item->{work} = $track->{work};
