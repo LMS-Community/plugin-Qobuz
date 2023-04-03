@@ -368,10 +368,14 @@ PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT
 	EN	<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do. 
 	
-PLUGIN_QOBUZ_DEFAULT_CLASSICAL_GENRES
-	CS	Klasika, Avantgarda, Baroko, Komorní hudba, Zpěv, Sbor, Klasický crossover, Raná hudba, Vrcholná klasika, Impresionismus, Středověk, Minimalismus, Moderní kompozice, Opera, Orchestr, Renesance, Romantika, Symfonie, Svatební hudba, Classical, Avant-Garde, Baroque, Chamber Music, Chant, Choral, Classical Crossover, Early Music, High Classical, Impressionist, Medieval, Minimalism, Modern Composition, Opera, Orchestral, Renaissance, Romantic, Symphony, Wedding Music
-	DE	Klassik, Avantgarde, Barok, Kammermusik, Choral, Klassik-Crossover, Hochklassik, Impressionist, Mittelalterlich, Minimalismus, Moderne Komposition, Oper, Orchester, Renaissance, Romantik, Symphonie, Hochzeitsmusik
-	EN	Classical, Avant-Garde, Baroque, Chamber Music, Chant, Choral, Classical Crossover, Early Music, High Classical, Impressionist, Medieval, Minimalism, Modern Composition, Opera, Orchestral, Renaissance, Romantic, Symphony, Wedding Music, Symphonies, Violin Concerto
-	FR	Musique de film, Classique, Musique concertante, Musique de chambre, Musique symphonique, Musique vocale, Opéra, Opérette, Musique de l'Antiquité, Musique du Moyen-Age, Musique de la Renaissance, Musique baroque, Musique classique, Musique romantique, Musique moderne, Musique contemporaine, Musique électronique ou concrète
-	NL	Klassiek, Avant-Garde, Barok, Kamermuziek, Zang, Koor, Klassieke Crossover, Oude muziek, Hoogklassiek, Impressionistisch, Jazz, Middeleeuws, Minimalisme, Moderne compositie, Opera, Orkest, Renaissance, Romantisch, Symfonie, Bruiloftsmuziek
+PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION
+	EN	Work playlist position
 
+PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE
+	EN	Before track list
+
+PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER
+	EN	After track list
+
+PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_HIDDEN
+	EN	Do not show

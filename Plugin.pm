@@ -25,8 +25,6 @@ my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
 
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
 
-my $DEFAULT_CLASSICAL_GENRES = string('PLUGIN_QOBUZ_DEFAULT_CLASSICAL_GENRES');
-
 my $prefs = preferences('plugin.qobuz');
 
 tie my %localizationTable, 'Tie::RegexpHash';
@@ -996,21 +994,39 @@ sub QobuzGetTracks {
 		}
 
 		if (scalar keys %$works) {
-			foreach my $work (sort { $works->{$b}->{index} <=> $works->{$a}->{index} } keys %$works) {
-				my $workTracks = $works->{$work}->{tracks};
-
-				# insert works items before the tracks unless there is only one work containing all tracks
-				splice @$items, 0, 0, {
-					name => $works->{$work}->{title},
-					image => 'html/images/playlists.png',
-					type => 'playlist',
-					playall => 1,
-					url => \&QobuzWorkGetTracks,
-					passthrough => [{
-						tracks => $workTracks
-					}],
-					items => $workTracks
-				} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
+			if ( $prefs->get('workPlaylistPosition') eq "before" ) {
+				# insert work playlists before the tracks unless there is only one work containing all tracks
+				foreach my $work (sort { $works->{$b}->{index} <=> $works->{$a}->{index} } keys %$works) {
+					my $workTracks = $works->{$work}->{tracks};
+					splice @$items, 0, 0, {
+						name => $works->{$work}->{title},
+						image => 'html/images/playlists.png',
+						type => 'playlist',
+						playall => 1,
+						url => \&QobuzWorkGetTracks,
+						passthrough => [{
+							tracks => $workTracks
+						}],
+						items => $workTracks
+					} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
+				}
+			}
+			elsif ( $prefs->get('workPlaylistPosition') eq "after" ) {
+				# insert work playlists after the tracks unless there is only one work containing all tracks
+				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+					my $workTracks = $works->{$work}->{tracks};
+					push @$items, {
+						name => $works->{$work}->{title},
+						image => 'html/images/playlists.png',
+						type => 'playlist',
+						playall => 1,
+						url => \&QobuzWorkGetTracks,
+						passthrough => [{
+							tracks => $workTracks
+						}],
+						items => $workTracks
+					} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
+				}
 			}
 		}
 
@@ -1263,6 +1279,7 @@ sub _trackItem {
                 $item->{work} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
 		my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
 		$item->{line1} =~ s/$composerSurname://;
+		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
 
 	if ( $track->{album} ) {
