@@ -46,15 +46,12 @@
 				<option [% prefs.useClassicalEnhancements ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
 				<option [% prefs.useClassicalEnhancements ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
-			<!--[% "PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC" | string %]
-			[% "PLUGIN_QOBUZ_CLASSICAL_GENRES" | string %]&nbsp;
-			<input type="text" class="stdedit" name="pref_classicalGenres" id="classicalGenres" value="[% prefs.classicalGenres %]" size="80">-->
 		[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION" desc="" %]
 			<select name="pref_workPlaylistPosition" id="workPlaylistPosition">
-			  <option [% prefs.workPlaylistPosition == "before" ? "selected" : "" %] value="before" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE" | string %]</option>
-			  <option [% prefs.workPlaylistPosition == "after"  ? "selected" : "" %] value="after" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER" | string %]</option>
-		          <option [% prefs.workPlaylistPosition == "hidden" ? "selected" : "" %] value="hidden" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_HIDDEN" | string %]</option>
+				<option [% prefs.workPlaylistPosition == "before" ? "selected" : "" %] value="before" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE" | string %]</option>
+				<option [% prefs.workPlaylistPosition == "after"  ? "selected" : "" %] value="after" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER" | string %]</option>
+				<option [% prefs.workPlaylistPosition == "hidden" ? "selected" : "" %] value="hidden" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_HIDDEN" | string %]</option>
 			</select>
 		[% END %]
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_CLASSICAL_GENRES" desc="PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC" %]

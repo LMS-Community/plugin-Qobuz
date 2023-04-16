@@ -943,6 +943,7 @@ sub QobuzGetTracks {
 		my $works = {};
 		my $lastwork = "";
 		my $worksfound = 0;
+		my $containsUnstreamable = 0;
 		
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
@@ -961,14 +962,9 @@ sub QobuzGetTracks {
 				} unless $works->{$workId};
 				
 				if ($workId ne $lastwork) {  # create a new work heading
-#					if ($i && $lastwork eq "") {  # create a separator line after previous single track#
-#						push @$items,{
-#							name  => "--------",
-#							type  => 'text'
-#						};
-#					}
 					push @$items,{
 						name  => $work,
+						name  => $formattedTrack->{displayWork},
 						type  => 'text'
 					};
 						
@@ -980,12 +976,12 @@ sub QobuzGetTracks {
 					$worksfound = 1;   # we found a work with more than one track
 				}
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
-						push @$items,{
-							name  => "--------",
-							type  => 'text'
-						};
+				push @$items,{
+					name  => "————————",
+					type  => 'text'
+				};
 						
-					$lastwork = "";
+				$lastwork = "";
 			}	
 
 			$i++;
@@ -994,11 +990,12 @@ sub QobuzGetTracks {
 		}
 
 		if (scalar keys %$works) {
-			if ( $prefs->get('workPlaylistPosition') eq "before" ) {
-				# insert work playlists before the tracks unless there is only one work containing all tracks
-				foreach my $work (sort { $works->{$b}->{index} <=> $works->{$a}->{index} } keys %$works) {
-					my $workTracks = $works->{$work}->{tracks};
-					splice @$items, 0, 0, {
+			# create work playlists unless there is only one work containing all tracks
+			my @workPlaylists = ();
+			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+				my $workTracks = $works->{$work}->{tracks};
+				if ( $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count} ) {
+					push @workPlaylists, {
 						name => $works->{$work}->{title},
 						image => 'html/images/playlists.png',
 						type => 'playlist',
@@ -1008,24 +1005,15 @@ sub QobuzGetTracks {
 							tracks => $workTracks
 						}],
 						items => $workTracks
-					} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
+					}
 				}
 			}
-			elsif ( $prefs->get('workPlaylistPosition') eq "after" ) {
-				# insert work playlists after the tracks unless there is only one work containing all tracks
-				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-					my $workTracks = $works->{$work}->{tracks};
-					push @$items, {
-						name => $works->{$work}->{title},
-						image => 'html/images/playlists.png',
-						type => 'playlist',
-						playall => 1,
-						url => \&QobuzWorkGetTracks,
-						passthrough => [{
-							tracks => $workTracks
-						}],
-						items => $workTracks
-					} if $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count};
+			if ( @workPlaylists ) {
+				# insert work playlists according to the user preference
+				if ( $prefs->get('workPlaylistPosition') eq "before" ) {
+					unshift @$items, @workPlaylists;
+				} elsif ( $prefs->get('workPlaylistPosition') eq "after" ) {
+					push @$items, @workPlaylists;
 				}
 			}
 		}
@@ -1258,25 +1246,21 @@ sub _trackItem {
 	}
 
 	# Enhancements to work/composer display for classical music (tags returned from Qobuz are all over the place)
-	my $genreList = $prefs->get('classicalGenres');
-	if ( $prefs->get('useClassicalEnhancements')
-		&& ( grep(/Classique/,@{$track->{album}->{genres_list}}) || grep(/(^\s*$genre\s*$|^\s*\*$)/,(split ',', $genreList )) ) 
-	   ) 
-	{
+	if ( $track->{album}->{isClassique} ) {
 		if ( $track->{work} ) {
-#			if ( $track->{work} ne $track->{title} ) {
-				$item->{work} = $track->{work};
-#			}
+			$item->{work} = $track->{work};
 		} else {
 			# Try to extract the work from the title
-			if (index($track->{composer}->{name}, (split ':', $track->{title})[0]) == -1) {
-				$item->{work} = (split ':', $track->{title})[0];
+			if ( $track->{composer}->{name} && index($track->{composer}->{name}, (split ':\s*', $track->{title})[0]) == -1 ) {
+				$item->{work} = (split ':\s*', $track->{title})[0];
 			} else {
-				$item->{work} = (split ':', $track->{title})[1];
+				$item->{work} = (split ':\s*', $track->{title})[1];
 			}
                         $item->{line1} =~ s/$item->{work}://;
 		}
-                $item->{work} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
+		$item->{displayWork} = $item->{work};
+		$item->{displayWork} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
+		$item->{work} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
 		my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
 		$item->{line1} =~ s/$composerSurname://;
 		$item->{line2} .= " - " . $item->{work} if $item->{work};

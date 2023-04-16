@@ -31,7 +31,7 @@ use constant QOBUZ_STREAMING_FLAC_HIRES2 => 27;
 my $cache;
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
-
+my $isClassique;
 sub init {
 	my $class = shift;
 	return pack('H*', $_[0]) =~ /^(\d{9})(.*)/
@@ -107,6 +107,15 @@ sub _precacheAlbum {
 		$album->{genre} = $album->{genre}->{name};
 		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
 
+		# If the user pref is for classical music enhancements to the display, is this a classical release or has the user added the genre to their custom classical list?
+		$isClassique = 0;
+		if ( $prefs->get('useClassicalEnhancements') ) {
+			my %genreList = map { $_ => 1 } split '\s*,\s*', $prefs->get('classicalGenres');	
+			if ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) || $genreList{$album->{genre}} ) {
+			$isClassique = 1;
+			}
+		}
+
 		my $albumInfo = {
 			title  => $album->{title},
 			id     => $album->{id},
@@ -116,6 +125,7 @@ sub _precacheAlbum {
 			goodies=> $album->{goodies},
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
+			isClassique => $isClassique,
 		};
 
 		_precacheTracks([ map {
@@ -155,7 +165,7 @@ sub precacheTrack {
 
 	my $album = $track->{album} || {};
 	$track->{composer} ||= $album->{composer} || {};
-
+	
 	my $meta = {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
@@ -173,6 +183,7 @@ sub precacheTrack {
 		work     => $track->{work},
 		genre    => $album->{genre},
 		genres_list => $album->{genres_list},
+		isClassique => $isClassique,
 	};
 
 	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {
