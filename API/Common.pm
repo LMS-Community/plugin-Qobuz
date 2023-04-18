@@ -32,9 +32,19 @@ my $cache;
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 my $isClassique;
+my %genreList;
+
+initGenreMap();
+
+$prefs->setChange(\&initGenreMap, 'classicalGenres');
+
 sub init {
 	my $class = shift;
 	return pack('H*', $_[0]) =~ /^(\d{9})(.*)/
+}
+
+sub initGenreMap {
+   %genreList = map { $_ => 1 } split /\s*,\s*/, $prefs->get('classicalGenres');
 }
 
 sub getCache {
@@ -110,9 +120,8 @@ sub _precacheAlbum {
 		# If the user pref is for classical music enhancements to the display, is this a classical release or has the user added the genre to their custom classical list?
 		$isClassique = 0;
 		if ( $prefs->get('useClassicalEnhancements') ) {
-			my %genreList = map { $_ => 1 } split '\s*,\s*', $prefs->get('classicalGenres');	
 			if ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) || $genreList{$album->{genre}} ) {
-			$isClassique = 1;
+				$isClassique = 1;
 			}
 		}
 

@@ -33,13 +33,12 @@ tie my %localizationTable, 'Tie::RegexpHash';
 	qr/^Livret Num.rique/i => 'PLUGIN_QOBUZ_BOOKLET'
 );
 
-$prefs->set('classicalGenres','') if (! $prefs->get('classicalGenres'));
-
 $prefs->init({
 	preferredFormat => 6,
 	filterSearchResults => 0,
 	playSamples => 1,
 	dontImportPurchases => 1,
+	classicalGenres => '',
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -1251,18 +1250,23 @@ sub _trackItem {
 			$item->{work} = $track->{work};
 		} else {
 			# Try to extract the work from the title
-			if ( $track->{composer}->{name} && index($track->{composer}->{name}, (split ':\s*', $track->{title})[0]) == -1 ) {
-				$item->{work} = (split ':\s*', $track->{title})[0];
-			} else {
-				$item->{work} = (split ':\s*', $track->{title})[1];
+			if ( $track->{composer}->{name} && $track->{title} ) {
+				my @titleSplit = split /:\s*/, $track->{title};	
+				if ( index($track->{composer}->{name}, $titleSplit[0]) == -1 ) {
+					$item->{work} = $titleSplit[0];
+				} elsif ( $titleSplit[1] ) {
+					$item->{work} = $titleSplit[1];
+				}
 			}
-                        $item->{line1} =~ s/$item->{work}://;
+			$item->{line1} =~ s/$item->{work}://;
 		}
 		$item->{displayWork} = $item->{work};
-		$item->{displayWork} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
-		$item->{work} = $track->{composer}->{name} . ": " . $item->{work} if ($track->{composer}->{name});
-		my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
-		$item->{line1} =~ s/$composerSurname://;
+		$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
+		$item->{work} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
+		if ( $track->{composer}->{name} ) {
+			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
+			$item->{line1} =~ s/$composerSurname://;
+		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
 

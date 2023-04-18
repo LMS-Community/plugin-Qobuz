@@ -10,6 +10,7 @@ use Text::Unidecode;
 use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
+use Slim::Utils::Strings qw(string cstring);
 
 use Plugins::Qobuz::API;
 use Plugins::Qobuz::API::Common;
@@ -275,17 +276,17 @@ sub getMetadataFor {
 		# if the title doesn't already contain the work text
 		if ( $meta->{work} && index($meta->{title},$meta->{work}) == -1 ) {
 			$meta->{title} =~ s/${\(split " ", $meta->{composer})[-1]}:\s*// if $meta->{composer};
-			my $simpleWork = lc(unidecode($meta->{work}));
+			my $simpleWork = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{work}), 1);
 			$simpleWork =~ s/\W//g;
-			my $simpleTitle = lc(unidecode($meta->{title}));
+			my $simpleTitle = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{title}), 1);
 			$simpleTitle =~ s/\W//g;
 			if ( $simpleWork ne $simpleTitle ) {
-				$meta->{title} =  $meta->{work} . ': ' . $meta->{title};
+				$meta->{title} =  $meta->{work} . string('COLON') . ' ' . $meta->{title};
 			}
 		}
 		
 		if ( $meta->{composer} && index($meta->{title},(split " ", $meta->{composer})[-1]) == -1 ) {
-				$meta->{title} =  (split ' ', $meta->{composer})[-1] . ': ' . $meta->{title};
+			$meta->{title} =  (split " ", $meta->{composer})[-1] . string('COLON') . ' ' . $meta->{title};
 		}
 	}
 	

@@ -40,7 +40,7 @@
 				<option [% prefs.showYearWithAlbum ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
 		[% END %]
-		<hr style="opacity:0.4" class="sub-sep"/>
+		<hr class="sub-sep"/>
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS" desc="PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC" %]
 			<select name="pref_useClassicalEnhancements" id="useClassicalEnhancements">
 				<option [% prefs.useClassicalEnhancements ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
@@ -58,7 +58,7 @@
 			<input type="text" class="stdedit" name="pref_classicalGenres" id="classicalGenres" value="[% prefs.classicalGenres %]" size="80">
 		[% "PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT" | string %]
 		[% END %]
-		<hr style="opacity:0.4" class="sub-sep"/>
+		<hr class="sub-sep"/>
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_IMPORT" desc="" %]
 			<input type="checkbox" [% IF prefs.pref_dontImportPurchases %]checked [% END %] class="stdedit" name="pref_dontImportPurchases" id="pref_dontImportPurchases" value="1" />
