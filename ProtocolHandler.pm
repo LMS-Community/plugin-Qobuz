@@ -275,7 +275,16 @@ sub getMetadataFor {
 	if ( $meta->{isClassique} ) {
 		# if the title doesn't already contain the work text
 		if ( $meta->{work} && index($meta->{title},$meta->{work}) == -1 ) {
-			$meta->{title} =~ s/${\(split " ", $meta->{composer})[-1]}:\s*// if $meta->{composer};
+#			$meta->{title} =~ s/${\(split " ", $meta->{composer})[-1]}:\s*// if $meta->{composer};
+			# remove composer name from track title
+			if ( $meta->{composer} ) {
+				# full name
+				$meta->{title} =~ s/\Q$meta->{composer}\E:\s*//;
+				# surname only
+				my $composerSurname = (split " ", $meta->{composer})[-1];
+				$meta->{title} =~ s/\Q$composerSurname\E:\s*//;
+			}
+			
 			my $simpleWork = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{work}), 1);
 			$simpleWork =~ s/\W//g;
 			my $simpleTitle = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{title}), 1);

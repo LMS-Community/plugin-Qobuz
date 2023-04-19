@@ -120,7 +120,7 @@ sub _precacheAlbum {
 		# If the user pref is for classical music enhancements to the display, is this a classical release or has the user added the genre to their custom classical list?
 		$isClassique = 0;
 		if ( $prefs->get('useClassicalEnhancements') ) {
-			if ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) || $genreList{$album->{genre}} ) {
+			if ( ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) ) || $genreList{$album->{genre}} ) {
 				$isClassique = 1;
 			}
 		}

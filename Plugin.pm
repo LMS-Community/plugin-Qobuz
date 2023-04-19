@@ -1258,14 +1258,14 @@ sub _trackItem {
 					$item->{work} = $titleSplit[1];
 				}
 			}
-			$item->{line1} =~ s/$item->{work}://;
+			$item->{line1} =~ s/\Q$item->{work}\E://;
 		}
 		$item->{displayWork} = $item->{work};
 		$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
 		$item->{work} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
 		if ( $track->{composer}->{name} ) {
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
-			$item->{line1} =~ s/$composerSurname://;
+			$item->{line1} =~ s/\Q$composerSurname\E://;
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
