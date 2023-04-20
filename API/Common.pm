@@ -31,10 +31,20 @@ use constant QOBUZ_STREAMING_FLAC_HIRES2 => 27;
 my $cache;
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
+my $isClassique;
+my %genreList;
+
+initGenreMap();
+
+$prefs->setChange(\&initGenreMap, 'classicalGenres');
 
 sub init {
 	my $class = shift;
 	return pack('H*', $_[0]) =~ /^(\d{9})(.*)/
+}
+
+sub initGenreMap {
+   %genreList = map { $_ => 1 } split /\s*,\s*/, $prefs->get('classicalGenres');
 }
 
 sub getCache {
@@ -95,7 +105,7 @@ sub _precacheAlbum {
 	$albums = __PACKAGE__->filterPlayables($albums);
 
 	foreach my $album (@$albums) {
-		foreach (qw(composer duration genres_list articles article_ids catchline
+		foreach (qw(composer duration articles article_ids catchline
 			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
 			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
 			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_stream release_date_original
@@ -107,6 +117,14 @@ sub _precacheAlbum {
 		$album->{genre} = $album->{genre}->{name};
 		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
 
+		# If the user pref is for classical music enhancements to the display, is this a classical release or has the user added the genre to their custom classical list?
+		$isClassique = 0;
+		if ( $prefs->get('useClassicalEnhancements') ) {
+			if ( ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) ) || $genreList{$album->{genre}} ) {
+				$isClassique = 1;
+			}
+		}
+
 		my $albumInfo = {
 			title  => $album->{title},
 			id     => $album->{id},
@@ -114,6 +132,9 @@ sub _precacheAlbum {
 			image  => $album->{image},
 			year   => (localtime($album->{released_at}))[5] + 1900,
 			goodies=> $album->{goodies},
+			genre  => $album->{genre},
+			genres_list => $album->{genres_list},
+			isClassique => $isClassique,
 		};
 
 		_precacheTracks([ map {
@@ -153,7 +174,7 @@ sub precacheTrack {
 
 	my $album = $track->{album} || {};
 	$track->{composer} ||= $album->{composer} || {};
-
+	
 	my $meta = {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
@@ -169,6 +190,9 @@ sub precacheTrack {
 		goodies  => $album->{goodies},
 		version  => $track->{version},
 		work     => $track->{work},
+		genre    => $album->{genre},
+		genres_list => $album->{genres_list},
+		isClassique => $isClassique,
 	};
 
 	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {

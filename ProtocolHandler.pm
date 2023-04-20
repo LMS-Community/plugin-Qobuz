@@ -5,10 +5,12 @@ package Plugins::Qobuz::ProtocolHandler;
 use strict;
 use base qw(Slim::Player::Protocols::HTTPS);
 use Scalar::Util qw(blessed);
+use Text::Unidecode;
 
 use Slim::Utils::Log;
 use Slim::Utils::Misc;
 use Slim::Utils::Prefs;
+use Slim::Utils::Strings qw(string cstring);
 
 use Plugins::Qobuz::API;
 use Plugins::Qobuz::API::Common;
@@ -268,11 +270,34 @@ sub getMetadataFor {
 	}
 
 	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
-	
-	if ($meta->{work}) {
-		$meta->{title} = $meta->{work} . ': ' . $meta->{title};
-	}
 
+	# user pref is for enhanced classical music display, and we have a classical release	
+	if ( $meta->{isClassique} ) {
+		# if the title doesn't already contain the work text
+		if ( $meta->{work} && index($meta->{title},$meta->{work}) == -1 ) {
+			# remove composer name from track title
+			if ( $meta->{composer} ) {
+				# full name
+				$meta->{title} =~ s/\Q$meta->{composer}\E:\s*//;
+				# surname only
+				my $composerSurname = (split " ", $meta->{composer})[-1];
+				$meta->{title} =~ s/\Q$composerSurname\E:\s*//;
+			}
+			
+			my $simpleWork = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{work}), 1);
+			$simpleWork =~ s/\W//g;
+			my $simpleTitle = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{title}), 1);
+			$simpleTitle =~ s/\W//g;
+			if ( $simpleWork ne $simpleTitle ) {
+				$meta->{title} =  $meta->{work} . string('COLON') . ' ' . $meta->{title};
+			}
+		}
+		
+		if ( $meta->{composer} && index($meta->{title},(split " ", $meta->{composer})[-1]) == -1 ) {
+			$meta->{title} =  (split " ", $meta->{composer})[-1] . string('COLON') . ' ' . $meta->{title};
+		}
+	}
+	
 	return $meta;
 }
 
