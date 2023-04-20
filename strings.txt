@@ -352,45 +352,45 @@ PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 	EN	Fetching Playlists...
 	FR	Récupération des listes de lecture...
 	NL	Afspeellijsten ophalen...
-	
+
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS
 	EN	Enhanced classical music display
-	DE	Erweiterte Anzeige bei Werken des Genre Klassik
+	DE	Erweiterte Anzeige von Klassikwerken
 	NL	Verbeterde weergave van klassieke werken/componisten
 
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC
 	EN	Choose Yes here if you want the plugin to use Qobuz data to attempt to: <br />* Show a playlist and subheadings for each composer/work within a release. <br />* Add the composer and work names to the track title in the playlist and now playing displays (the playlist cannot show subheadings).
-	DE	Wähle Ja, falls du Qobuz Daten nutzen willst, um folgendes zu erreichen: <br /> * Für jedes Werk einer Veröffentlichung eine Wiedergabeliste und Untertitel anzeigen. <br />* Komponisten - und Werkname für jeden Titel in der Wiedergabeliste und im "Now Playing" - Fenster anzeigen (Wiedergabelisten können keine Untertitel anzeigen).
-	NL	<br />Kies 'Ja' als je wilt dat de plug-in Qobuz-gegevens gebruikt om:<br />* Een afspeellijst en subkoppen voor elk werk binnen een release weer te geven<br />* De componist en werken toe te voegen aan de tracktitel in de afspeellijst en in de 'Speelt Nu' weergave (de afspeellijst kan geen subkoppen tonen).
-	
+	DE	Wähle Ja, falls du Qobuz Daten nutzen willst, um folgendes zu erreichen: <br />* Für jedes Werk einer Veröffentlichung eine Wiedergabeliste und Untertitel anzeigen. <br />* Komponisten- und Werkname für jeden Titel in der Wiedergabeliste und im "Aktueller Titel"-Fenster anzeigen (Wiedergabelisten können keine Untertitel anzeigen).
+	NL	Kies 'Ja' als je wilt dat de plug-in Qobuz-gegevens gebruikt om:<br />* Een afspeellijst en subkoppen voor elk werk binnen een release weer te geven<br />* De componist en werken toe te voegen aan de tracktitel in de afspeellijst en in de 'Speelt Nu' weergave (de afspeellijst kan geen subkoppen tonen).
+
 PLUGIN_QOBUZ_CLASSICAL_GENRES
 	EN	Additional classical genres
-	DE	Zusätzliche Genres
+	DE	Zusätzliche Klassik Stilrichtungen
 	NL	Additionele genres
-	
+
 PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC
 	EN	If you find a release for which the enhanced display does not show, add the Qobuz genre (shown in the release listing) to the "additional genres" list here (comma separated if more than one).
-	DE	Falls für eine Veröffentlichung die Erweiterte Anzeige nicht funktioniert, dann füge das Qobuz Genre (zu finden im Inhaltsverzeichnis der Veröffentlichung ) zu der Liste "Zusätzliche Genres" (mehere Einträgen durch Kommata trennen).
+	DE	Falls für eine Veröffentlichung die Erweiterte Anzeige nicht funktioniert, dann füge die Qobuz Stilrichtung (zu finden im Inhaltsverzeichnis der Veröffentlichung) zur Liste "Zusätzliche Klassik Stilrichtungen" hinzu (Einträge durch Kommas trennen).
 	NL	Als je een release vindt waarvoor de uitgebreide weergave niet wordt weergegeven, voeg dan het Qobuz-genre (weergegeven in de releaselijst) toe aan de "Additionele genres" (komma gescheiden indien meer dan één).
-	
+
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT
 	EN	<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do.
-	DE	<br /><br />Bei Fragen oder Melden von Fehlern: <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Hinweis:</b> Nutze das Plugin "Material Skin" für die bestmögliche Darstellung. Bei der Web-Oberfläche "Standard" wird die Darstellung fehlerhaft, falls "Plattenhüllen anzeigen" ausgewählt wurde.
-	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.	
-	
+	DE	<br /><br />Bei Fragen oder Fehlern: <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Hinweis:</b> Nutze das Plugin "Material Skin" für die bestmögliche Darstellung. Bei der Web-Oberfläche "Standard" wird die Darstellung fehlerhaft, falls "Plattenhüllen anzeigen" ausgewählt wurde.
+	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.
+
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION
 	EN	Work playlist position
-	DE	Position für Wiedergabelisten
+	DE	Position für Werke-Wiedergabelisten
 	NL	Werk afspeellijst positie
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE
 	EN	Before track list
-	DE	Vor der Titelliste
+	DE	Vor den Titeln
 	NL	Voor afspeellijst
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER
 	EN	After track list
-	DE	Nach der Titelliste
+	DE	Nach den Titeln
 	NL	Na afspeellijst
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_HIDDEN
