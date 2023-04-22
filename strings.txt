@@ -112,18 +112,18 @@ PLUGIN_QOBUZ_MUSIC_ADDED
 	SV	Musiken har lagts till
 
 PLUGIN_QOBUZ_ADD_FAVORITE
-	DE	Favorit '%s' erstellen
-	EN	Add '%s' to favorites
-	EN_GB	Add '%s' to favourites
-	FR	Ajouter "%s" à mes favoris
-	NL	Voeg '%s' toe aan favorieten
+	DE	Qobuz Favorit '%s' erstellen
+	EN	Add '%s' to Qobuz favorites
+	EN_GB	Add '%s' to Qobuz favourites
+	FR	Ajouter "%s" aux favoris Qobuz
+	NL	Voeg '%s' toe aan Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE
-	DE	Entferne '%s' aus Favoriten
-	EN	Remove '%s' from favorites
-	EN_GB	Remove '%s' from favourites
-	FR	Retirer "%s" des favoris
-	NL	Verwijder '%s' van favorieten
+	DE	Entferne '%s' aus Qobuz Favoriten
+	EN	Remove '%s' from Qobuz favorites
+	EN_GB	Remove '%s' from Qobuz favourites
+	FR	Retirer "%s" des favoris Qobuz
+	NL	Verwijder '%s' van Qobuz favorieten
 
 PLUGIN_QOBUZ_SEARCH
 	DE	Suche '%s'

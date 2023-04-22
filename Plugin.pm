@@ -521,16 +521,23 @@ sub QobuzArtist {
 			passthrough => [{
 				artistId  => $artist->{id},
 			}],
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
-			image => 'html/images/favorites.png',
-			url  => \&QobuzAddFavorite,
-			passthrough => [{
-				artist_ids => $artist->{id},
-			}],
-			nextWindow => 'parent'
 		};
-;
+		
+		Plugins::Qobuz::API->getUserFavorites(sub {
+			my $favorites = shift;
+			my $artistId = $artist->{id};
+			my $isFavorite = grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}};
+		
+			push @$items, {
+ 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				image => 'html/images/favorites.png',
+				passthrough => [{
+					artist_ids => $artist->{id},
+				}],
+				nextWindow => 'parent'
+			}
+		});
 
 		$cb->( {
 			items => $items
@@ -1020,17 +1027,23 @@ sub QobuzGetTracks {
 		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
 			$artistItem->{label} = 'ARTIST';
 			push @$items, $artistItem;
-		}
-
-		push @$items, {
-			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
-			image => 'html/images/favorites.png',
-			url  => \&QobuzAddFavorite,
-			passthrough => [{
-				album_ids => $albumId
-			}],
-			nextWindow => 'parent'
 		};
+
+		Plugins::Qobuz::API->getUserFavorites(sub {
+			my $favorites = shift;
+			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
+			
+			push @$items, {
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				image => 'html/images/favorites.png',
+				passthrough => [{
+					album_ids => $albumId
+				}],
+				nextWindow => 'parent'
+			};
+		});
+
 
 		push @$items,{
 			name  => $album->{genre},
