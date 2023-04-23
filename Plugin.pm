@@ -536,12 +536,12 @@ sub QobuzArtist {
 					artist_ids => $artist->{id},
 				}],
 				nextWindow => 'parent'
-			}
-		});
-
-		$cb->( {
-			items => $items
-		} );
+			};
+			
+			$cb->({
+				items => $items
+			});			
+		});		
 	}, $args->{artistId});
 }
 
@@ -1042,77 +1042,76 @@ sub QobuzGetTracks {
 				}],
 				nextWindow => 'parent'
 			};
-		});
 
-
-		push @$items,{
-			name  => $album->{genre},
-			label => 'GENRE',
-			type  => 'text'
-		},{
-			name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
-			label => 'ALBUMLENGTH',
-			type  => 'text'
-		},{
-			name => $album->{tracks_count},
-			label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
-			type => 'text'
-		};
-
-		if ($album->{description}) {
-			push @$items, {
-				name  => cstring($client, 'DESCRIPTION'),
-				items => [{
-					name => _stripHTML($album->{description}),
-					type => 'textarea',
-				}],
+			push @$items,{
+				name  => $album->{genre},
+				label => 'GENRE',
+				type  => 'text'
+			},{
+				name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
+				label => 'ALBUMLENGTH',
+				type  => 'text'
+			},{
+				name => $album->{tracks_count},
+				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
+				type => 'text'
 			};
-		};
 
-		if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
-			push @$items, $item;
-		}
+			if ($album->{description}) {
+				push @$items, {
+					name  => cstring($client, 'DESCRIPTION'),
+					items => [{
+						name => _stripHTML($album->{description}),
+						type => 'textarea',
+					}],
+				};
+			};
 
-		push @$items, {
-			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
-			type  => 'text'
-		};
+			if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
+				push @$items, $item;
+			}
 
-		if ($album->{label} && $album->{label}->{name}) {
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
+				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
 				type  => 'text'
 			};
-		}
 
-		my $awards = $album->{awards};
-		if ($awards && ref $awards && scalar @$awards) {
-			my $awItems = [ map {
-				{
-					name => Slim::Utils::DateTime::shortDateF($_->{awarded_at}) . ' - ' . $_->{name},
-					type => 'text'
-				}
-			} @$awards ];
+			if ($album->{label} && $album->{label}->{name}) {
+				push @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
+					type  => 'text'
+				};
+			}
 
-			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
-				items => $awItems
+			my $awards = $album->{awards};
+			if ($awards && ref $awards && scalar @$awards) {
+				my $awItems = [ map {
+					{
+						name => Slim::Utils::DateTime::shortDateF($_->{awarded_at}) . ' - ' . $_->{name},
+						type => 'text'
+					}
+				} @$awards ];
+
+				push @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
+					items => $awItems
+				};
+			}
+
+			if ($album->{copyright}) {
+				push @$items, {
+					name  => 'Copyright',
+					items => [{
+						name => $album->{copyright},
+						type => 'textarea',
+					}],
+				};
 			};
-		}
-
-		if ($album->{copyright}) {
-			push @$items, {
-				name  => 'Copyright',
-				items => [{
-					name => $album->{copyright},
-					type => 'textarea',
-				}],
-			};
-		}
-
-		$cb->({
-			items => $items,
-		}, @_ );
+			
+			$cb->({
+				items => $items,
+			}, @_ );
+		});		
 	}, $albumId);
 }
 
