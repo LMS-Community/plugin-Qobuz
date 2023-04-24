@@ -526,7 +526,7 @@ sub QobuzArtist {
 		Plugins::Qobuz::API->getUserFavorites(sub {
 			my $favorites = shift;
 			my $artistId = $artist->{id};
-			my $isFavorite = grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}};
+			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
 		
 			push @$items, {
  				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
@@ -1031,7 +1031,7 @@ sub QobuzGetTracks {
 
 		Plugins::Qobuz::API->getUserFavorites(sub {
 			my $favorites = shift;
-			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
+			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
 			
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
