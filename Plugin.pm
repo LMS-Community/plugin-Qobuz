@@ -521,20 +521,27 @@ sub QobuzArtist {
 			passthrough => [{
 				artistId  => $artist->{id},
 			}],
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
-			image => 'html/images/favorites.png',
-			url  => \&QobuzAddFavorite,
-			passthrough => [{
-				artist_ids => $artist->{id},
-			}],
-			nextWindow => 'parent'
 		};
-;
-
-		$cb->( {
-			items => $items
-		} );
+		
+		Plugins::Qobuz::API->getUserFavorites(sub {
+			my $favorites = shift;
+			my $artistId = $artist->{id};
+			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
+		
+			push @$items, {
+ 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				image => 'html/images/favorites.png',
+				passthrough => [{
+					artist_ids => $artist->{id},
+				}],
+				nextWindow => 'parent'
+			};
+			
+			$cb->({
+				items => $items
+			});			
+		});		
 	}, $args->{artistId});
 }
 
@@ -1020,86 +1027,91 @@ sub QobuzGetTracks {
 		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
 			$artistItem->{label} = 'ARTIST';
 			push @$items, $artistItem;
-		}
-
-		push @$items, {
-			name => cstring($client, 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
-			image => 'html/images/favorites.png',
-			url  => \&QobuzAddFavorite,
-			passthrough => [{
-				album_ids => $albumId
-			}],
-			nextWindow => 'parent'
 		};
 
-		push @$items,{
-			name  => $album->{genre},
-			label => 'GENRE',
-			type  => 'text'
-		},{
-			name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
-			label => 'ALBUMLENGTH',
-			type  => 'text'
-		},{
-			name => $album->{tracks_count},
-			label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
-			type => 'text'
-		};
-
-		if ($album->{description}) {
+		Plugins::Qobuz::API->getUserFavorites(sub {
+			my $favorites = shift;
+			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
+			
 			push @$items, {
-				name  => cstring($client, 'DESCRIPTION'),
-				items => [{
-					name => _stripHTML($album->{description}),
-					type => 'textarea',
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
+				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
+				image => 'html/images/favorites.png',
+				passthrough => [{
+					album_ids => $albumId
 				}],
+				nextWindow => 'parent'
 			};
-		};
 
-		if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
-			push @$items, $item;
-		}
+			push @$items,{
+				name  => $album->{genre},
+				label => 'GENRE',
+				type  => 'text'
+			},{
+				name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
+				label => 'ALBUMLENGTH',
+				type  => 'text'
+			},{
+				name => $album->{tracks_count},
+				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
+				type => 'text'
+			};
 
-		push @$items, {
-			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
-			type  => 'text'
-		};
+			if ($album->{description}) {
+				push @$items, {
+					name  => cstring($client, 'DESCRIPTION'),
+					items => [{
+						name => _stripHTML($album->{description}),
+						type => 'textarea',
+					}],
+				};
+			};
 
-		if ($album->{label} && $album->{label}->{name}) {
+			if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
+				push @$items, $item;
+			}
+
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
+				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
 				type  => 'text'
 			};
-		}
 
-		my $awards = $album->{awards};
-		if ($awards && ref $awards && scalar @$awards) {
-			my $awItems = [ map {
-				{
-					name => Slim::Utils::DateTime::shortDateF($_->{awarded_at}) . ' - ' . $_->{name},
-					type => 'text'
-				}
-			} @$awards ];
+			if ($album->{label} && $album->{label}->{name}) {
+				push @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
+					type  => 'text'
+				};
+			}
 
-			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
-				items => $awItems
+			my $awards = $album->{awards};
+			if ($awards && ref $awards && scalar @$awards) {
+				my $awItems = [ map {
+					{
+						name => Slim::Utils::DateTime::shortDateF($_->{awarded_at}) . ' - ' . $_->{name},
+						type => 'text'
+					}
+				} @$awards ];
+
+				push @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
+					items => $awItems
+				};
+			}
+
+			if ($album->{copyright}) {
+				push @$items, {
+					name  => 'Copyright',
+					items => [{
+						name => $album->{copyright},
+						type => 'textarea',
+					}],
+				};
 			};
-		}
-
-		if ($album->{copyright}) {
-			push @$items, {
-				name  => 'Copyright',
-				items => [{
-					name => $album->{copyright},
-					type => 'textarea',
-				}],
-			};
-		}
-
-		$cb->({
-			items => $items,
-		}, @_ );
+			
+			$cb->({
+				items => $items,
+			}, @_ );
+		});		
 	}, $albumId);
 }
 
