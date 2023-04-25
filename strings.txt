@@ -119,7 +119,7 @@ PLUGIN_QOBUZ_ADD_FAVORITE
 	NL	Voeg '%s' toe aan Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE
-	DE	Entferne '%s' aus Qobuz Favoriten
+	DE	Qobuz Favorit '%s' entfernen
 	EN	Remove '%s' from Qobuz favorites
 	EN_GB	Remove '%s' from Qobuz favourites
 	FR	Retirer "%s" des favoris Qobuz
