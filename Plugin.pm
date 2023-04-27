@@ -1304,6 +1304,7 @@ sub _trackItem {
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
