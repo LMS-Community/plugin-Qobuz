@@ -39,6 +39,7 @@ $prefs->init({
 	playSamples => 1,
 	dontImportPurchases => 1,
 	classicalGenres => '',
+	useClassicalEnhancements => 1,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -483,7 +484,7 @@ sub QobuzArtist {
 
 					return lc($a->{title}) cmp lc($b->{title});
 				}
-				
+
 			} @{$artist->{albums}->{items} || []} ];
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
@@ -522,12 +523,12 @@ sub QobuzArtist {
 				artistId  => $artist->{id},
 			}],
 		};
-		
+
 		Plugins::Qobuz::API->getUserFavorites(sub {
 			my $favorites = shift;
 			my $artistId = $artist->{id};
 			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
-		
+
 			push @$items, {
  				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
@@ -537,11 +538,11 @@ sub QobuzArtist {
 				}],
 				nextWindow => 'parent'
 			};
-			
+
 			$cb->({
 				items => $items
-			});			
-		});		
+			});
+		});
 	}, $args->{artistId});
 }
 
@@ -733,7 +734,7 @@ sub QobuzUserFavorites {
 		for my $album ( @{$favorites->{albums}->{items}} ) {
 			push @albums, _albumItem($client, $album);
 		}
-		
+
 		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 
 		push @$items, {
@@ -746,7 +747,7 @@ sub QobuzUserFavorites {
 		for my $track ( @{$favorites->{tracks}->{items}} ) {
 			push @tracks, _trackItem($client, $track);
 		}
-		
+
 		my $sortFavSongField = $sortFavsAlphabetically == 1 ? 'name' : 'line2';
 
 		push @$items, {
@@ -951,7 +952,7 @@ sub QobuzGetTracks {
 		my $worksfound = 0;
 		my $noComposer = 0;
 		my $workHeadingPos = 0;
-		
+
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
@@ -966,22 +967,22 @@ sub QobuzGetTracks {
 					title => $formattedTrack->{displayWork},
 					tracks => []
 				} unless $works->{$workId};
-				
+
 				if ($workId ne $lastwork) {  # create a new work heading
 					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
 					};
-					
+
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
 				}
-				
+
 				push @{$works->{$workId}->{tracks}}, $formattedTrack;
 				if (scalar @{$works->{$workId}->{tracks}} > 1) {
 					$worksfound = 1;   # we found a work with more than one track
 				}
-				
+
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
 					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
 					$works->{$workId}->{title} = $formattedTrack->{displayWork};
@@ -992,15 +993,15 @@ sub QobuzGetTracks {
 					name  => "————————",
 					type  => 'text'
 				};
-						
+
 				$lastwork = "";
 				$noComposer = 0;
-			}	
+			}
 
 			$i++;
 
 			push @$items, $formattedTrack;
-			
+
 		}
 
 		if (scalar keys %$works) {
@@ -1040,7 +1041,7 @@ sub QobuzGetTracks {
 		Plugins::Qobuz::API->getUserFavorites(sub {
 			my $favorites = shift;
 			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
-			
+
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
@@ -1115,11 +1116,11 @@ sub QobuzGetTracks {
 					}],
 				};
 			};
-			
+
 			$cb->({
 				items => $items,
 			}, @_ );
-		});		
+		});
 	}, $albumId);
 }
 
@@ -1271,7 +1272,7 @@ sub _trackItem {
 		} else {
 			# Try to extract the work from the title
 			if ( $track->{composer}->{name} && $track->{title} ) {
-				my @titleSplit = split /:\s*/, $track->{title};	
+				my @titleSplit = split /:\s*/, $track->{title};
 				if ( index($track->{composer}->{name}, $titleSplit[0]) == -1 ) {
 					$item->{work} = $titleSplit[0];
 				} elsif ( $titleSplit[1] ) {
