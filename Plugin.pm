@@ -949,7 +949,8 @@ sub QobuzGetTracks {
 		my $works = {};
 		my $lastwork = "";
 		my $worksfound = 0;
-		my $containsUnstreamable = 0;
+		my $noComposer = 0;
+		my $workHeadingPos = 0;
 		
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
@@ -960,26 +961,31 @@ sub QobuzGetTracks {
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
 				$workId =~ s/\s//g;
 
-				$works->{$workId} = {
+				$works->{$workId} = {   # create a new work object
 					index => $i,
-					title => $work,
-					image => $formattedTrack->{image},
+					title => $formattedTrack->{displayWork},
 					tracks => []
 				} unless $works->{$workId};
 				
 				if ($workId ne $lastwork) {  # create a new work heading
-					push @$items,{
-						name  => $work,
+					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
 					};
-						
+					
+					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
 				}
 				
 				push @{$works->{$workId}->{tracks}}, $formattedTrack;
 				if (scalar @{$works->{$workId}->{tracks}} > 1) {
 					$worksfound = 1;   # we found a work with more than one track
+				}
+				
+				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
+					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
+					$works->{$workId}->{title} = $formattedTrack->{displayWork};
+					$noComposer = 0;
 				}
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
@@ -988,11 +994,13 @@ sub QobuzGetTracks {
 				};
 						
 				$lastwork = "";
+				$noComposer = 0;
 			}	
 
 			$i++;
 
 			push @$items, $formattedTrack;
+			
 		}
 
 		if (scalar keys %$works) {
@@ -1274,7 +1282,6 @@ sub _trackItem {
 		}
 		$item->{displayWork} = $item->{work};
 		$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
-		$item->{work} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
 		if ( $track->{composer}->{name} ) {
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
 			$item->{line1} =~ s/\Q$composerSurname\E://;
@@ -1297,6 +1304,7 @@ sub _trackItem {
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
