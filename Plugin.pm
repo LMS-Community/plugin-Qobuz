@@ -940,8 +940,8 @@ sub QobuzGetTracks {
 		my $album = shift;
 		my $items = [];
 
-		if (!$album) {						
-			$log->warn("Get album ($albumId) failed");					
+		if (!$album) {
+			$log->warn("Get album ($albumId) failed");
 			Plugins::Qobuz::API->getUserFavorites(sub {
 				my $favorites = shift;
 				my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
