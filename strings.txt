@@ -397,3 +397,9 @@ PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_HIDDEN
 	EN	Do not show
 	DE	Nicht Anzeigen
 	NL	Niet tonen
+	
+PLUGIN_QOBUZ_ALBUM_NOT_FOUND
+	EN	Album not found in the Qobuz library
+	DE	Album nicht in der Qobuz-Bibliothek gefunden
+	NL	Album niet gevonden in de Qobuz bibliotheek
+	FR	Album introuvable dans la bibliothèque Qobuz

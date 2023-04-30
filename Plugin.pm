@@ -934,17 +934,41 @@ sub _playlistCallback {
 sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $albumId = $args->{album_id};
+	my $albumTitle = $args->{album_title};
 
 	Plugins::Qobuz::API->getAlbum(sub {
 		my $album = shift;
-
-		if (!$album) {
-			$log->error("Get album ($albumId) failed");
-			$cb->();
-			return;
-		}
-
 		my $items = [];
+
+		if (!$album) {						
+			$log->warn("Get album ($albumId) failed");					
+			Plugins::Qobuz::API->getUserFavorites(sub {
+				my $favorites = shift;
+				my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
+
+				push @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_ALBUM_NOT_FOUND'),
+					type  => 'text'						
+				};
+				
+				if ($isFavorite) {
+					push @$items, {
+						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE', $albumTitle),
+						url  => \&QobuzDeleteFavorite,
+						image => 'html/images/favorites.png',
+						passthrough => [{
+							album_ids => $albumId
+						}],
+						nextWindow => 'parent'
+					};
+				}
+				
+				$cb->({
+					items => $items,
+				}, @_ );
+			});
+			return;
+		}			
 
 		my $totalDuration = my $i = 0;
 		my $works = {};
@@ -1204,6 +1228,7 @@ sub _albumItem {
 		$item->{url}         = \&QobuzGetTracks;
 		$item->{passthrough} = [{
 			album_id => $album->{id},
+			album_title => $album->{title},
 		}];
 	}
 
@@ -1300,7 +1325,7 @@ sub _trackItem {
 			type => 'textarea'
 		}];
 	}
-	elsif (!$track->{streamable} && !$prefs->get('playSamples')) {
+	elsif (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
