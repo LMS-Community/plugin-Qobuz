@@ -976,18 +976,20 @@ sub QobuzGetTracks {
 		my $worksfound = 0;
 		my $noComposer = 0;
 		my $workHeadingPos = 0;
+		my $workPlaylistPos = $prefs->get('workPlaylistPosition');
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
-
-			if (my $work = delete $formattedTrack->{work}) {
+			my $work = delete $formattedTrack->{work};
+			
+			if ( $work && ($workPlaylistPos ne "hidden") ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
 				$workId =~ s/\s//g;
 
 				$works->{$workId} = {   # create a new work object
-					index => $i,
+					index => $i,		# index of first track in the work
 					title => $formattedTrack->{displayWork},
 					tracks => []
 				} unless $works->{$workId};
@@ -1000,12 +1002,11 @@ sub QobuzGetTracks {
 
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
+				} else {
+					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
 
 				push @{$works->{$workId}->{tracks}}, $formattedTrack;
-				if (scalar @{$works->{$workId}->{tracks}} > 1) {
-					$worksfound = 1;   # we found a work with more than one track
-				}
 
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
 					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
@@ -1031,27 +1032,29 @@ sub QobuzGetTracks {
 		if (scalar keys %$works) {
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
-			foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-				my $workTracks = $works->{$work}->{tracks};
-				if ( $worksfound && scalar @$workTracks && scalar @$workTracks < $album->{tracks_count} ) {
-					push @workPlaylists, {
-						name => $works->{$work}->{title},
-						image => 'html/images/playlists.png',
-						type => 'playlist',
-						playall => 1,
-						url => \&QobuzWorkGetTracks,
-						passthrough => [{
-							tracks => $workTracks
-						}],
-						items => $workTracks
+			if ( $worksfound ) {   # only proceed if a work with more than 1 contiguous track was found			
+				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+					my $workTracks = $works->{$work}->{tracks};
+					if ( scalar @$workTracks && scalar @$workTracks < $album->{tracks_count} ) {
+						push @workPlaylists, {
+							name => $works->{$work}->{title},
+							image => 'html/images/playlists.png',
+							type => 'playlist',
+							playall => 1,
+							url => \&QobuzWorkGetTracks,
+							passthrough => [{
+								tracks => $workTracks
+							}],
+							items => $workTracks
+						}
 					}
 				}
 			}
 			if ( @workPlaylists ) {
 				# insert work playlists according to the user preference
-				if ( $prefs->get('workPlaylistPosition') eq "before" ) {
+				if ( $workPlaylistPos eq "before" ) {
 					unshift @$items, @workPlaylists;
-				} elsif ( $prefs->get('workPlaylistPosition') eq "after" ) {
+				} elsif ( $workPlaylistPos eq "after" ) {
 					push @$items, @workPlaylists;
 				}
 			}
