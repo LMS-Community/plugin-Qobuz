@@ -977,24 +977,41 @@ sub QobuzGetTracks {
 		my $noComposer = 0;
 		my $workHeadingPos = 0;
 		my $workPlaylistPos = $prefs->get('workPlaylistPosition');
+		my $currentComposer = "";
+		my $lastComposer = "";
+		my $worksWorkId = "";
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
 			
-			if ( $work && ($workPlaylistPos ne "hidden") ) {
+			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
 				$workId =~ s/\s//g;
+				my $displayWorkId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($formattedTrack->{displayWork}));
+				$displayWorkId =~ s/\s//g;
 
-				$works->{$workId} = {   # create a new work object
-					index => $i,		# index of first track in the work
-					title => $formattedTrack->{displayWork},
-					tracks => []
-				} unless $works->{$workId};
+				$currentComposer = $track->{composer}->{name};
 
-				if ($workId ne $lastwork) {  # create a new work heading
+				if ( !$works->{$workId} ) {
+					$works->{$workId} = {   # create a new work object
+						index => $i,		# index of first track in the work
+						title => $formattedTrack->{displayWork},
+						tracks => []
+					} ;
+					$worksWorkId = $workId;
+				} elsif ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) {
+					$works->{$displayWorkId} = {   # create a new work object
+						index => $i,		# index of first track in the work
+						title => $formattedTrack->{displayWork},
+						tracks => []
+					} ;				
+					$worksWorkId = $displayWorkId;
+				}
+				
+				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {  # create a new work heading
 					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
@@ -1005,14 +1022,17 @@ sub QobuzGetTracks {
 				} else {
 					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
-
-				push @{$works->{$workId}->{tracks}}, $formattedTrack;
+				
+				push @{$works->{$worksWorkId}->{tracks}}, $formattedTrack;
 
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
 					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
 					$works->{$workId}->{title} = $formattedTrack->{displayWork};
 					$noComposer = 0;
 				}
+				
+				$lastComposer = $track->{composer}->{name} if $track->{composer}->{name};
+				
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
 					name  => "————————",
@@ -1298,20 +1318,23 @@ sub _trackItem {
 		if ( $track->{work} ) {
 			$item->{work} = $track->{work};
 		} else {
-			# Try to extract the work from the title
+			# Try to set work to the title, but without composer if it's in there
 			if ( $track->{composer}->{name} && $track->{title} ) {
 				my @titleSplit = split /:\s*/, $track->{title};
-				if ( index($track->{composer}->{name}, $titleSplit[0]) == -1 ) {
-					$item->{work} = $titleSplit[0];
-				} elsif ( $titleSplit[1] ) {
-					$item->{work} = $titleSplit[1];
+				$item->{work} = $track->{title};
+				if ( index($track->{composer}->{name}, $titleSplit[0]) != -1 ) {
+					$item->{work} =~ s/\Q$titleSplit[0]\E:\s*//;
 				}
 			}
+			# try to remove the title (ie track, movement) from the work
+			my @titleSplit = split /:\s*/, $track->{title};
+			my $tempTitle = @titleSplit[-1];
+			$item->{work} =~ s/:\s*\Q$tempTitle\E//;
 			$item->{line1} =~ s/\Q$item->{work}\E://;
 		}
 		$item->{displayWork} = $item->{work};
-		$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
 		if ( $track->{composer}->{name} ) {
+			$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work};
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
 			$item->{line1} =~ s/\Q$composerSurname\E://;
 		}
