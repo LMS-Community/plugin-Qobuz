@@ -1241,9 +1241,10 @@ sub _albumItem {
 	if ( $album->{released_at} > time || !$album->{streamable}) {
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
+	} else {	
+		$item->{type}        = 'playlist';
 	}
 	
-	$item->{type}        = 'playlist';
 	$item->{url}         = \&QobuzGetTracks;
 	$item->{passthrough} = [{
 		album_id => $album->{id},
