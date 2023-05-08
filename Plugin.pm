@@ -940,7 +940,7 @@ sub QobuzGetTracks {
 		my $album = shift;
 		my $items = [];
 
-		if (!$album) {
+		if (!$album) {  # the album does not exist in the Qobuz library
 			$log->warn("Get album ($albumId) failed");
 			Plugins::Qobuz::API->getUserFavorites(sub {
 				my $favorites = shift;
@@ -951,7 +951,7 @@ sub QobuzGetTracks {
 					type  => 'text'						
 				};
 				
-				if ($isFavorite) {
+				if ($isFavorite) {  # if it's an orphaned favorite, let the user delete it
 					push @$items, {
 						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE', $albumTitle),
 						url  => \&QobuzDeleteFavorite,
@@ -968,8 +968,30 @@ sub QobuzGetTracks {
 				}, @_ );
 			});
 			return;
-		}			
-
+			
+		} elsif ($album->{released_at} > time ) {  # the album has not been released yet
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . Slim::Utils::DateTime::shortDateF($album->{released_at}) . ')',
+				type  => 'text'						
+			};
+			
+			$cb->({
+				items => $items,
+			}, @_ );
+			return;
+			
+		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
+				type  => 'text'						
+			};
+			
+			$cb->({
+				items => $items,
+			}, @_ );
+			return;
+		}
+		
 		my $totalDuration = my $i = 0;
 		my $works = {};
 		my $lastwork = "";
@@ -1236,25 +1258,19 @@ sub _albumItem {
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
-	if ( $album->{released_at} > time  || (!$album->{streamable} && !$prefs->get('playSamples')) ) {
-		my $sorry = ' (' . cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE') . ')';
-		$item->{name}  .= $sorry;
-		$item->{line2} .= $sorry;
-		delete $item->{type};
-		$item->{type} = 'text';
-		delete $item->{url};
-	}
-	else {
-		$item->{name}        = '* ' . $item->{name} if !$album->{streamable};
-		$item->{line1}       = '* ' . $item->{line1} if !$album->{streamable};
+	if ( $album->{released_at} > time || !$album->{streamable}) {
+		$item->{name}  = '* ' . $item->{name};
+		$item->{line1} = '* ' . $item->{line1};
+	} else {	
 		$item->{type}        = 'playlist';
-		$item->{url}         = \&QobuzGetTracks;
-		$item->{passthrough} = [{
-			album_id => $album->{id},
-			album_title => $album->{title},
-		}];
 	}
-
+	
+	$item->{url}         = \&QobuzGetTracks;
+	$item->{passthrough} = [{
+		album_id => $album->{id},
+		album_title => $album->{title},
+	}];
+	
 	return $item;
 }
 
@@ -1345,7 +1361,7 @@ sub _trackItem {
 		$item->{year} = $track->{album}->{year} || (localtime($track->{album}->{released_at}))[5] + 1900 || 0;
 	}
 
-	if ($track->{album} && $track->{album}->{released_at} && $track->{album}->{released_at} > time) {
+	if ($track->{released_at} > time) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
 			type => 'textarea'
