@@ -1017,23 +1017,20 @@ sub QobuzGetTracks {
 
 				$currentComposer = $track->{composer}->{name};
 
-				# Build work objects if user requires work playlists
-				if ( $workPlaylistPos ne "hidden" ) {
-					if ( !$works->{$workId} ) {
-						$works->{$workId} = {   # create a new work object
-							index => $i,		# index of first track in the work
-							title => $formattedTrack->{displayWork},
-							tracks => []
-						} ;
-						$worksWorkId = $workId;
-					} elsif ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) {
-						$works->{$displayWorkId} = {   # create a new work object
-							index => $i,		# index of first track in the work
-							title => $formattedTrack->{displayWork},
-							tracks => []
-						} ;				
-						$worksWorkId = $displayWorkId;
-					}
+				if ( !$works->{$workId} ) {
+					$works->{$workId} = {   # create a new work object
+						index => $i,		# index of first track in the work
+						title => $formattedTrack->{displayWork},
+						tracks => []
+					} ;
+					$worksWorkId = $workId;
+				} elsif ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) {
+					$works->{$displayWorkId} = {   # create a new work object
+						index => $i,		# index of first track in the work
+						title => $formattedTrack->{displayWork},
+						tracks => []
+					} ;				
+					$worksWorkId = $displayWorkId;
 				}
 				
 				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {  # create a new work heading
