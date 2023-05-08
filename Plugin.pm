@@ -1005,7 +1005,7 @@ sub QobuzGetTracks {
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
 			
-			if ( $work && ($workPlaylistPos ne "hidden") ) {
+			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
 				$workId =~ s/\s//g;
