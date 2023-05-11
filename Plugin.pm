@@ -969,17 +969,6 @@ sub QobuzGetTracks {
 			});
 			return;
 			
-		} elsif ($album->{released_at} > time ) {  # the album has not been released yet
-			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . Slim::Utils::DateTime::shortDateF($album->{released_at}) . ')',
-				type  => 'text'						
-			};
-			
-			$cb->({
-				items => $items,
-			}, @_ );
-			return;
-			
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
@@ -990,6 +979,13 @@ sub QobuzGetTracks {
 				items => $items,
 			}, @_ );
 			return;
+		}
+
+		if ($album->{released_at} > time ) {  # the album has not been released yet
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . Slim::Utils::DateTime::shortDateF($album->{released_at}) . ')',
+				type  => 'text'						
+			};
 		}
 		
 		my $totalDuration = my $i = 0;
@@ -1051,7 +1047,7 @@ sub QobuzGetTracks {
 
 		}
 
-		if (scalar keys %$works) {
+		if (scalar keys %$works && ($album->{released_at} <= time) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound ) {   # only proceed if a work with more than 1 contiguous track was found			
