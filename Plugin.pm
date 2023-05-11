@@ -1002,6 +1002,10 @@ sub QobuzGetTracks {
 		my $currentComposer = "";
 		my $lastComposer = "";
 		my $worksWorkId = "";
+		my $worksWorkIdE = "";
+		my $lastWorksWorkId = "";
+		my $discontigWorks;
+		my $workComposer;
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
@@ -1015,29 +1019,44 @@ sub QobuzGetTracks {
 				my $displayWorkId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($formattedTrack->{displayWork}));
 				$displayWorkId =~ s/\s//g;
 
+				# Unique work identifier, used to keep tracks together even if composer is missing from some, but on the other hand
+				# still distinguishing between works with the same name but different composer!
 				$currentComposer = $track->{composer}->{name};
+				if ( $workId eq $lastwork && (!$lastComposer || !$currentComposer || $lastComposer eq $currentComposer) ) {
+					# Stick with the previous value! ($worksWorkId = $worksWorkId;) 
+				} elsif ( $currentComposer ) {
+					$worksWorkId = $displayWorkId;
+				} else {
+					$worksWorkId = $workId;
+				}
 
-				if ( !$works->{$workId} ) {
-					$works->{$workId} = {   # create a new work object
+				# Extended Work ID: will usually not change, but we need to keep non-contiguous tracks from the same work
+				# separate if the user has chosen to integrate playlists with the work titles.				
+				$worksWorkIdE = $worksWorkId;					
+				if ( $workPlaylistPos eq "integrated" && $works->{$worksWorkId} ) {
+					if ( $worksWorkId ne $lastWorksWorkId ) {
+						$discontigWorks->{$worksWorkId} = $worksWorkId . $i;
+					}			
+					if ( $discontigWorks->{$worksWorkId} ) {
+						$worksWorkIdE = $discontigWorks->{$worksWorkId};
+					}
+				}
+					
+				if ( !$works->{$worksWorkIdE} ) {
+					$works->{$worksWorkIdE} = {   # create a new work object
 						index => $i,		# index of first track in the work
 						title => $formattedTrack->{displayWork},
 						tracks => []
 					} ;
-					$worksWorkId = $workId;
-				} elsif ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) {
-					$works->{$displayWorkId} = {   # create a new work object
-						index => $i,		# index of first track in the work
-						title => $formattedTrack->{displayWork},
-						tracks => []
-					} ;				
-					$worksWorkId = $displayWorkId;
 				}
 				
-				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {  # create a new work heading
+				# Create new work heading, except when the user has chosen integrated playlists - in that case
+				# the work-playlist headings will be spliced in later.
+				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {
 					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
-					};
+					} unless $workPlaylistPos eq "integrated";
 
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
@@ -1045,15 +1064,25 @@ sub QobuzGetTracks {
 					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
 				
-				push @{$works->{$worksWorkId}->{tracks}}, $formattedTrack;
+				push @{$works->{$worksWorkIdE}->{tracks}}, $formattedTrack if $works->{$worksWorkIdE};
 
+				
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
-					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
-					$works->{$workId}->{title} = $formattedTrack->{displayWork};
+					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present. 
+					if ( $workPlaylistPos ne "integrated" ) {
+						@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
+					}
+					$works->{$worksWorkIdE}->{title} = $formattedTrack->{displayWork};
 					$noComposer = 0;
 				}
 				
-				$lastComposer = $track->{composer}->{name} if $track->{composer}->{name};
+				# If we're using integrated playlists, save the work title to a temporary structure (including composer if possible -
+				# i.e. when there's a composer in at least one of the tracks in the work group).
+				if ( $workPlaylistPos eq "integrated" && (!$workComposer->{$worksWorkIdE}->{displayWork} || $track->{composer}->{name}) ) {
+					$workComposer->{$worksWorkIdE}->{displayWork} = $formattedTrack->{displayWork};
+				}
+				
+				$lastComposer = $track->{composer}->{name};
 				
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
@@ -1066,6 +1095,7 @@ sub QobuzGetTracks {
 			}
 
 			$i++;
+			$lastWorksWorkId = $worksWorkId;
 
 			push @$items, $formattedTrack;
 
@@ -1074,20 +1104,53 @@ sub QobuzGetTracks {
 		if (scalar keys %$works) {
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
-			if ( $worksfound ) {   # only proceed if a work with more than 1 contiguous track was found			
+			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
+				$i = 0;			
 				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 					my $workTracks = $works->{$work}->{tracks};
-					if ( scalar @$workTracks && scalar @$workTracks < $album->{tracks_count} ) {
-						push @workPlaylists, {
-							name => $works->{$work}->{title},
-							image => 'html/images/playlists.png',
-							type => 'playlist',
-							playall => 1,
-							url => \&QobuzWorkGetTracks,
-							passthrough => [{
-								tracks => $workTracks
-							}],
-							items => $workTracks
+					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
+						if ( $workPlaylistPos eq "integrated" ) {
+							# Add playlist as work heading (or just add as text if only one track in the work)
+							my $idx = $works->{$work}->{index} + $i;
+							my $workTrackCount = @$workTracks;
+							if ( $workTrackCount == 1 || $workTrackCount == $album->{tracks_count} ) {
+								if ( $worksfound ) {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										image => 'html/images/playlists.png',
+									};
+								} else {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										type => 'text',
+									}
+								}
+							} else {
+								splice @$items, $idx, 0, {
+									name => $workComposer->{$work}->{displayWork},
+									image => 'html/images/playlists.png',
+									type => 'playlist',
+									playall => 1,
+									url => \&QobuzWorkGetTracks,
+									passthrough => [{
+										tracks => $workTracks
+									}],
+									items => $workTracks
+								};
+							}
+							$i++;
+						} else {
+							push @workPlaylists, {
+								name => $works->{$work}->{title},
+								image => 'html/images/playlists.png',
+								type => 'playlist',
+								playall => 1,
+								url => \&QobuzWorkGetTracks,
+								passthrough => [{
+									tracks => $workTracks
+								}],
+								items => $workTracks
+							}
 						}
 					}
 				}
