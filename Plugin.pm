@@ -1339,6 +1339,7 @@ sub _trackItem {
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{name}      = '* ' . $item->{name};
 		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
