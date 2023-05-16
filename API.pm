@@ -705,9 +705,20 @@ sub _get {
 	}
 
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
-		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
-		$cb->($cached);
-		return;
+		my $refresh = 0;
+		if ( $cached->{release_date_stream} ) {
+			my $today = Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d");
+			if ( $cached->{release_date_stream} ge $today ) {
+				# remove from cache in case previous version of plugin had added it, then set flag to force re-retrieve from Qobuz
+				$refresh = 1;
+				$cache->remove($url);
+			}
+		}
+
+		if ( !$refresh ) {
+			$cb->($cached);
+			return;
+		}
 	}
 
 	Slim::Networking::SimpleAsyncHTTP->new(
@@ -720,7 +731,9 @@ sub _get {
 			main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i && $log->debug(Data::Dump::dump($result));
 
 			if ($result && !$params->{_nocache}) {
-				$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+				if ($result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) {
+					$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+				}
 			}
 
 			$cb->($result);
