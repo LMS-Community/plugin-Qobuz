@@ -705,6 +705,7 @@ sub _get {
 	}
 
 	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
+		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
 		my $refresh = 0;
 		if ( $cached->{release_date_stream} ) {
 			my $today = Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d");
