@@ -48,7 +48,7 @@ sub initGenreMap {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 2);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 3);
 }
 
 sub getSessionCacheKey {
