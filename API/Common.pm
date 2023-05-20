@@ -48,7 +48,7 @@ sub initGenreMap {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 2);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 3);
 }
 
 sub getSessionCacheKey {
@@ -108,7 +108,7 @@ sub _precacheAlbum {
 		foreach (qw(composer duration articles article_ids catchline
 			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
 			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
-			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_stream release_date_original
+			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_original
 			product_sales_factors_monthly product_sales_factors_weekly product_sales_factors_yearly))
 		{
 			delete $album->{$_};

@@ -969,17 +969,6 @@ sub QobuzGetTracks {
 			});
 			return;
 			
-		} elsif ($album->{released_at} > time ) {  # the album has not been released yet
-			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . Slim::Utils::DateTime::shortDateF($album->{released_at}) . ')',
-				type  => 'text'						
-			};
-			
-			$cb->({
-				items => $items,
-			}, @_ );
-			return;
-			
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
@@ -990,6 +979,13 @@ sub QobuzGetTracks {
 				items => $items,
 			}, @_ );
 			return;
+		}
+
+		if (!_isReleased($album) ) {
+			push @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $album->{release_date_stream} . ')',
+				type  => 'text'						
+			};
 		}
 		
 		my $totalDuration = my $i = 0;
@@ -1101,7 +1097,7 @@ sub QobuzGetTracks {
 
 		}
 
-		if (scalar keys %$works) {
+		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
@@ -1213,7 +1209,7 @@ sub QobuzGetTracks {
 			}
 
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . Slim::Utils::DateTime::shortDateF($album->{released_at}),
+				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $album->{release_date_stream},
 				type  => 'text'
 			};
 
@@ -1321,7 +1317,7 @@ sub _albumItem {
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
-	if ( $album->{released_at} > time || !$album->{streamable}) {
+	if (!$album->{streamable} || !_isReleased($album) ) {
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
 	} else {	
@@ -1423,18 +1419,13 @@ sub _trackItem {
 	if ( $track->{album} ) {
 		$item->{year} = $track->{album}->{year} || (localtime($track->{album}->{released_at}))[5] + 1900 || 0;
 	}
-
-	if ($track->{released_at} > time) {
-		$item->{items} = [{
-			name => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED'),
-			type => 'textarea'
-		}];
-	}
-	elsif (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
+	
+	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{name}      = '* ' . $item->{name};
 		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
@@ -1784,5 +1775,19 @@ sub _imgProxy { if (CAN_IMAGEPROXY) {
 
 	return $url;
 } }
+
+sub _isReleased {  # determine if the referenced album has been released
+	my ($album) = @_;
+	my $ltime = time;
+	# only check date field if the release date is within +/- 14 hours of now
+	if ($ltime > ($album->{released_at} + 50400)) {
+		return 1;
+	} elsif ($ltime < ($album->{released_at} - 50400)) {
+		return 0;
+	} else {  # check the local date
+		my $ldate = Slim::Utils::DateTime::shortDateF($ltime, "%Y-%m-%d");
+		return ($ldate ge $album->{release_date_stream});
+	}
+}
 
 1;
