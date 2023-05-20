@@ -297,7 +297,12 @@ sub getMetadataFor {
 			$meta->{title} =  (split " ", $meta->{composer})[-1] . string('COLON') . ' ' . $meta->{title};
 		}
 	}
-	
+
+	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it. 
+	if ( ref $meta->{genre} ne "" ) {
+		$meta->{genre} = $meta->{genre}->{name};
+	}
+
 	return $meta;
 }
 
