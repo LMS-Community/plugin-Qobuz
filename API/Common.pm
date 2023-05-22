@@ -91,9 +91,8 @@ sub filterPlayables {
 
 	return $items if $prefs->get('playSamples');
 
-	my $t = time;
 	return [ grep {
-		($_->{released_at} ? $_->{released_at} <= $t : 1) && $_->{streamable};
+		!$_->{released_at} || $_->{streamable};  # allow all tracks and streamable albums
 	} @$items ];
 }
 
@@ -130,7 +129,7 @@ sub _precacheAlbum {
 			id     => $album->{id},
 			artist => $album->{artist},
 			image  => $album->{image},
-			year   => (localtime($album->{released_at}))[5] + 1900,
+			year   => substr($album->{release_date_stream},0,4),
 			goodies=> $album->{goodies},
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
@@ -186,7 +185,7 @@ sub precacheTrack {
 		performers => $track->{performers} || '',
 		cover    => $album->{image},
 		duration => $track->{duration} || 0,
-		year     => $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0,
+		year     => $album->{year} || substr($album->{release_date_stream},0,4) || 0,
 		goodies  => $album->{goodies},
 		version  => $track->{version},
 		work     => $track->{work},

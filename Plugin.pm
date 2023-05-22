@@ -5,6 +5,7 @@ use base qw(Slim::Plugin::OPMLBased);
 
 use JSON::XS::VersionOneAndTwo;
 use Tie::RegexpHash;
+use POSIX qw(strftime);
 
 use Slim::Formats::RemoteMetadata;
 use Slim::Player::ProtocolHandlers;
@@ -982,8 +983,10 @@ sub QobuzGetTracks {
 		}
 
 		if (!_isReleased($album) ) {
+			my @dt = split(/-/, $album->{release_date_stream});
+			my $rDate = strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $album->{release_date_stream} . ')',
+				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $rDate . ')',
 				type  => 'text'						
 			};
 		}
@@ -1125,8 +1128,10 @@ sub QobuzGetTracks {
 				push @$items, $item;
 			}
 
+			my @dt = split(/-/, $album->{release_date_stream});
+			my $rDate = strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
 			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $album->{release_date_stream},
+				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $rDate,
 				type  => 'text'
 			};
 
@@ -1210,7 +1215,7 @@ sub _albumItem {
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
-	my $albumYear = $showYearWithAlbum ? $album->{year} || (localtime($album->{released_at}))[5] + 1900 || 0 : 0;
+	my $albumYear = $showYearWithAlbum ? $album->{year} || substr($album->{release_date_stream},0,4) || 0 : 0;
 
 	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
@@ -1331,7 +1336,7 @@ sub _trackItem {
 	}
 
 	if ( $track->{album} ) {
-		$item->{year} = $track->{album}->{year} || (localtime($track->{album}->{released_at}))[5] + 1900 || 0;
+		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
 	
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
