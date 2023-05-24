@@ -983,8 +983,7 @@ sub QobuzGetTracks {
 		}
 
 		if (!_isReleased($album) ) {
-			my @dt = split(/-/, $album->{release_date_stream});
-			my $rDate = strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
+			my $rDate = _localDate($album->{release_date_stream});
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $rDate . ')',
 				type  => 'text'						
@@ -1128,8 +1127,7 @@ sub QobuzGetTracks {
 				push @$items, $item;
 			}
 
-			my @dt = split(/-/, $album->{release_date_stream});
-			my $rDate = strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
+			my $rDate = _localDate($album->{release_date_stream});
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $rDate,
 				type  => 'text'
@@ -1707,6 +1705,12 @@ sub _isReleased {  # determine if the referenced album has been released
 		my $ldate = Slim::Utils::DateTime::shortDateF($ltime, "%Y-%m-%d");
 		return ($ldate ge $album->{release_date_stream});
 	}
+}
+
+sub _localDate {  # convert input date string in format YYYY-MM-DD to localized short date format
+	my $iDate = shift;
+	my @dt = split(/-/, $iDate);
+	return strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
 }
 
 1;
