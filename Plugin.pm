@@ -988,7 +988,8 @@ sub QobuzGetTracks {
 			};
 		}
 		
-		my $totalDuration = my $i = 0;
+		my $totalDuration = 0;
+		my $trackNumber = 0;
 		my $works = {};
 		my $lastwork = "";
 		my $worksfound = 0;
@@ -1031,7 +1032,7 @@ sub QobuzGetTracks {
 				$worksWorkIdE = $worksWorkId;					
 				if ( $workPlaylistPos eq "integrated" && $works->{$worksWorkId} ) {
 					if ( $worksWorkId ne $lastWorksWorkId ) {
-						$discontigWorks->{$worksWorkId} = $worksWorkId . $i;
+						$discontigWorks->{$worksWorkId} = $worksWorkId . $trackNumber;
 					}			
 					if ( $discontigWorks->{$worksWorkId} ) {
 						$worksWorkIdE = $discontigWorks->{$worksWorkId};
@@ -1040,7 +1041,7 @@ sub QobuzGetTracks {
 					
 				if ( !$works->{$worksWorkIdE} ) {
 					$works->{$worksWorkIdE} = {   # create a new work object
-						index => $i,		# index of first track in the work
+						index => $trackNumber,		# index of first track in the work
 						title => $formattedTrack->{displayWork},
 						tracks => []
 					} ;
@@ -1082,7 +1083,7 @@ sub QobuzGetTracks {
 				
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
-					name  => "————————",
+					name  => "--------",
 					type  => 'text'
 				};
 
@@ -1090,7 +1091,7 @@ sub QobuzGetTracks {
 				$noComposer = 0;
 			}
 
-			$i++;
+			$trackNumber++;
 			$lastWorksWorkId = $worksWorkId;
 
 			push @$items, $formattedTrack;
@@ -1101,13 +1102,13 @@ sub QobuzGetTracks {
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
-				$i = 0;			
+				my $workNumber = 0;			
 				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 					my $workTracks = $works->{$work}->{tracks};
 					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
 						if ( $workPlaylistPos eq "integrated" ) {
 							# Add playlist as work heading (or just add as text if only one track in the work)
-							my $idx = $works->{$work}->{index} + $i;
+							my $idx = $works->{$work}->{index} + $workNumber;
 							my $workTrackCount = @$workTracks;
 							if ( $workTrackCount == 1 || $workTrackCount == $album->{tracks_count} ) {
 								if ( $worksfound ) {
@@ -1124,7 +1125,7 @@ sub QobuzGetTracks {
 							} else {
 								splice @$items, $idx, 0, {
 									name => $workComposer->{$work}->{displayWork},
-									image => 'html/images/playlists.png',
+									image => 'html/images/playall.png',
 									type => 'playlist',
 									playall => 1,
 									url => \&QobuzWorkGetTracks,
@@ -1134,11 +1135,11 @@ sub QobuzGetTracks {
 									items => $workTracks
 								};
 							}
-							$i++;
+							$workNumber++;
 						} else {
 							push @workPlaylists, {
 								name => $works->{$work}->{title},
-								image => 'html/images/playlists.png',
+								image => 'html/images/playall.png',
 								type => 'playlist',
 								playall => 1,
 								url => \&QobuzWorkGetTracks,
@@ -1415,7 +1416,7 @@ sub _trackItem {
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
-
+	
 	if ( $track->{album} ) {
 		$item->{year} = $track->{album}->{year} || (localtime($track->{album}->{released_at}))[5] + 1900 || 0;
 	}

@@ -396,7 +396,7 @@ PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_INTEGRATED
 	EN	Integrate with work headings
 	DE	Mit Werktiteln integrieren
-	NL	integreren met werktitels
+	NL	Integreren met werktitels
 	
 PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	EN	Album not found in the Qobuz library

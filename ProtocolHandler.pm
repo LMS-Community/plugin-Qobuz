@@ -273,7 +273,6 @@ sub getMetadataFor {
 
 	# user pref is for enhanced classical music display, and we have a classical release (this is where playlist track titles is set up)
 	if ( $meta->{isClassique} ) {
-		my $composerSurname;
 		# if the title doesn't already contain the work text
 		if ( $meta->{work} && index($meta->{title},$meta->{work}) == -1 ) {
 			# remove composer name from track title
@@ -281,7 +280,7 @@ sub getMetadataFor {
 				# full name
 				$meta->{title} =~ s/\Q$meta->{composer}\E:\s*//;
 				# surname only
-				$composerSurname = (split " ", $meta->{composer})[-1];
+				my $composerSurname = (split " ", $meta->{composer})[-1];
 				$meta->{title} =~ s/\Q$composerSurname\E:\s*//;
 			}
 			
@@ -294,10 +293,10 @@ sub getMetadataFor {
 			}
 		}
 		
-		# Prepend composer surname to title unless it's at the beginning the work/title (code above only strips out composer+COLON
-		# and we've found tracks with the composer name in the body of the title - we should still prepend composer to these.
+		# Prepend composer surname to title unless it's at the beginning of the work/title (code above only strips out composer+COLON
+		# and tracks exist where the composer name in the body of the title - we should still prepend composer to these.
 		if ( $meta->{composer} ) {
-			$composerSurname = (split " ", $meta->{composer})[-1];
+			my $composerSurname = (split " ", $meta->{composer})[-1];
 			if ( !($meta->{title} =~ /^\Q$meta->{composer}\E/ || $meta->{title} =~ /^\Q$composerSurname\E/) ) {
 				$meta->{title} =  $composerSurname . string('COLON') . ' ' . $meta->{title};
 			}
