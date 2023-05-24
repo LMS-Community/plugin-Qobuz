@@ -990,13 +990,21 @@ sub QobuzGetTracks {
 			};
 		}
 		
-		my $totalDuration = my $i = 0;
+		my $totalDuration = 0;
+		my $trackNumber = 0;
 		my $works = {};
 		my $lastwork = "";
 		my $worksfound = 0;
 		my $noComposer = 0;
 		my $workHeadingPos = 0;
 		my $workPlaylistPos = $prefs->get('workPlaylistPosition');
+		my $currentComposer = "";
+		my $lastComposer = "";
+		my $worksWorkId = "";
+		my $worksWorkIdE = "";
+		my $lastWorksWorkId = "";
+		my $discontigWorks;
+		my $workComposer;
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
@@ -1007,35 +1015,77 @@ sub QobuzGetTracks {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
 				$workId =~ s/\s//g;
+				my $displayWorkId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($formattedTrack->{displayWork}));
+				$displayWorkId =~ s/\s//g;
 
-				$works->{$workId} = {   # create a new work object
-					index => $i,		# index of first track in the work
-					title => $formattedTrack->{displayWork},
-					tracks => []
-				} unless $works->{$workId};
+				# Unique work identifier, used to keep tracks together even if composer is missing from some, but on the other hand
+				# still distinguishing between works with the same name but different composer!
+				$currentComposer = $track->{composer}->{name};
+				if ( $workId eq $lastwork && (!$lastComposer || !$currentComposer || $lastComposer eq $currentComposer) ) {
+					# Stick with the previous value! ($worksWorkId = $worksWorkId;) 
+				} elsif ( $currentComposer ) {
+					$worksWorkId = $displayWorkId;
+				} else {
+					$worksWorkId = $workId;
+				}
 
-				if ($workId ne $lastwork) {  # create a new work heading
+				# Extended Work ID: will usually not change, but we need to keep non-contiguous tracks from the same work
+				# separate if the user has chosen to integrate playlists with the work titles.				
+				$worksWorkIdE = $worksWorkId;					
+				if ( $workPlaylistPos eq "integrated" && $works->{$worksWorkId} ) {
+					if ( $worksWorkId ne $lastWorksWorkId ) {
+						$discontigWorks->{$worksWorkId} = $worksWorkId . $trackNumber;
+					}			
+					if ( $discontigWorks->{$worksWorkId} ) {
+						$worksWorkIdE = $discontigWorks->{$worksWorkId};
+					}
+				}
+					
+				if ( !$works->{$worksWorkIdE} ) {
+					$works->{$worksWorkIdE} = {   # create a new work object
+						index => $trackNumber,		# index of first track in the work
+						title => $formattedTrack->{displayWork},
+						tracks => []
+					} ;
+				}
+				
+				# Create new work heading, except when the user has chosen integrated playlists - in that case
+				# the work-playlist headings will be spliced in later.
+				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {
 					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
-					};
+					} unless $workPlaylistPos eq "integrated";
 
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
 				} else {
 					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
+				
+				push @{$works->{$worksWorkIdE}->{tracks}}, $formattedTrack if $works->{$worksWorkIdE};
 
-				push @{$works->{$workId}->{tracks}}, $formattedTrack;
-
+				
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
-					@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
-					$works->{$workId}->{title} = $formattedTrack->{displayWork};
+					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present. 
+					if ( $workPlaylistPos ne "integrated" ) {
+						@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
+					}
+					$works->{$worksWorkIdE}->{title} = $formattedTrack->{displayWork};
 					$noComposer = 0;
 				}
+				
+				# If we're using integrated playlists, save the work title to a temporary structure (including composer if possible -
+				# i.e. when there's a composer in at least one of the tracks in the work group).
+				if ( $workPlaylistPos eq "integrated" && (!$workComposer->{$worksWorkIdE}->{displayWork} || $track->{composer}->{name}) ) {
+					$workComposer->{$worksWorkIdE}->{displayWork} = $formattedTrack->{displayWork};
+				}
+				
+				$lastComposer = $track->{composer}->{name};
+				
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
-					name  => "————————",
+					name  => "--------",
 					type  => 'text'
 				};
 
@@ -1043,7 +1093,8 @@ sub QobuzGetTracks {
 				$noComposer = 0;
 			}
 
-			$i++;
+			$trackNumber++;
+			$lastWorksWorkId = $worksWorkId;
 
 			push @$items, $formattedTrack;
 
@@ -1052,20 +1103,53 @@ sub QobuzGetTracks {
 		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
-			if ( $worksfound ) {   # only proceed if a work with more than 1 contiguous track was found			
+			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
+				my $workNumber = 0;			
 				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 					my $workTracks = $works->{$work}->{tracks};
-					if ( scalar @$workTracks && scalar @$workTracks < $album->{tracks_count} ) {
-						push @workPlaylists, {
-							name => $works->{$work}->{title},
-							image => 'html/images/playlists.png',
-							type => 'playlist',
-							playall => 1,
-							url => \&QobuzWorkGetTracks,
-							passthrough => [{
-								tracks => $workTracks
-							}],
-							items => $workTracks
+					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
+						if ( $workPlaylistPos eq "integrated" ) {
+							# Add playlist as work heading (or just add as text if only one track in the work)
+							my $idx = $works->{$work}->{index} + $workNumber;
+							my $workTrackCount = @$workTracks;
+							if ( $workTrackCount == 1 || $workTrackCount == $album->{tracks_count} ) {
+								if ( $worksfound ) {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										image => 'html/images/playlists.png',
+									};
+								} else {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										type => 'text',
+									}
+								}
+							} else {
+								splice @$items, $idx, 0, {
+									name => $workComposer->{$work}->{displayWork},
+									image => 'html/images/playall.png',
+									type => 'playlist',
+									playall => 1,
+									url => \&QobuzWorkGetTracks,
+									passthrough => [{
+										tracks => $workTracks
+									}],
+									items => $workTracks
+								};
+							}
+							$workNumber++;
+						} else {
+							push @workPlaylists, {
+								name => $works->{$work}->{title},
+								image => 'html/images/playall.png',
+								type => 'playlist',
+								playall => 1,
+								url => \&QobuzWorkGetTracks,
+								passthrough => [{
+									tracks => $workTracks
+								}],
+								items => $workTracks
+							}
 						}
 					}
 				}
@@ -1313,26 +1397,29 @@ sub _trackItem {
 		if ( $track->{work} ) {
 			$item->{work} = $track->{work};
 		} else {
-			# Try to extract the work from the title
+			# Try to set work to the title, but without composer if it's in there
 			if ( $track->{composer}->{name} && $track->{title} ) {
 				my @titleSplit = split /:\s*/, $track->{title};
-				if ( index($track->{composer}->{name}, $titleSplit[0]) == -1 ) {
-					$item->{work} = $titleSplit[0];
-				} elsif ( $titleSplit[1] ) {
-					$item->{work} = $titleSplit[1];
+				$item->{work} = $track->{title};
+				if ( index($track->{composer}->{name}, $titleSplit[0]) != -1 ) {
+					$item->{work} =~ s/\Q$titleSplit[0]\E:\s*//;
 				}
 			}
+			# try to remove the title (ie track, movement) from the work
+			my @titleSplit = split /:\s*/, $track->{title};
+			my $tempTitle = @titleSplit[-1];
+			$item->{work} =~ s/:\s*\Q$tempTitle\E//;
 			$item->{line1} =~ s/\Q$item->{work}\E://;
 		}
 		$item->{displayWork} = $item->{work};
-		$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work} if ($track->{composer}->{name});
 		if ( $track->{composer}->{name} ) {
+			$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work};
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
 			$item->{line1} =~ s/\Q$composerSurname\E://;
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
-
+	
 	if ( $track->{album} ) {
 		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
