@@ -85,6 +85,11 @@
 			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
 			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>
 		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_USE_REPLAY_GAIN" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_useReplayGain %]checked [% END %] class="stdedit" name="pref_useReplayGain" id="pref_useReplayGain" value="1" />
+			<label for="pref_useReplayGain" class="stdlabel">[% "PLUGIN_QOBUZ_USE_REPLAY_GAIN_DESC" | string %]</label>
+		[% END %]
 	[% END %]
 
 [% PROCESS settings/footer.html %]

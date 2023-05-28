@@ -156,6 +156,22 @@ sub canDirectStreamSong {
 	return $class->SUPER::canDirectStream( $client, $song->streamUrl() );
 }
 
+# Optionally override replaygain to use the supplied gain value
+sub trackGain {
+	my ( $class, $client, $url ) = @_;
+
+	if (!$prefs->get('useReplayGain')) {
+		return 0;
+	}
+	
+	my $meta = $class->getMetadataFor($client, $url);
+	my $gain = $meta->{replay_gain} || 0;
+	
+	main::INFOLOG && $log->info("Using replaygain value of $gain for Qobuz track");
+	
+	return $gain;
+}
+
 # parseHeaders is used for proxied streaming
 sub parseHeaders {
 	my ( $self, @headers ) = @_;
@@ -201,9 +217,9 @@ sub parseDirectHeaders {
 	my $meta = $class->getMetadataFor($client, $url);
 	my $duration = $meta->{duration};
 
-	# sometimes we only get a 60s/mp3 sample
+	# sometimes we only get a 30s/mp3 sample
 	if ($meta->{streamable} && $meta->{streamable} eq 'sample' && $contentType eq 'mp3') {
-		$duration = 60;
+		$duration = 30;
 	}
 
 	$song->duration($duration);
