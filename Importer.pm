@@ -349,7 +349,7 @@ sub _prepareTrack {
 		DISC         => $track->{media_number},
 		DISCC        => $album->{media_count},
 		SECS         => $track->{duration},
-		YEAR         => (localtime($album->{released_at}))[5] + 1900,
+		YEAR         => substr($album->{release_date_stream},0,4),
 		COVER        => $album->{image},
 		AUDIO        => 1,
 		EXTID        => $url,

@@ -198,10 +198,10 @@ PLUGIN_QOBUZ_PLAY_SAMPLES
 	NL	Sample afspelen
 
 PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
-	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 60-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
-	EN	Some tracks are not available for streaming. Should the 60 seconds sample be played instead? These titles will be labeled with an asterisk (*).
-	FR	Certains albums sont uniquement disponibles à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez-vous écouter des extraits de 60 secondes ?
-	NL	Sommige nummers zijn niet beschikbaar voor streaming. In plaats daarvan kan een sample van 60 seconden worden gespeeld. Deze worden aangegeven met een asterisk (*).
+	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 30-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
+	EN	Some tracks are not available for streaming. Should the 30-second sample be played instead? These titles will be labeled with an asterisk (*).
+	FR	Certains albums sont uniquement disponibles à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez-vous écouter des extraits de 30 secondes ?
+	NL	Sommige nummers zijn niet beschikbaar voor streaming. In plaats daarvan kan een sample van 30 seconden worden gespeeld. Deze worden aangegeven met een asterisk (*).
 
 PLUGIN_QOBUZ_LABEL_HIRES
 	DE	Hi-Res Alben als solche markieren
