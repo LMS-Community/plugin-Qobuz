@@ -245,7 +245,7 @@ sub handleFeed {
 	  			}
 
 				unshift @$items, {
-					name  => 'New Search',
+					name  => cstring($client, 'QOBUZ_NEW_SEARCH'),
 					type  => 'search',
 					url  => sub {
 						my ($client, $cb, $params) = @_;
@@ -1847,7 +1847,7 @@ sub addRecentSearch {
 
 	push @$list, $search;
 
-	$list = [ @$list[(-1 * MAX_RECENT)..-1] ] if scalar @$list > MAX_RECENT;
+	shift(@$list) while scalar @$list > MAX_RECENT;
 
 	$prefs->set( 'qobuz_recent_search', $list );
 	main::DEBUGLOG && $log->is_debug && $log->debug("--addRecentSearch");
@@ -1878,7 +1878,7 @@ sub _recentSearchesCLI {
 
 	if (defined $request->getParam('deleteMenu')) {
 		push @$items,
-		  {
+		{
 			text => cstring($client, 'DELETE') . cstring($client, 'COLON') . ' "' . ($list->[$del] || '') . '"',
 			actions => {
 				go => {
@@ -1890,9 +1890,9 @@ sub _recentSearchesCLI {
 				},
 			},
 			nextWindow => 'parent',
-		  },
-		  {
-			text => 'Clear search history',
+		},
+		{
+			text => cstring($client, 'QOBUZ_CLEAR_SEARCH_HISTORY'),
 			actions => {
 				go => {
 					player => 0,
@@ -1903,14 +1903,14 @@ sub _recentSearchesCLI {
 				}
 			},
 			nextWindow => 'grandParent',
-		  };
+		};
 
 		$request->addResult('offset', 0);
 		$request->addResult('count', scalar @$items);
 		$request->addResult('item_loop', $items);
-	}elsif ($request->getParam('deleteAll')) {
+	} elsif ($request->getParam('deleteAll')) {
 		$prefs->set( 'qobuz_recent_search', [] );
-	}elsif (defined $request->getParam('delete')) {
+	} elsif (defined $request->getParam('delete')) {
 		splice(@$list, $del, 1);
 		$prefs->set( 'qobuz_recent_search', $list );
 	}
