@@ -308,7 +308,9 @@ sub _get {
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($result));
 
 		if ($result && !$params->{_nocache}) {
-			$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+			if ( !($params->{album_id}) || ( $result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) ) {
+				$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+			}
 		}
 
 		return $result;
