@@ -245,7 +245,7 @@ sub handleFeed {
 	  			}
 
 				unshift @$items, {
-					name  => cstring($client, 'QOBUZ_NEW_SEARCH'),
+					name  => cstring($client, 'PLUGIN_QOBUZ_NEW_SEARCH'),
 					type  => 'search',
 					url  => sub {
 						my ($client, $cb, $params) = @_;
@@ -1892,7 +1892,7 @@ sub _recentSearchesCLI {
 			nextWindow => 'parent',
 		},
 		{
-			text => cstring($client, 'QOBUZ_CLEAR_SEARCH_HISTORY'),
+			text => cstring($client, 'PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY'),
 			actions => {
 				go => {
 					player => 0,

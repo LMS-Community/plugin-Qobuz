@@ -404,14 +404,14 @@ PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	NL	Album niet gevonden in de Qobuz bibliotheek
 	FR	Album introuvable dans la bibliothèque Qobuz
 	
-QOBUZ_CLEAR_SEARCH_HISTORY
+PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY
 	EN	Clear search history
 	DE	Suchverlauf löschen
 	NL	Verwijder zoekgeschiedenis
 	FR	Effacer l'historique
 	ES	Limpiar historial de búsqueda
 
-QOBUZ_NEW_SEARCH
+PLUGIN_QOBUZ_NEW_SEARCH
 	EN	New search
 	DE	Neue Suche
 	NL	Nieuwe zoekopdracht
