@@ -19,6 +19,7 @@ use Plugins::Qobuz::ProtocolHandler;
 
 use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
 use constant CLICOMMAND => 'qobuzquery';
+use constant MAX_RECENT => 30;
 
 # Keep in sync with Music & Artist Information plugin
 my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control)\b/i;
@@ -125,6 +126,7 @@ sub initPlugin {
 
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	Slim::Control::Request::addDispatch(['qobuz', 'addalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
+	Slim::Control::Request::addDispatch(['qobuz','recentsearches'],[0, 0, 1, \&_recentSearchesCLI]);
 
 	# "Local Artwork" requires LMS 7.8+, as it's using its imageproxy.
 	if (CAN_IMAGEPROXY) {
@@ -213,18 +215,53 @@ sub handleFeed {
 		items => ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? [{
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
-			type => 'search',
+			type => 'link',
 			url  => sub {
 				my ($client, $cb, $params) = @_;
+				my $items = [];
 
-				my $menu = searchMenu($client, {
-					search => lc($params->{search})
-				});
+				my $i = 0;
+				for my $recent ( @{ $prefs->get('qobuz_recent_search') || [] } ) {
+					unshift @$items, {
+						name  => $recent,
+						type  => 'link',
+						url  => sub {
+							my ($client, $cb, $params) = @_;
+							my $menu = searchMenu($client, {
+								search => lc($recent)
+							});
+							$cb->({
+								items => $menu->{items}
+							});
+						},
+						itemActions => {
+							info => {
+								command     => ['qobuz', 'recentsearches'],
+								fixedParams => { deleteMenu => $i++ },
+							},
+						},
+						passthrough => [ { type => 'search' } ],
+		  			};
+	  			}
 
-				$cb->({
-					items => $menu->{items}
-				});
-			}
+				unshift @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_NEW_SEARCH'),
+					type  => 'search',
+					url  => sub {
+						my ($client, $cb, $params) = @_;
+						addRecentSearch($params->{search});
+						my $menu = searchMenu($client, {
+							search => lc($params->{search})
+						});
+						$cb->({
+							items => $menu->{items}
+						});
+					},
+					passthrough => [ { type => 'search' } ],
+	  			};
+
+				$cb->({ items => $items });
+			},
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
 			url  => \&QobuzUserPurchases,
@@ -1798,6 +1835,89 @@ sub _localDate {  # convert input date string in format YYYY-MM-DD to localized 
 	my $iDate = shift;
 	my @dt = split(/-/, $iDate);
 	return strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
+}
+
+sub addRecentSearch {
+	my $search = shift;
+	main::DEBUGLOG && $log->is_debug && $log->debug("++addRecentSearch");
+
+	my $list = $prefs->get('qobuz_recent_search') || [];
+
+	$list = [ grep { $_ ne $search } @$list ];
+
+	push @$list, $search;
+
+	shift(@$list) while scalar @$list > MAX_RECENT;
+
+	$prefs->set( 'qobuz_recent_search', $list );
+	main::DEBUGLOG && $log->is_debug && $log->debug("--addRecentSearch");
+	return;
+}
+
+sub _recentSearchesCLI {
+	my $request = shift;
+	my $client = $request->client;
+	main::DEBUGLOG && $log->is_debug && $log->debug("++_recentSearchesCLI");
+
+	# check this is the correct command.
+	if ($request->isNotCommand([['qobuz'], ['recentsearches']])) {
+		$request->setStatusBadDispatch();
+		return;
+	}
+
+	my $list = $prefs->get('qobuz_recent_search') || [];
+	my $del = $request->getParam('deleteMenu') || $request->getParam('delete') || 0;
+
+	if (!scalar @$list || $del >= scalar @$list) {
+		$log->error('Search item to delete is outside the history list!');
+		$request->setStatusBadParams();
+		return;
+	}
+
+	my $items = [];
+
+	if (defined $request->getParam('deleteMenu')) {
+		push @$items,
+		{
+			text => cstring($client, 'DELETE') . cstring($client, 'COLON') . ' "' . ($list->[$del] || '') . '"',
+			actions => {
+				go => {
+					player => 0,
+					cmd    => ['qobuz', 'recentsearches' ],
+					params => {
+						delete => $del
+					},
+				},
+			},
+			nextWindow => 'parent',
+		},
+		{
+			text => cstring($client, 'PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY'),
+			actions => {
+				go => {
+					player => 0,
+					cmd    => ['qobuz', 'recentsearches' ],
+					params => {
+						deleteAll => 1
+					},
+				}
+			},
+			nextWindow => 'grandParent',
+		};
+
+		$request->addResult('offset', 0);
+		$request->addResult('count', scalar @$items);
+		$request->addResult('item_loop', $items);
+	} elsif ($request->getParam('deleteAll')) {
+		$prefs->set( 'qobuz_recent_search', [] );
+	} elsif (defined $request->getParam('delete')) {
+		splice(@$list, $del, 1);
+		$prefs->set( 'qobuz_recent_search', $list );
+	}
+
+	$request->setStatusDone;
+	main::DEBUGLOG && $log->is_debug && $log->debug("--_recentSearchesCLI");
+	return;
 }
 
 1;
