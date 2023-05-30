@@ -22,7 +22,7 @@ sub page {
 sub prefs {
 	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums', 'dontImportPurchases', 
 			'appendVersionToTitle', 'sortFavsAlphabetically', 'sortArtistAlbums', 'showYearWithAlbum', 'useClassicalEnhancements', 
-			'classicalGenres','workPlaylistPosition','useReplayGain');
+			'classicalGenres','workPlaylistPosition');
 }
 
 sub handler {
@@ -47,7 +47,6 @@ sub handler {
 		$params->{pref_filterSearchResults} ||= 0;
 		$params->{pref_playSamples} ||= 0;
 		$params->{pref_dontImportPurchases} ||= 0;
-		$params->{pref_useReplayGain} ||= 0;
 	}
 
 	# This puts the value on the webpage.

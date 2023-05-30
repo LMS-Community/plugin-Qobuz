@@ -403,15 +403,3 @@ PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	DE	Album nicht in der Qobuz-Bibliothek gefunden
 	NL	Album niet gevonden in de Qobuz bibliotheek
 	FR	Album introuvable dans la bibliothèque Qobuz
-
-PLUGIN_QOBUZ_USE_REPLAY_GAIN
-	EN	Use replay gain
-	DE	Nutzen Sie den Wiederholungsgewinn
-	NL	Gebruik herhalingsversterking
-	FR	Utiliser le gain de relecture
-
-PLUGIN_QOBUZ_USE_REPLAY_GAIN_DESC
-	EN	Use Qobuz replay gain values for each track.
-	DE	Verwenden Sie die Qobuz-Replay-Gain-Werte für jeden Titel.
-	NL	Gebruik Qobuz replay-versterkingswaarden voor elke track.
-	FR	Utiliser les valeurs de gain de relecture Qobuz pour chaque piste.

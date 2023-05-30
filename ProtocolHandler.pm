@@ -156,22 +156,6 @@ sub canDirectStreamSong {
 	return $class->SUPER::canDirectStream( $client, $song->streamUrl() );
 }
 
-# Optionally override replaygain to use the supplied gain value
-sub trackGain {
-	my ( $class, $client, $url ) = @_;
-
-	if (!$prefs->get('useReplayGain')) {
-		return 0;
-	}
-	
-	my $meta = $class->getMetadataFor($client, $url);
-	my $gain = $meta->{replay_gain} || 0;
-	
-	main::INFOLOG && $log->info("Using replaygain value of $gain for Qobuz track");
-	
-	return $gain;
-}
-
 # parseHeaders is used for proxied streaming
 sub parseHeaders {
 	my ( $self, @headers ) = @_;
@@ -233,6 +217,8 @@ sub parseDirectHeaders {
 		$client->currentPlaylistUpdateTime( Time::HiRes::time() );
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 	}
+	
+	$song->track->setAttributes($meta);  # This change allows replay gain to be done by LMS
 
 	Plugins::Qobuz::Reporting->startStreaming($client);
 

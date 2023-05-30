@@ -194,8 +194,13 @@ sub precacheTrack {
 		isClassique => $isClassique,
 	};
 
-	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {
-		$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+	if ($track->{audio_info}) {
+		if (defined $track->{audio_info}->{replaygain_track_gain}) {
+			$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+		}
+		if (defined $track->{audio_info}->{replaygain_track_peak}) {
+			$meta->{replay_peak} = $track->{audio_info}->{replaygain_track_peak};
+		}
 	}
 
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));

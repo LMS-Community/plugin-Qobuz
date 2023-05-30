@@ -41,7 +41,6 @@ $prefs->init({
 	dontImportPurchases => 1,
 	classicalGenres => '',
 	useClassicalEnhancements => 1,
-	useReplayGain => 0,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
