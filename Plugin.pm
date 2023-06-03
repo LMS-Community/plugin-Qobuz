@@ -22,7 +22,7 @@ use constant CLICOMMAND => 'qobuzquery';
 use constant MAX_RECENT => 30;
 
 # Keep in sync with Music & Artist Information plugin
-my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control)\b/i;
+my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control|Squeezer|OpenSqueeze)\b/i;
 my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
 
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
@@ -986,9 +986,9 @@ sub QobuzGetTracks {
 
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_ALBUM_NOT_FOUND'),
-					type  => 'text'						
+					type  => 'text'
 				};
-				
+
 				if ($isFavorite) {  # if it's an orphaned favorite, let the user delete it
 					push @$items, {
 						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE', $albumTitle),
@@ -1000,19 +1000,19 @@ sub QobuzGetTracks {
 						nextWindow => 'parent'
 					};
 				}
-				
+
 				$cb->({
 					items => $items,
 				}, @_ );
 			});
 			return;
-			
+
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
-				type  => 'text'						
+				type  => 'text'
 			};
-			
+
 			$cb->({
 				items => $items,
 			}, @_ );
@@ -1023,10 +1023,10 @@ sub QobuzGetTracks {
 			my $rDate = _localDate($album->{release_date_stream});
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $rDate . ')',
-				type  => 'text'						
+				type  => 'text'
 			};
 		}
-		
+
 		my $totalDuration = 0;
 		my $trackNumber = 0;
 		my $works = {};
@@ -1047,7 +1047,7 @@ sub QobuzGetTracks {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
-			
+
 			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
@@ -1059,7 +1059,7 @@ sub QobuzGetTracks {
 				# still distinguishing between works with the same name but different composer!
 				$currentComposer = $track->{composer}->{name};
 				if ( $workId eq $lastwork && (!$lastComposer || !$currentComposer || $lastComposer eq $currentComposer) ) {
-					# Stick with the previous value! ($worksWorkId = $worksWorkId;) 
+					# Stick with the previous value! ($worksWorkId = $worksWorkId;)
 				} elsif ( $currentComposer ) {
 					$worksWorkId = $displayWorkId;
 				} else {
@@ -1067,17 +1067,17 @@ sub QobuzGetTracks {
 				}
 
 				# Extended Work ID: will usually not change, but we need to keep non-contiguous tracks from the same work
-				# separate if the user has chosen to integrate playlists with the work titles.				
-				$worksWorkIdE = $worksWorkId;					
+				# separate if the user has chosen to integrate playlists with the work titles.
+				$worksWorkIdE = $worksWorkId;
 				if ( $workPlaylistPos eq "integrated" && $works->{$worksWorkId} ) {
 					if ( $worksWorkId ne $lastWorksWorkId ) {
 						$discontigWorks->{$worksWorkId} = $worksWorkId . $trackNumber;
-					}			
+					}
 					if ( $discontigWorks->{$worksWorkId} ) {
 						$worksWorkIdE = $discontigWorks->{$worksWorkId};
 					}
 				}
-					
+
 				if ( !$works->{$worksWorkIdE} ) {
 					$works->{$worksWorkIdE} = {   # create a new work object
 						index => $trackNumber,		# index of first track in the work
@@ -1085,7 +1085,7 @@ sub QobuzGetTracks {
 						tracks => []
 					} ;
 				}
-				
+
 				# Create new work heading, except when the user has chosen integrated playlists - in that case
 				# the work-playlist headings will be spliced in later.
 				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {
@@ -1099,27 +1099,27 @@ sub QobuzGetTracks {
 				} else {
 					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
-				
+
 				push @{$works->{$worksWorkIdE}->{tracks}}, $formattedTrack if $works->{$worksWorkIdE};
 
-				
+
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
-					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present. 
+					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present.
 					if ( $workPlaylistPos ne "integrated" ) {
 						@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
 					}
 					$works->{$worksWorkIdE}->{title} = $formattedTrack->{displayWork};
 					$noComposer = 0;
 				}
-				
+
 				# If we're using integrated playlists, save the work title to a temporary structure (including composer if possible -
 				# i.e. when there's a composer in at least one of the tracks in the work group).
 				if ( $workPlaylistPos eq "integrated" && (!$workComposer->{$worksWorkIdE}->{displayWork} || $track->{composer}->{name}) ) {
 					$workComposer->{$worksWorkIdE}->{displayWork} = $formattedTrack->{displayWork};
 				}
-				
+
 				$lastComposer = $track->{composer}->{name};
-				
+
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
 					name  => "--------",
@@ -1141,7 +1141,7 @@ sub QobuzGetTracks {
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
-				my $workNumber = 0;			
+				my $workNumber = 0;
 				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 					my $workTracks = $works->{$work}->{tracks};
 					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
@@ -1361,16 +1361,16 @@ sub _albumItem {
 	if (!$album->{streamable} || !_isReleased($album) ) {
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
-	} else {	
+	} else {
 		$item->{type}        = 'playlist';
 	}
-	
+
 	$item->{url}         = \&QobuzGetTracks;
 	$item->{passthrough} = [{
 		album_id => $album->{id},
 		album_title => $album->{title},
 	}];
-	
+
 	return $item;
 }
 
@@ -1456,11 +1456,11 @@ sub _trackItem {
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
-	
+
 	if ( $track->{album} ) {
 		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
-	
+
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
