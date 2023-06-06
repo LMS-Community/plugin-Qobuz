@@ -149,6 +149,7 @@ sub explodePlaylist {
 # Optionally override replaygain to use the supplied gain value
 sub trackGain {
 	my ( $class, $client, $url ) = @_;
+
 	main::DEBUGLOG && $log->is_debug && $log->debug("Url: $url");
 
  	my $rgmode = preferences('server')->client($client)->get('replayGainMode');
@@ -157,47 +158,45 @@ sub trackGain {
 		return 0;
 	}
 
+	my $cache = Plugins::Qobuz::API::Common->getCache();
 	my $gain = 0;
 	my $peak = 0;
+	my $netGain = 0;
 
 	my ($id) = $class->crackUrl($url);
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
 
-	my $meta;
+	my $meta = $cache->get('trackInfo_' . $id);
 
-	Plugins::Qobuz::API->getTrackInfo(sub {
-		$meta = shift;
-		if (!$meta) {
-			$log->error("Get track info ($id) failed");
-			return 0;
-		}
+	if (!$meta) {
+		$log->error("Get track info ($id) failed");
+		return 0;
+	}
 
-		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
+	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
 
-		if ( $rgmode == 1 ) {  # track gain
-			$gain = $meta->{replay_gain} || 0;
-			$peak = $meta->{replay_peak} || 0;
-			main::INFOLOG && $log->info("Using track gain value of $gain : $peak for Qobuz track");
-		}
-		else {  # album or smart gain
-			Plugins::Qobuz::API->getAlbum(sub {
-				my $album = shift;
+	if ( $rgmode == 1 ) {  # track gain
+		$gain = $meta->{replay_gain} || 0;
+		$peak = $meta->{replay_peak} || 0;
+		main::INFOLOG && $log->info("Using track gain value of $gain : $peak for Qobuz track");
+		$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
+	} else {  # album or smart gain
+		Plugins::Qobuz::API->getAlbum(sub {
+			my $album = shift;
 
-				if (!$album) {
-					$log->error("Get album ($meta->{albumId}) failed");
-					return 0;
-				}
+			if (!$album) {
+				$log->error("Get album ($meta->{albumId}) failed");
+				return 0;
+			}
 
-				main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
+			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
 
-				$gain = $album->{tracks}->{items}[0]->{album}->{replay_gain} || 0;
-				$peak = $album->{tracks}->{items}[0]->{album}->{replay_peak} || 0;
-				main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
-			}, $meta->{albumId});
-		}
-	}, $id);
-
-	my $netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
+			$gain = $album->{tracks}->{items}[0]->{album}->{replay_gain} || 0;
+			$peak = $album->{tracks}->{items}[0]->{album}->{replay_peak} || 0;
+			main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
+			$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
+		}, $meta->{albumId});
+	}
 	main::INFOLOG && $log->info("Net Gain: $netGain");
 	return $netGain;
 }
