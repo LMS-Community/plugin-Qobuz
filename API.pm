@@ -502,7 +502,7 @@ sub getTags {
 sub getTrackInfo {
 	my ($class, $cb, $trackId) = @_;
 
-	$cb->() unless $trackId;
+	return $cb->() unless $trackId;
 
 	if ($trackId =~ /^http/i) {
 		$trackId = $cache->get("trackId_$trackId");
