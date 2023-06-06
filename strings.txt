@@ -403,3 +403,17 @@ PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	DE	Album nicht in der Qobuz-Bibliothek gefunden
 	NL	Album niet gevonden in de Qobuz bibliotheek
 	FR	Album introuvable dans la bibliothèque Qobuz
+	
+PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY
+	EN	Clear search history
+	DE	Suchverlauf löschen
+	NL	Verwijder zoekgeschiedenis
+	FR	Effacer l'historique
+	ES	Limpiar historial de búsqueda
+
+PLUGIN_QOBUZ_NEW_SEARCH
+	EN	New search
+	DE	Neue Suche
+	NL	Nieuwe zoekopdracht
+	FR	Nouvelle recherche
+	ES	Nueva búsqueda
