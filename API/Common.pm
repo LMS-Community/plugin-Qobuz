@@ -140,6 +140,7 @@ sub _precacheAlbum {
 			$_->{album} = $albumInfo;
 			$_;
 		} @{$album->{tracks}->{items}} ]);
+
 	}
 
 	return $albums;
@@ -173,7 +174,7 @@ sub precacheTrack {
 
 	my $album = $track->{album} || {};
 	$track->{composer} ||= $album->{composer} || {};
-	
+
 	my $meta = {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
@@ -195,11 +196,20 @@ sub precacheTrack {
 	};
 
 	if ($track->{audio_info}) {
+		my $updateAlbumGain = 0;
 		if (defined $track->{audio_info}->{replaygain_track_gain}) {
 			$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+			if (!defined $album->{replay_gain} || ($album->{replay_gain} > $meta->{replay_gain})) {
+				$updateAlbumGain = 1;
+				$album->{replay_gain} = $meta->{replay_gain};
+			}
 		}
+
 		if (defined $track->{audio_info}->{replaygain_track_peak}) {
 			$meta->{replay_peak} = $track->{audio_info}->{replaygain_track_peak};
+			if ($updateAlbumGain) {
+				$album->{replay_peak} = $meta->{replay_peak};
+			}
 		}
 	}
 
