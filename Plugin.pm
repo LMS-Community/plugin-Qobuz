@@ -19,9 +19,10 @@ use Plugins::Qobuz::ProtocolHandler;
 
 use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
 use constant CLICOMMAND => 'qobuzquery';
+use constant MAX_RECENT => 30;
 
 # Keep in sync with Music & Artist Information plugin
-my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control)\b/i;
+my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|Squeeze-Control|Squeezer|OpenSqueeze)\b/i;
 my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
 
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
@@ -125,6 +126,7 @@ sub initPlugin {
 
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	Slim::Control::Request::addDispatch(['qobuz', 'addalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
+	Slim::Control::Request::addDispatch(['qobuz','recentsearches'],[0, 0, 1, \&_recentSearchesCLI]);
 
 	# "Local Artwork" requires LMS 7.8+, as it's using its imageproxy.
 	if (CAN_IMAGEPROXY) {
@@ -213,18 +215,53 @@ sub handleFeed {
 		items => ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? [{
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
-			type => 'search',
+			type => 'link',
 			url  => sub {
 				my ($client, $cb, $params) = @_;
+				my $items = [];
 
-				my $menu = searchMenu($client, {
-					search => lc($params->{search})
-				});
+				my $i = 0;
+				for my $recent ( @{ $prefs->get('qobuz_recent_search') || [] } ) {
+					unshift @$items, {
+						name  => $recent,
+						type  => 'link',
+						url  => sub {
+							my ($client, $cb, $params) = @_;
+							my $menu = searchMenu($client, {
+								search => lc($recent)
+							});
+							$cb->({
+								items => $menu->{items}
+							});
+						},
+						itemActions => {
+							info => {
+								command     => ['qobuz', 'recentsearches'],
+								fixedParams => { deleteMenu => $i++ },
+							},
+						},
+						passthrough => [ { type => 'search' } ],
+		  			};
+	  			}
 
-				$cb->({
-					items => $menu->{items}
-				});
-			}
+				unshift @$items, {
+					name  => cstring($client, 'PLUGIN_QOBUZ_NEW_SEARCH'),
+					type  => 'search',
+					url  => sub {
+						my ($client, $cb, $params) = @_;
+						addRecentSearch($params->{search});
+						my $menu = searchMenu($client, {
+							search => lc($params->{search})
+						});
+						$cb->({
+							items => $menu->{items}
+						});
+					},
+					passthrough => [ { type => 'search' } ],
+	  			};
+
+				$cb->({ items => $items });
+			},
 		},{
 			name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
 			url  => \&QobuzUserPurchases,
@@ -949,9 +986,9 @@ sub QobuzGetTracks {
 
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_ALBUM_NOT_FOUND'),
-					type  => 'text'						
+					type  => 'text'
 				};
-				
+
 				if ($isFavorite) {  # if it's an orphaned favorite, let the user delete it
 					push @$items, {
 						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE', $albumTitle),
@@ -963,19 +1000,19 @@ sub QobuzGetTracks {
 						nextWindow => 'parent'
 					};
 				}
-				
+
 				$cb->({
 					items => $items,
 				}, @_ );
 			});
 			return;
-			
+
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
-				type  => 'text'						
+				type  => 'text'
 			};
-			
+
 			$cb->({
 				items => $items,
 			}, @_ );
@@ -986,10 +1023,10 @@ sub QobuzGetTracks {
 			my $rDate = _localDate($album->{release_date_stream});
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_NOT_RELEASED') . ' (' . $rDate . ')',
-				type  => 'text'						
+				type  => 'text'
 			};
 		}
-		
+
 		my $totalDuration = 0;
 		my $trackNumber = 0;
 		my $works = {};
@@ -1010,7 +1047,7 @@ sub QobuzGetTracks {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
-			
+
 			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
@@ -1022,7 +1059,7 @@ sub QobuzGetTracks {
 				# still distinguishing between works with the same name but different composer!
 				$currentComposer = $track->{composer}->{name};
 				if ( $workId eq $lastwork && (!$lastComposer || !$currentComposer || $lastComposer eq $currentComposer) ) {
-					# Stick with the previous value! ($worksWorkId = $worksWorkId;) 
+					# Stick with the previous value! ($worksWorkId = $worksWorkId;)
 				} elsif ( $currentComposer ) {
 					$worksWorkId = $displayWorkId;
 				} else {
@@ -1030,17 +1067,17 @@ sub QobuzGetTracks {
 				}
 
 				# Extended Work ID: will usually not change, but we need to keep non-contiguous tracks from the same work
-				# separate if the user has chosen to integrate playlists with the work titles.				
-				$worksWorkIdE = $worksWorkId;					
+				# separate if the user has chosen to integrate playlists with the work titles.
+				$worksWorkIdE = $worksWorkId;
 				if ( $workPlaylistPos eq "integrated" && $works->{$worksWorkId} ) {
 					if ( $worksWorkId ne $lastWorksWorkId ) {
 						$discontigWorks->{$worksWorkId} = $worksWorkId . $trackNumber;
-					}			
+					}
 					if ( $discontigWorks->{$worksWorkId} ) {
 						$worksWorkIdE = $discontigWorks->{$worksWorkId};
 					}
 				}
-					
+
 				if ( !$works->{$worksWorkIdE} ) {
 					$works->{$worksWorkIdE} = {   # create a new work object
 						index => $trackNumber,		# index of first track in the work
@@ -1048,7 +1085,7 @@ sub QobuzGetTracks {
 						tracks => []
 					} ;
 				}
-				
+
 				# Create new work heading, except when the user has chosen integrated playlists - in that case
 				# the work-playlist headings will be spliced in later.
 				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {
@@ -1062,27 +1099,27 @@ sub QobuzGetTracks {
 				} else {
 					$worksfound = 1;   # we found two consecutive tracks with the same work
 				}
-				
+
 				push @{$works->{$worksWorkIdE}->{tracks}}, $formattedTrack if $works->{$worksWorkIdE};
 
-				
+
 				if ($noComposer && $track->{composer}->{name} && $workHeadingPos) {  #add composer to work title if needed
-					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present. 
+					# Can't update @$items here when using integrated playlists, as there is no work heading in @$items at present.
 					if ( $workPlaylistPos ne "integrated" ) {
 						@$items[$workHeadingPos-1]->{name} = $formattedTrack->{displayWork};
 					}
 					$works->{$worksWorkIdE}->{title} = $formattedTrack->{displayWork};
 					$noComposer = 0;
 				}
-				
+
 				# If we're using integrated playlists, save the work title to a temporary structure (including composer if possible -
 				# i.e. when there's a composer in at least one of the tracks in the work group).
 				if ( $workPlaylistPos eq "integrated" && (!$workComposer->{$worksWorkIdE}->{displayWork} || $track->{composer}->{name}) ) {
 					$workComposer->{$worksWorkIdE}->{displayWork} = $formattedTrack->{displayWork};
 				}
-				
+
 				$lastComposer = $track->{composer}->{name};
-				
+
 			} elsif ($lastwork ne "") {  # create a separator line for tracks without a work
 				push @$items,{
 					name  => "--------",
@@ -1104,7 +1141,7 @@ sub QobuzGetTracks {
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
-				my $workNumber = 0;			
+				my $workNumber = 0;
 				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
 					my $workTracks = $works->{$work}->{tracks};
 					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
@@ -1324,16 +1361,16 @@ sub _albumItem {
 	if (!$album->{streamable} || !_isReleased($album) ) {
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
-	} else {	
+	} else {
 		$item->{type}        = 'playlist';
 	}
-	
+
 	$item->{url}         = \&QobuzGetTracks;
 	$item->{passthrough} = [{
 		album_id => $album->{id},
 		album_title => $album->{title},
 	}];
-	
+
 	return $item;
 }
 
@@ -1419,11 +1456,11 @@ sub _trackItem {
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
 	}
-	
+
 	if ( $track->{album} ) {
 		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
-	
+
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
@@ -1798,6 +1835,89 @@ sub _localDate {  # convert input date string in format YYYY-MM-DD to localized 
 	my $iDate = shift;
 	my @dt = split(/-/, $iDate);
 	return strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
+}
+
+sub addRecentSearch {
+	my $search = shift;
+	main::DEBUGLOG && $log->is_debug && $log->debug("++addRecentSearch");
+
+	my $list = $prefs->get('qobuz_recent_search') || [];
+
+	$list = [ grep { $_ ne $search } @$list ];
+
+	push @$list, $search;
+
+	shift(@$list) while scalar @$list > MAX_RECENT;
+
+	$prefs->set( 'qobuz_recent_search', $list );
+	main::DEBUGLOG && $log->is_debug && $log->debug("--addRecentSearch");
+	return;
+}
+
+sub _recentSearchesCLI {
+	my $request = shift;
+	my $client = $request->client;
+	main::DEBUGLOG && $log->is_debug && $log->debug("++_recentSearchesCLI");
+
+	# check this is the correct command.
+	if ($request->isNotCommand([['qobuz'], ['recentsearches']])) {
+		$request->setStatusBadDispatch();
+		return;
+	}
+
+	my $list = $prefs->get('qobuz_recent_search') || [];
+	my $del = $request->getParam('deleteMenu') || $request->getParam('delete') || 0;
+
+	if (!scalar @$list || $del >= scalar @$list) {
+		$log->error('Search item to delete is outside the history list!');
+		$request->setStatusBadParams();
+		return;
+	}
+
+	my $items = [];
+
+	if (defined $request->getParam('deleteMenu')) {
+		push @$items,
+		{
+			text => cstring($client, 'DELETE') . cstring($client, 'COLON') . ' "' . ($list->[$del] || '') . '"',
+			actions => {
+				go => {
+					player => 0,
+					cmd    => ['qobuz', 'recentsearches' ],
+					params => {
+						delete => $del
+					},
+				},
+			},
+			nextWindow => 'parent',
+		},
+		{
+			text => cstring($client, 'PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY'),
+			actions => {
+				go => {
+					player => 0,
+					cmd    => ['qobuz', 'recentsearches' ],
+					params => {
+						deleteAll => 1
+					},
+				}
+			},
+			nextWindow => 'grandParent',
+		};
+
+		$request->addResult('offset', 0);
+		$request->addResult('count', scalar @$items);
+		$request->addResult('item_loop', $items);
+	} elsif ($request->getParam('deleteAll')) {
+		$prefs->set( 'qobuz_recent_search', [] );
+	} elsif (defined $request->getParam('delete')) {
+		splice(@$list, $del, 1);
+		$prefs->set( 'qobuz_recent_search', $list );
+	}
+
+	$request->setStatusDone;
+	main::DEBUGLOG && $log->is_debug && $log->debug("--_recentSearchesCLI");
+	return;
 }
 
 1;
