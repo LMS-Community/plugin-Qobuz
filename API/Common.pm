@@ -141,6 +141,11 @@ sub _precacheAlbum {
 			$_;
 		} @{$album->{tracks}->{items}} ]);
 
+		if (defined $albumInfo->{replay_gain}) {
+			$album->{replay_gain} = $albumInfo->{replay_gain};
+			$album->{replay_peak} = $albumInfo->{replay_peak};
+			$cache->set('albumInfo_' . $albumInfo->{id}, $albumInfo, QOBUZ_DEFAULT_EXPIRY);
+		}
 	}
 
 	return $albums;
@@ -212,7 +217,7 @@ sub precacheTrack {
 			}
 		}
 	}
-
+	main::DEBUGLOG && $log->is_debug && $log->debug("Track $meta->{title} precached");
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));
 
 	return $meta;

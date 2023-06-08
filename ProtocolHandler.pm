@@ -162,6 +162,7 @@ sub trackGain {
 	my $gain = 0;
 	my $peak = 0;
 	my $netGain = 0;
+	my $album;
 
 	my ($id) = $class->crackUrl($url);
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
@@ -170,32 +171,19 @@ sub trackGain {
 
 	if (!$meta) {
 		$log->error("Get track info ($id) failed");
-		return 0;
-	}
-
-	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
-
-	if ( $rgmode == 1 ) {  # track gain
+	} elsif ($rgmode == 1 || !($album = $cache->get('albumInfo_' . $meta->{albumId})) 
+			|| !defined $album->{replay_gain}) {  # use track gain
 		$gain = $meta->{replay_gain} || 0;
 		$peak = $meta->{replay_peak} || 0;
 		main::INFOLOG && $log->info("Using track gain value of $gain : $peak for Qobuz track");
 		$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
 	} else {  # album or smart gain
-		Plugins::Qobuz::API->getAlbum(sub {
-			my $album = shift;
+		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
+		$gain = $album->{replay_gain} || 0;
+		$peak = $album->{replay_peak} || 0;
 
-			if (!$album) {
-				$log->error("Get album ($meta->{albumId}) failed");
-				return 0;
-			}
-
-			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
-
-			$gain = $album->{tracks}->{items}[0]->{album}->{replay_gain} || 0;
-			$peak = $album->{tracks}->{items}[0]->{album}->{replay_peak} || 0;
-			main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
-			$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
-		}, $meta->{albumId});
+		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
+		$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
 	}
 	main::INFOLOG && $log->info("Net Gain: $netGain");
 	return $netGain;
