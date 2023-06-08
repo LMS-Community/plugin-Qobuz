@@ -171,20 +171,19 @@ sub trackGain {
 
 	if (!$meta) {
 		$log->error("Get track info ($id) failed");
-	} elsif ($rgmode == 1 || !($album = $cache->get('albumInfo_' . $meta->{albumId})) 
+	} elsif ($rgmode == 1 || !($album = $cache->get('albumInfo_' . $meta->{albumId}))
 			|| !defined $album->{replay_gain}) {  # use track gain
 		$gain = $meta->{replay_gain} || 0;
 		$peak = $meta->{replay_peak} || 0;
 		main::INFOLOG && $log->info("Using track gain value of $gain : $peak for Qobuz track");
-		$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
 	} else {  # album or smart gain
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
 		$gain = $album->{replay_gain} || 0;
 		$peak = $album->{replay_peak} || 0;
-
 		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
-		$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
 	}
+
+	$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
 	main::INFOLOG && $log->info("Net Gain: $netGain");
 	return $netGain;
 }
