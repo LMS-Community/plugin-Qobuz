@@ -168,14 +168,15 @@ sub trackGain {
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
 
 	my $meta = $cache->get('trackInfo_' . $id);
+	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
 
 	if (!$meta) {
 		$log->error("Get track info ($id) failed");
-	} elsif ($rgmode == 1 || !($album = $cache->get('albumInfo_' . $meta->{albumId}))
+	} elsif ($rgmode == 1 || !defined $meta->{goodies} || !($album = $cache->get('albumInfo_' . $meta->{albumId}))
 			|| !defined $album->{replay_gain}) {  # use track gain
-		$gain = $meta->{replay_gain} || 0;
-		$peak = $meta->{replay_peak} || 0;
-		main::INFOLOG && $log->info("Using track gain value of $gain : $peak for Qobuz track");
+		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # use zero gain for non-album tracks with Album Gain
+		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
+		main::INFOLOG && $log->info("Using gain value of $gain : $peak for Qobuz track");
 	} else {  # album or smart gain
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
 		$gain = $album->{replay_gain} || 0;

@@ -134,6 +134,7 @@ sub _precacheAlbum {
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
 			isClassique => $isClassique,
+			duration => 0,
 		};
 
 		_precacheTracks([ map {
@@ -217,6 +218,8 @@ sub precacheTrack {
 			}
 		}
 	}
+	
+	$album->{duration} += $meta->{duration};
 	main::DEBUGLOG && $log->is_debug && $log->debug("Track $meta->{title} precached");
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));
 
