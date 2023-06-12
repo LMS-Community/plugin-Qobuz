@@ -135,7 +135,6 @@ sub _precacheAlbum {
 			genres_list => $album->{genres_list},
 			isClassique => $isClassique,
 			duration => 0,
-			isAlbumTrack => 1,
 		};
 
 		_precacheTracks([ map {
@@ -200,7 +199,6 @@ sub precacheTrack {
 		genre    => $album->{genre},
 		genres_list => $album->{genres_list},
 		isClassique => $isClassique,
-		isAlbumTrack => $album->{isAlbumTrack},
 	};
 
 	if ($track->{audio_info}) {

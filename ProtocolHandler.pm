@@ -172,7 +172,7 @@ sub trackGain {
 
 	if (!$meta) {
 		$log->error("Get track info ($id) failed");
-	} elsif ($rgmode == 1 || !defined $meta->{isAlbumTrack}  # the track info was not populated from an album
+	} elsif ($rgmode == 1 || (ref $meta->{genre} ne "")  # the track info was not populated from an album
 			|| !($album = $cache->get('albumInfo_' . $meta->{albumId}))
 			|| !defined $album->{replay_gain}) {  # use track gain (
 		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # use zero gain for non-album tracks with Album Gain
