@@ -146,6 +146,50 @@ sub explodePlaylist {
 	}
 }
 
+# Optionally override replaygain to use the supplied gain value
+sub trackGain {
+	my ( $class, $client, $url ) = @_;
+
+	main::DEBUGLOG && $log->is_debug && $log->debug("Url: $url");
+
+ 	my $rgmode = preferences('server')->client($client)->get('replayGainMode');
+
+	if ( $rgmode == 0 ) {  # no replay gain
+		return 0;
+	}
+
+	my $cache = Plugins::Qobuz::API::Common->getCache();
+	my $gain = 0;
+	my $peak = 0;
+	my $netGain = 0;
+	my $album;
+
+	my ($id) = $class->crackUrl($url);
+	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
+
+	my $meta = $cache->get('trackInfo_' . $id);
+	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
+
+	if (!$meta) {
+		$log->error("Get track info ($id) failed");
+	} elsif ($rgmode == 1 || (ref $meta->{genre} ne "")  # the track info was not populated from an album
+			|| !($album = $cache->get('albumInfo_' . $meta->{albumId}))
+			|| !defined $album->{replay_gain}) {  # use track gain (
+		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # use zero gain for non-album tracks with Album Gain
+		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
+		main::INFOLOG && $log->info("Using gain value of $gain : $peak for Qobuz track");
+	} else {  # album or smart gain
+		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
+		$gain = $album->{replay_gain} || 0;
+		$peak = $album->{replay_peak} || 0;
+		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
+	}
+
+	$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
+	main::INFOLOG && $log->info("Net Gain: $netGain");
+	return $netGain;
+}
+
 sub canDirectStreamSong {
 	my ( $class, $client, $song ) = @_;
 
@@ -201,9 +245,9 @@ sub parseDirectHeaders {
 	my $meta = $class->getMetadataFor($client, $url);
 	my $duration = $meta->{duration};
 
-	# sometimes we only get a 60s/mp3 sample
+	# sometimes we only get a 30s/mp3 sample
 	if ($meta->{streamable} && $meta->{streamable} eq 'sample' && $contentType eq 'mp3') {
-		$duration = 60;
+		$duration = 30;
 	}
 
 	$song->duration($duration);
@@ -217,6 +261,8 @@ sub parseDirectHeaders {
 		$client->currentPlaylistUpdateTime( Time::HiRes::time() );
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 	}
+
+	$song->track->setAttributes($meta);  # This change allows replay gain to be done by LMS
 
 	Plugins::Qobuz::Reporting->startStreaming($client);
 
@@ -283,7 +329,7 @@ sub getMetadataFor {
 				my $composerSurname = (split " ", $meta->{composer})[-1];
 				$meta->{title} =~ s/\Q$composerSurname\E:\s*//;
 			}
-			
+
 			my $simpleWork = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{work}), 1);
 			$simpleWork =~ s/\W//g;
 			my $simpleTitle = Slim::Utils::Text::ignoreCaseArticles(unidecode($meta->{title}), 1);
@@ -292,7 +338,7 @@ sub getMetadataFor {
 				$meta->{title} =  $meta->{work} . string('COLON') . ' ' . $meta->{title};
 			}
 		}
-		
+
 		# Prepend composer surname to title unless it's at the beginning of the work/title (code above only strips out composer+COLON
 		# and tracks exist where the composer name in the body of the title - we should still prepend composer to these.
 		if ( $meta->{composer} ) {
@@ -303,7 +349,7 @@ sub getMetadataFor {
 		}
 	}
 
-	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it. 
+	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it.
 	if ( ref $meta->{genre} ne "" ) {
 		$meta->{genre} = $meta->{genre}->{name};
 	}

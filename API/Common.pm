@@ -134,12 +134,19 @@ sub _precacheAlbum {
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
 			isClassique => $isClassique,
+			duration => 0,
 		};
 
 		_precacheTracks([ map {
 			$_->{album} = $albumInfo;
 			$_;
 		} @{$album->{tracks}->{items}} ]);
+
+		if (defined $albumInfo->{replay_gain}) {
+			$album->{replay_gain} = $albumInfo->{replay_gain};
+			$album->{replay_peak} = $albumInfo->{replay_peak};
+			$cache->set('albumInfo_' . $albumInfo->{id}, $albumInfo, QOBUZ_DEFAULT_EXPIRY);
+		}
 	}
 
 	return $albums;
@@ -173,7 +180,7 @@ sub precacheTrack {
 
 	my $album = $track->{album} || {};
 	$track->{composer} ||= $album->{composer} || {};
-	
+
 	my $meta = {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
@@ -194,10 +201,26 @@ sub precacheTrack {
 		isClassique => $isClassique,
 	};
 
-	if ($track->{audio_info} && defined $track->{audio_info}->{replaygain_track_gain}) {
-		$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+	if ($track->{audio_info}) {
+		my $updateAlbumGain = 0;
+		if (defined $track->{audio_info}->{replaygain_track_gain}) {
+			$meta->{replay_gain} = $track->{audio_info}->{replaygain_track_gain};
+			if (!defined $album->{replay_gain} || ($album->{replay_gain} > $meta->{replay_gain})) {
+				$updateAlbumGain = 1;
+				$album->{replay_gain} = $meta->{replay_gain};
+			}
+		}
+
+		if (defined $track->{audio_info}->{replaygain_track_peak}) {
+			$meta->{replay_peak} = $track->{audio_info}->{replaygain_track_peak};
+			if ($updateAlbumGain) {
+				$album->{replay_peak} = $meta->{replay_peak};
+			}
+		}
 	}
 
+	$album->{duration} += $meta->{duration};
+	main::DEBUGLOG && $log->is_debug && $log->debug("Track $meta->{title} precached");
 	$cache->set('trackInfo_' . $track->{id}, $meta, ($meta->{duration} ? QOBUZ_DEFAULT_EXPIRY : QOBUZ_EDITORIAL_EXPIRY));
 
 	return $meta;
