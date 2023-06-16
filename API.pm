@@ -694,10 +694,10 @@ sub _get {
 
 	$url = QOBUZ_BASE_URL . $url . '?' . join('&', sort @query);
 
-	if (main::INFOLOG && $log->is_info) {
+	if (main::DEBUGLOG && $log->is_debug) {
 		my $data = $url;
 		$data =~ s/(?:$aid|$token)//g;
-		$log->info($data);
+		$log->debug($data);
 	}
 
 	if ($params->{_wipecache}) {
@@ -782,7 +782,7 @@ sub _pagingGet {
 
 		my $total = $getMaxFn->($result) || QOBUZ_LIMIT;
 
-		main::INFOLOG && $log->is_info && $log->info("Need another page? " . Data::Dump::dump({
+		main::DEBUGLOG && $log->is_debug && $log->debug("Need another page? " . Data::Dump::dump({
 			total => $total,
 			pageSize => $params->{limit},
 			requested => $limit
