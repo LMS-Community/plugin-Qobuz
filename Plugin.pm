@@ -42,6 +42,9 @@ $prefs->init({
 	dontImportPurchases => 1,
 	classicalGenres => '',
 	useClassicalEnhancements => 1,
+	parentalWarning => 0,
+	trackNumber => 0,
+	discNumber => 0,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -1357,6 +1360,11 @@ sub _albumItem {
 		$item->{line2} = $artist . ($albumYear ? ' (' . $albumYear . ')' : '');
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
+	
+	if ( $prefs->get('parentalWarning') && $album->{parental_warning} ) {
+		$item->{name} .= ' [E]';
+		$item->{line1} .= ' [E]';
+	}
 
 	if (!$album->{streamable} || !_isReleased($album) ) {
 		$item->{name}  = '* ' . $item->{name};
@@ -1461,6 +1469,22 @@ sub _trackItem {
 		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
 
+	if ( $prefs->get('parentalWarning') && $track->{parental_warning} ) {
+		$item->{name} .= ' [E]';
+		$item->{line1} .= ' [E]';
+	}
+
+	if ( $prefs->get('discNumber') && $track->{album}->{media_count} > 1 && $prefs->get('trackNumber') ) {
+		$item->{name} = "Disc $track->{media_number}/$track->{track_number}: $item->{name}";
+		$item->{line1} = "Disc $track->{media_number}/$track->{track_number}: $item->{line1}";
+	} elsif ( $prefs->get('discNumber') && $track->{album}->{media_count} > 1 ) {
+		$item->{name} = "Disc $track->{media_number}: $item->{name}";
+		$item->{line1} = "Disc $track->{media_number}: $item->{line1}";
+	} elsif ( $prefs->get('trackNumber') ) {
+		$item->{name} = "$track->{track_number}: $item->{name}";
+		$item->{line1} = "$track->{track_number}: $item->{line1}";
+	}
+	
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),

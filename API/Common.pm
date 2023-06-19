@@ -134,6 +134,8 @@ sub _precacheAlbum {
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
 			isClassique => $isClassique,
+			parental_warning => $album->{parental_warning},
+			media_count => $album->{media_count},
 			duration => 0,
 		};
 
@@ -199,6 +201,10 @@ sub precacheTrack {
 		genre    => $album->{genre},
 		genres_list => $album->{genres_list},
 		isClassique => $isClassique,
+		parental_warning => $track->{parental_warning},
+		track_number => $track->{track_number},
+		media_number => $track->{media_number},
+		media_count => $album->{media_count},
 	};
 
 	if ($track->{audio_info}) {

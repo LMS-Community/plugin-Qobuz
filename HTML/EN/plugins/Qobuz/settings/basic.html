@@ -40,6 +40,15 @@
 				<option [% prefs.showYearWithAlbum ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
 		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_TRACK_NUMBER" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_trackNumber %]checked [% END %] class="stdedit" name="pref_trackNumber" id="pref_trackNumber" value="1" />
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_DISC_NUMBER" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_discNumber %]checked [% END %] class="stdedit" name="pref_discNumber" id="pref_discNumber" value="1" />
+		[% END %]
+
 		<hr class="sub-sep"/>
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS" desc="PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC" %]
 			<select name="pref_useClassicalEnhancements" id="useClassicalEnhancements">
@@ -84,6 +93,11 @@
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PLAY_SAMPLES" desc="" %]
 			<input type="checkbox" [% IF prefs.pref_playSamples %]checked [% END %] class="stdedit" name="pref_playSamples" id="pref_playSamples" value="1" />
 			<label for="pref_playSamples" class="stdlabel">[% "PLUGIN_QOBUZ_PLAY_SAMPLES_DESC" | string %]</label>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_PARENTAL_WARNING" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_parentalWarning %]checked [% END %] class="stdedit" name="pref_parentalWarning" id="pref_parentalWarning" value="1" />
+			<label for="pref_parentalWarning" class="stdlabel">[% "PLUGIN_QOBUZ_PARENTAL_WARNING_DESC" | string %]</label>
 		[% END %]
 	[% END %]
 

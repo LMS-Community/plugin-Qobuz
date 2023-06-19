@@ -348,6 +348,18 @@ sub getMetadataFor {
 			}
 		}
 	}
+	
+	if ( $prefs->get('parentalWarning') && $meta->{parental_warning} ) {
+		$meta->{title} .= ' [E]';
+	}
+
+	if ( $prefs->get('discNumber') && $meta->{media_count} > 1 && $prefs->get('trackNumber') ) {
+		$meta->{title} = "Disc $meta->{media_number}/$meta->{track_number}: $meta->{title}";
+	} elsif ( $prefs->get('discNumber') && $meta->{media_count} > 1 ) {
+		$meta->{title} = "Disc $meta->{media_number}: $meta->{title}";
+	} elsif ( $prefs->get('trackNumber') ) {
+		$meta->{title} = "$meta->{track_number}: $meta->{title}";
+	}
 
 	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it.
 	if ( ref $meta->{genre} ne "" ) {

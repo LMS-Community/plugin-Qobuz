@@ -417,3 +417,32 @@ PLUGIN_QOBUZ_NEW_SEARCH
 	NL	Nieuwe zoekopdracht
 	FR	Nouvelle recherche
 	ES	Nueva búsqueda
+	
+PLUGIN_QOBUZ_SHOW_PARENTAL_WARNING
+	DE	Elternwarnungen anzeigen
+	EN	Show Parental Warnings
+	FR	Afficher les avertissements parentaux
+	NL	Toon ouderlijke waarschuwingen
+	ES	Mostrar advertencias para padres
+
+PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
+	DE	Alben/Titel mit explizitem Inhalt werden mit [E] gekennzeichnet.
+	EN	Albums/tracks with explicit content will be labeled with [E]
+	FR	Les albums/pistes avec un contenu explicite seront étiquetés avec [E]
+	NL	Albums/tracks met expliciete inhoud worden gelabeld met [E]
+	ES	Los álbumes/pistas con contenido explícito se etiquetarán con [E]
+	
+PLUGIN_QOBUZ_SHOW_TRACK_NUMBER
+	DE	Titelnummer anzeigen
+	EN	Show track number
+	FR	Afficher le numéro de piste
+	NL	Toon tracknummer
+	ES	Mostrar número de pista
+
+PLUGIN_QOBUZ_SHOW_DISC_NUMBER
+	DE	CD-Nummer anzeigen
+	EN	Show disc number
+	FR	Afficher le numéro de disque
+	NL	Schijfnummer weergeven
+	ES	Mostrar número de disco
+
