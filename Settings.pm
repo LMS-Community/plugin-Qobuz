@@ -22,7 +22,7 @@ sub page {
 sub prefs {
 	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums', 'dontImportPurchases', 
 			'appendVersionToTitle', 'sortFavsAlphabetically', 'sortArtistAlbums', 'showYearWithAlbum', 'useClassicalEnhancements', 
-			'classicalGenres','workPlaylistPosition','parentalWarning','trackNumber','discNumber');
+			'classicalGenres','workPlaylistPosition','parentalWarning','showDiscs');
 }
 
 sub handler {

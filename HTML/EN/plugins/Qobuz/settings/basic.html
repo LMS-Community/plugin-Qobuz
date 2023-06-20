@@ -41,12 +41,9 @@
 			</select>
 		[% END %]
 
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_TRACK_NUMBER" desc="" %]
-			<input type="checkbox" [% IF prefs.pref_trackNumber %]checked [% END %] class="stdedit" name="pref_trackNumber" id="pref_trackNumber" value="1" />
-		[% END %]
-
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_DISC_NUMBER" desc="" %]
-			<input type="checkbox" [% IF prefs.pref_discNumber %]checked [% END %] class="stdedit" name="pref_discNumber" id="pref_discNumber" value="1" />
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_DISCS" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_showDiscs %]checked [% END %] class="stdedit" name="pref_showDiscs" id="pref_showDiscs" value="1" />
+			<label for="pref_showDiscs" class="stdlabel">[% "PLUGIN_QOBUZ_SHOW_DISCS_DESC" | string %]</label>
 		[% END %]
 
 		<hr class="sub-sep"/>

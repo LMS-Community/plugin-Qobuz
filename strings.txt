@@ -432,17 +432,17 @@ PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
 	NL	Albums/tracks met expliciete inhoud worden gelabeld met [E]
 	ES	Los álbumes/pistas con contenido explícito se etiquetarán con [E]
 	
-PLUGIN_QOBUZ_SHOW_TRACK_NUMBER
-	DE	Titelnummer anzeigen
-	EN	Show track number
-	FR	Afficher le numéro de piste
-	NL	Toon tracknummer
-	ES	Mostrar número de pista
+PLUGIN_QOBUZ_SHOW_DISCS
+	DE	Disc-Überschriften und Playlists anzeigen
+	EN	Show disc headings and playlists
+	FR	Afficher les en-têtes de disque et les listes de lecture
+	NL	Schijfkoppen en afspeellijsten weergeven
+	ES	Mostrar encabezados de discos y listas de reproducción
 
-PLUGIN_QOBUZ_SHOW_DISC_NUMBER
-	DE	CD-Nummer anzeigen
-	EN	Show disc number
-	FR	Afficher le numéro de disque
-	NL	Schijfnummer weergeven
-	ES	Mostrar número de disco
+PLUGIN_QOBUZ_SHOW_DISCS_DESC
+	DE	Hat keine Auswirkung, wenn klassische Erweiterungen (siehe unten) verwendet werden und Werke identifiziert wurden
+	EN	Has no effect when classical enhancements (see below) are in use and works have been identified
+	FR	N'a aucun effet lorsque des améliorations classiques (voir ci-dessous) sont utilisées et que des œuvres classiques ont été identifiés
+	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
+	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
 

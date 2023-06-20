@@ -1045,12 +1045,28 @@ sub QobuzGetTracks {
 		my $lastWorksWorkId = "";
 		my $discontigWorks;
 		my $workComposer;
+		my $lastDisc;
+		my $discs = {};
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
+			logError("DK: \$track=" . Data::Dump::dump($track));
 			my $work = delete $formattedTrack->{work};
+			
+			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
+			if ( $prefs->get('showDiscs') && $formattedTrack->{media_count} > 1 && !$work ) {
+				my $discId = delete $formattedTrack->{media_number};
+				$discs->{$discId} = {
+					index => $trackNumber,
+					title => string('DISC') . " " . $discId,
+					image => $formattedTrack->{image},
+					tracks => []
+				} unless $discs->{$discId};
 
+				push @{$discs->{$discId}->{tracks}}, $formattedTrack;
+			}
+			
 			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
@@ -1138,7 +1154,27 @@ sub QobuzGetTracks {
 
 			push @$items, $formattedTrack;
 
-		}
+		}	
+		
+		# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
+		if ( $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
+			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
+				my $discTracks = $discs->{$disc}->{tracks};
+
+				# insert disc item before the first of its tracks
+				splice @$items, $discs->{$disc}->{index}, 0, {
+					name => $discs->{$disc}->{title},
+					image => $discs->{$disc}->{image},
+					type => 'playlist',
+					playall => 1,
+					url => \&QobuzWorkGetTracks,
+					passthrough => [{
+						tracks => $discTracks
+					}],
+					items => $discTracks
+				} if scalar @$discTracks > 1;
+			}
+		}				
 
 		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
@@ -1423,6 +1459,9 @@ sub _trackItem {
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
+	if ( $track->{album}->{title} && $prefs->get('showDiscs') ) {
+		$album = Slim::Music::Info::addDiscNumberToAlbumTitle($album,$track->{media_number},$track->{album}->{media_count});
+	}
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
@@ -1474,17 +1513,6 @@ sub _trackItem {
 		$item->{line1} .= ' [E]';
 	}
 
-	if ( $prefs->get('discNumber') && $track->{album}->{media_count} > 1 && $prefs->get('trackNumber') ) {
-		$item->{name} = "Disc $track->{media_number}/$track->{track_number}: $item->{name}";
-		$item->{line1} = "Disc $track->{media_number}/$track->{track_number}: $item->{line1}";
-	} elsif ( $prefs->get('discNumber') && $track->{album}->{media_count} > 1 ) {
-		$item->{name} = "Disc $track->{media_number}: $item->{name}";
-		$item->{line1} = "Disc $track->{media_number}: $item->{line1}";
-	} elsif ( $prefs->get('trackNumber') ) {
-		$item->{name} = "$track->{track_number}: $item->{name}";
-		$item->{line1} = "$track->{track_number}: $item->{line1}";
-	}
-	
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
@@ -1500,7 +1528,9 @@ sub _trackItem {
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;
 	}
-
+	$item->{tracknum} = $track->{track_number};
+	$item->{media_number} = $track->{media_number};
+	$item->{media_count} = $track->{album}->{media_count};
 	return $item;
 }
 
