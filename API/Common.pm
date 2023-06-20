@@ -149,6 +149,11 @@ sub _precacheAlbum {
 			$album->{replay_peak} = $albumInfo->{replay_peak};
 			$cache->set('albumInfo_' . $albumInfo->{id}, $albumInfo, QOBUZ_DEFAULT_EXPIRY);
 		}
+		elsif ($albumInfo = $cache->get('albumInfo_' . $album->{id})) {
+			if (defined $albumInfo->{replay_gain}) {
+				$album->{replay_gain} = $albumInfo->{replay_gain};
+			}
+		}
 	}
 
 	return $albums;

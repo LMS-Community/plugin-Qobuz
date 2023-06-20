@@ -365,6 +365,10 @@ sub _prepareTrack {
 	if ($track->{composer}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
 	}
+	
+	if ($track->{audio_info}) {
+		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
+	}
 
 	return $attributes;
 }
