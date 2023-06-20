@@ -1053,7 +1053,7 @@ sub QobuzGetTracks {
 			my $formattedTrack = _trackItem($client, $track);
 			logError("DK: \$track=" . Data::Dump::dump($track));
 			my $work = delete $formattedTrack->{work};
-			
+
 			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
 			if ( $prefs->get('showDiscs') && $formattedTrack->{media_count} > 1 && !$work ) {
 				my $discId = delete $formattedTrack->{media_number};
@@ -1154,8 +1154,8 @@ sub QobuzGetTracks {
 
 			push @$items, $formattedTrack;
 
-		}	
-		
+		}
+
 		# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
 		if ( $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
 			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
@@ -1536,6 +1536,7 @@ sub _trackItem {
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;
 	}
+
 	$item->{tracknum} = $track->{track_number};
 	$item->{media_number} = $track->{media_number};
 	$item->{media_count} = $track->{album}->{media_count};
@@ -1932,7 +1933,7 @@ sub _recentSearchesCLI {
 
 	if (!scalar @$list || $del >= scalar @$list) {
 		$log->error('Search item to delete is outside the history list!');
-		$request->setStatusBadParams();
+		$r	equest->setStatusBadParams();
 		return;
 	}
 

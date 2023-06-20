@@ -361,6 +361,7 @@ sub getMetadataFor {
 	if ( ref $meta->{genre} ne "" ) {
 		$meta->{genre} = $meta->{genre}->{name};
 	}
+
 	$meta->{tracknum} = $meta->{track_number};
 	return $meta;
 }
