@@ -1234,7 +1234,7 @@ sub QobuzGetTracks {
 				type => 'text'
 			};
 			
-			if ($album->{replay_gain}) {
+			if (exists $album->{replay_gain}) {
 				push @$items,{
 					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
 					label => 'ALBUMREPLAYGAIN',
