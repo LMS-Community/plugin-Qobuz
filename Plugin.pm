@@ -1050,7 +1050,6 @@ sub QobuzGetTracks {
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
-			logError("DK: \$track=" . Data::Dump::dump($track));
 			my $work = delete $formattedTrack->{work};
 
 			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
