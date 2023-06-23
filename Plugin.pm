@@ -1066,7 +1066,7 @@ sub QobuzGetTracks {
 
 				push @{$discs->{$discId}->{tracks}}, $formattedTrack;
 			}
-			
+
 			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
 				my $workId = Slim::Utils::Text::matchCase(Slim::Utils::Text::ignorePunct($work));
@@ -1174,7 +1174,7 @@ sub QobuzGetTracks {
 					items => $discTracks
 				} if scalar @$discTracks > 1;
 			}
-		}				
+		}
 
 		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
@@ -1272,8 +1272,8 @@ sub QobuzGetTracks {
 				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
 				type => 'text'
 			};
-			
-			if ($album->{replay_gain}) {
+
+			if (defined $album->{replay_gain}) {
 				push @$items,{
 					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
 					label => 'ALBUMREPLAYGAIN',
@@ -1404,7 +1404,7 @@ sub _albumItem {
 		$item->{line2} = $artist . ($albumYear ? ' (' . $albumYear . ')' : '');
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
-	
+
 	if ( $prefs->get('parentalWarning') && $album->{parental_warning} ) {
 		$item->{name} .= ' [E]';
 		$item->{line1} .= ' [E]';
