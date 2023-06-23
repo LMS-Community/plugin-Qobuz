@@ -417,3 +417,32 @@ PLUGIN_QOBUZ_NEW_SEARCH
 	NL	Nieuwe zoekopdracht
 	FR	Nouvelle recherche
 	ES	Nueva búsqueda
+	
+PLUGIN_QOBUZ_SHOW_PARENTAL_WARNING
+	DE	Elternwarnungen anzeigen
+	EN	Show Parental Warnings
+	FR	Afficher les avertissements parentaux
+	NL	Toon ouderlijke waarschuwingen
+	ES	Mostrar advertencias para padres
+
+PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
+	DE	Alben/Titel mit explizitem Inhalt werden mit [E] gekennzeichnet.
+	EN	Albums/tracks with explicit content will be labeled with [E]
+	FR	Les albums/pistes avec un contenu explicite seront étiquetés avec [E]
+	NL	Albums/tracks met expliciete inhoud worden gelabeld met [E]
+	ES	Los álbumes/pistas con contenido explícito se etiquetarán con [E]
+	
+PLUGIN_QOBUZ_SHOW_DISCS
+	DE	Disc-Überschriften und Playlists anzeigen
+	EN	Show disc headings and playlists
+	FR	Afficher les en-têtes de disque et les listes de lecture
+	NL	Schijfkoppen en afspeellijsten weergeven
+	ES	Mostrar encabezados de discos y listas de reproducción
+
+PLUGIN_QOBUZ_SHOW_DISCS_DESC
+	DE	Hat keine Auswirkung, wenn klassische Erweiterungen (siehe unten) verwendet werden und Werke identifiziert wurden
+	EN	Has no effect when classical enhancements (see below) are in use and works have been identified
+	FR	N'a aucun effet lorsque des améliorations classiques (voir ci-dessous) sont utilisées et que des œuvres classiques ont été identifiés
+	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
+	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
+
