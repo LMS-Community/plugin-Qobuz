@@ -43,8 +43,7 @@ $prefs->init({
 	classicalGenres => '',
 	useClassicalEnhancements => 1,
 	parentalWarning => 0,
-	trackNumber => 0,
-	discNumber => 0,
+	showDiscs => 0,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
