@@ -42,6 +42,8 @@ $prefs->init({
 	dontImportPurchases => 1,
 	classicalGenres => '',
 	useClassicalEnhancements => 1,
+	parentalWarning => 0,
+	showDiscs => 0,
 });
 
 my $log = Slim::Utils::Log->addLogCategory( {
@@ -1042,11 +1044,26 @@ sub QobuzGetTracks {
 		my $lastWorksWorkId = "";
 		my $discontigWorks;
 		my $workComposer;
+		my $lastDisc;
+		my $discs = {};
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
+
+			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
+			if ( $prefs->get('showDiscs') && $formattedTrack->{media_count} > 1 && !$work ) {
+				my $discId = delete $formattedTrack->{media_number};
+				$discs->{$discId} = {
+					index => $trackNumber,
+					title => string('DISC') . " " . $discId,
+					image => $formattedTrack->{image},
+					tracks => []
+				} unless $discs->{$discId};
+
+				push @{$discs->{$discId}->{tracks}}, $formattedTrack;
+			}
 
 			if ( $work ) {
 				# Qobuz sometimes would f... up work names, randomly putting whitespace etc. in names - ignore them
@@ -1135,6 +1152,26 @@ sub QobuzGetTracks {
 
 			push @$items, $formattedTrack;
 
+		}
+
+		# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
+		if ( $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
+			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
+				my $discTracks = $discs->{$disc}->{tracks};
+
+				# insert disc item before the first of its tracks
+				splice @$items, $discs->{$disc}->{index}, 0, {
+					name => $discs->{$disc}->{title},
+					image => $discs->{$disc}->{image},
+					type => 'playlist',
+					playall => 1,
+					url => \&QobuzWorkGetTracks,
+					passthrough => [{
+						tracks => $discTracks
+					}],
+					items => $discTracks
+				} if scalar @$discTracks > 1;
+			}
 		}
 
 		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
@@ -1233,8 +1270,7 @@ sub QobuzGetTracks {
 				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
 				type => 'text'
 			};
-			
-			if (exists $album->{replay_gain}) {
+			if (defined $album->{replay_gain}) {
 				push @$items,{
 					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
 					label => 'ALBUMREPLAYGAIN',
@@ -1366,6 +1402,11 @@ sub _albumItem {
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
+	if ( $prefs->get('parentalWarning') && $album->{parental_warning} ) {
+		$item->{name} .= ' [E]';
+		$item->{line1} .= ' [E]';
+	}
+
 	if (!$album->{streamable} || !_isReleased($album) ) {
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
@@ -1423,6 +1464,9 @@ sub _trackItem {
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
 	my $album  = $track->{album}->{title} || '';
+	if ( $track->{album}->{title} && $prefs->get('showDiscs') ) {
+		$album = Slim::Music::Info::addDiscNumberToAlbumTitle($album,$track->{media_number},$track->{album}->{media_count});
+	}
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
@@ -1469,6 +1513,11 @@ sub _trackItem {
 		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
 	}
 
+	if ( $prefs->get('parentalWarning') && $track->{parental_warning} ) {
+		$item->{name} .= ' [E]';
+		$item->{line1} .= ' [E]';
+	}
+
 	if (!$track->{streamable} && (!$prefs->get('playSamples') || !$track->{sampleable})) {
 		$item->{items} = [{
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
@@ -1485,6 +1534,9 @@ sub _trackItem {
 		$item->{playall}   = 1;
 	}
 
+	$item->{tracknum} = $track->{track_number};
+	$item->{media_number} = $track->{media_number};
+	$item->{media_count} = $track->{album}->{media_count};
 	return $item;
 }
 

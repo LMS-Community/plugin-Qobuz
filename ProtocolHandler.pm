@@ -348,12 +348,21 @@ sub getMetadataFor {
 			}
 		}
 	}
+	
+	if ( $prefs->get('parentalWarning') && $meta->{parental_warning} ) {
+		$meta->{title} .= ' [E]';
+	}
 
+	if ( $prefs->get('showDiscs') ) {
+		$meta->{album} = Slim::Music::Info::addDiscNumberToAlbumTitle($meta->{album},$meta->{media_number},$meta->{media_count});
+	}
+	
 	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it.
 	if ( ref $meta->{genre} ne "" ) {
 		$meta->{genre} = $meta->{genre}->{name};
 	}
 
+	$meta->{tracknum} = $meta->{track_number};
 	return $meta;
 }
 
