@@ -1270,7 +1270,7 @@ sub QobuzGetTracks {
 				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
 				type => 'text'
 			};
-			
+
 			if (defined $album->{replay_gain}) {
 				push @$items,{
 					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
