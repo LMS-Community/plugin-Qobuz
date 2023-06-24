@@ -436,7 +436,7 @@ PLUGIN_QOBUZ_SHOW_DISCS
 	DE	Disc-Überschriften und Wiedergabelisten anzeigen
 	EN	Show disc headings and playlists
 	FR	Afficher les en-têtes de disque et les listes de lecture
-	NL	Schijfkoppen en afspeellijsten weergeven
+	NL	Schijftitels en afspeellijsten weergeven
 	ES	Mostrar encabezados de discos y listas de reproducción
 
 PLUGIN_QOBUZ_SHOW_DISCS_DESC
