@@ -301,7 +301,7 @@ sub getMetadataFor {
 
 	if ($meta->{type} ne 'mp3' && $client && $client->playingSong && $client->playingSong->track->url eq $url) {
 		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
-		$meta->{samplerate} = $client->playingSong->pluginData('samplerate');
+		$meta->{samplerate} = $client->playingSong->pluginData('samplerate') * 1000;
 		$meta->{samplesize} = $client->playingSong->pluginData('samplesize');
 	}
 
