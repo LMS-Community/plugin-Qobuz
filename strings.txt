@@ -247,6 +247,7 @@ PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM
 PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
 	EN	Sort Favorites
+	EN_GB	Sort Favourites
 	NL	Sorteer Favorieten
 
 PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
