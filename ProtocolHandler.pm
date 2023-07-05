@@ -55,6 +55,7 @@ sub getSeekDataByPosition {
 	my $class = shift;
 	$class->SUPER::getSeekDataByPosition(@_) if CAN_FLAC_SEEK;
 }
+
 sub getSeekData {
 	my $class = shift;
 	my ( $client, $song, $newtime ) = @_;
@@ -299,7 +300,7 @@ sub getMetadataFor {
 	$meta->{ct} = $meta->{type};
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? MP3_BITRATE : 750_000;
 
-	if ($meta->{type} ne 'mp3' && $client && $client->playingSong && $client->playingSong->track->url eq $url) {
+	if ($client && $client->playingSong && $client->playingSong->track->url eq $url) {
 		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
 		$meta->{samplerate} = $client->playingSong->pluginData('samplerate') * 1000;
 		$meta->{samplesize} = $client->playingSong->pluginData('samplesize');
@@ -348,7 +349,7 @@ sub getMetadataFor {
 			}
 		}
 	}
-	
+
 	if ( $prefs->get('parentalWarning') && $meta->{parental_warning} ) {
 		$meta->{title} .= ' [E]';
 	}
@@ -356,7 +357,7 @@ sub getMetadataFor {
 	if ( $prefs->get('showDiscs') ) {
 		$meta->{album} = Slim::Music::Info::addDiscNumberToAlbumTitle($meta->{album},$meta->{media_number},$meta->{media_count});
 	}
-	
+
 	# When the user is not browsing via album, genre is a map, not a simple string. Check for this and correct it.
 	if ( ref $meta->{genre} ne "" ) {
 		$meta->{genre} = $meta->{genre}->{name};
@@ -382,6 +383,12 @@ sub getNextTrack {
 
 			$song->pluginData(samplesize => $streamData->{bit_depth});
 			$song->pluginData(samplerate => $streamData->{sampling_rate});
+
+			if (my $track = Slim::Schema->rs('Track')->single({ url => $url })) {
+				$track->samplerate($streamData->{sampling_rate} * 1000);
+				$track->samplesize($streamData->{bit_depth});
+				$track->update();
+			}
 
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
