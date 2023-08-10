@@ -384,12 +384,6 @@ sub getNextTrack {
 			$song->pluginData(samplesize => $streamData->{bit_depth});
 			$song->pluginData(samplerate => $streamData->{sampling_rate});
 
-			if (my $track = Slim::Schema->rs('Track')->single({ url => $url })) {
-				$track->samplerate($streamData->{sampling_rate} * 1000);
-				$track->samplesize($streamData->{bit_depth});
-				$track->update();
-			}
-
 			Plugins::Qobuz::API->getFileUrl(sub {
 				$song->streamUrl(shift);
 
