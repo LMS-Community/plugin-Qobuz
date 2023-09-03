@@ -334,69 +334,6 @@ sub getUserFavorites {
 	});
 }
 
-sub myAlbumsMeta {
-	my ($class, $cb, $noPurchases) = @_;
-
-	_get('favorite/getUserFavorites', sub {
-		my ($results) = @_;
-
-		my $libraryMeta = {};
-		if ($results && ref $results && $results->{albums} && ref $results->{albums}) {
-			$libraryMeta = {
-				total => $results->{albums}->{total} || 0,
-				lastAdded => $results->{albums}->{items}->[0]->{favorited_at} || ''
-			};
-		}
-
-		if ($noPurchases) {
-			$cb->($libraryMeta);
-		}
-		else {
-			$class->getUserPurchases(sub {
-				my ($purchases) = @_;
-
-				if ($purchases && ref $purchases && $purchases->{albums}) {
-					my @timestamps = map { $_->{purchased_at} } @{ $purchases->{albums}->{items} };
-					$libraryMeta->{lastAdded} = max($libraryMeta->{lastAdded}, @timestamps);
-					$libraryMeta->{total} += $purchases->{albums}->{total};
-				}
-
-				$cb->($libraryMeta);
-			}, 1);
-		}
-	}, {
-		limit => 1,
-		type => 'albums',
-		limit => 1,
-		_use_token => 1,
-		_nocache => 1
-	})
-}
-
-sub myArtistsMeta {
-	my ($class, $cb) = @_;
-
-	_get('favorite/getUserFavorites', sub {
-		my ($results) = @_;
-
-		my $libraryMeta = {};
-		if ($results && ref $results && $results->{artists} && ref $results->{artists}) {
-			$libraryMeta = {
-				total => $results->{artists}->{total} || 0,
-				lastAdded => $results->{artists}->{items}->[0]->{favorited_at} || ''
-			};
-		}
-
-		$cb->($libraryMeta);
-	}, {
-		limit => 1,
-		type => 'artists',
-		limit => 1,
-		_use_token => 1,
-		_nocache => 1
-	})
-}
-
 sub createFavorite {
 	my ($class, $cb, $args) = @_;
 

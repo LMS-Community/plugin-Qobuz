@@ -34,11 +34,8 @@ sub myArtists {
 		_use_token => 1,
 	};
 
-	my ($total, $lastAdded) = (0, 0);
-
+	my $total = 0;
 	my $offset = 0;
-	my $libraryMeta;
-	my $gotMeta;
 	my $artists = [];
 
 	do {
@@ -49,12 +46,7 @@ sub myArtists {
 		$offset = 0;
 
 		if ( $response && ref $response && $response->{artists} && ref $response->{artists} && $response->{artists}->{items} && ref $response->{artists}->{items} ) {
-			if (!$gotMeta) {
-				$lastAdded = max($lastAdded, $response->{artists}->{items}->[0]->{favorited_at} || 0);
-
-				$total += $response->{artists}->{total};
-				$gotMeta = 1;
-			}
+			$total ||= $response->{artists}->{total};
 
 			push @$artists, map {
 				{
@@ -70,15 +62,7 @@ sub myArtists {
 		}
 	} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
 
-	if ($total && $lastAdded) {
-		# keep track of some meta-information about the album collection
-		$libraryMeta = {
-			total => $total,
-			lastAdded => $lastAdded
-		};
-	}
-
-	return wantarray ? ($artists, $libraryMeta) : $artists;
+	return $artists;
 }
 
 sub myAlbums {
@@ -86,7 +70,6 @@ sub myAlbums {
 
 	my $offset = 0;
 	my $allAlbums = [];
-	my $libraryMeta;
 
 	my $args = {
 		type  => 'albums',
@@ -95,13 +78,10 @@ sub myAlbums {
 		_use_token => 1,
 	};
 
-	my ($total, $lastAdded) = (0, 0);
-
 	my @categories = ('favorite/getUserFavorites');
 	push @categories, 'purchase/getUserPurchases' if !($noPurchases);
 
 	foreach my $query (@categories) {
-		my $gotMeta;
 		my $albums = [];
 		my $subTotal = 0;
 
@@ -113,19 +93,6 @@ sub myAlbums {
 			$offset = 0;
 
 			if ( $response && ref $response && $response->{albums} && ref $response->{albums} && $response->{albums}->{items} && ref $response->{albums}->{items} ) {
-				if (!$gotMeta) {
-					if ($query =~ /purchase/) {
-						my @timestamps = map { $_->{purchased_at} } @{ $response->{albums}->{items} };
-						$lastAdded = max($lastAdded, @timestamps);
-					}
-					else {
-						$lastAdded = max($lastAdded, $response->{albums}->{items}->[0]->{favorited_at} || 0);
-					}
-
-					$total += $subTotal = $response->{albums}->{total};
-					$gotMeta = 1;
-				}
-
 				push @$albums, @{ _precacheAlbum($response->{albums}->{items}) };
 
 				if (scalar @$albums < $subTotal && $response->{albums}->{total} > QOBUZ_LIMIT && $response->{albums}->{offset} < $response->{albums}->{total}) {
@@ -137,15 +104,7 @@ sub myAlbums {
 		push @$allAlbums, @$albums;
 	}
 
-	if ($total && $lastAdded) {
-		# keep track of some meta-information about the album collection
-		$libraryMeta = {
-			total => $total,
-			lastAdded => $lastAdded
-		};
-	}
-
-	return wantarray ? ($allAlbums, $libraryMeta) : $allAlbums;
+	return $allAlbums;
 }
 
 sub getAlbum {
