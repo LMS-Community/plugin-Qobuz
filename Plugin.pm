@@ -59,6 +59,18 @@ use constant CAN_IMAGEPROXY => (Slim::Utils::Versions->compareVersions($::VERSIO
 sub initPlugin {
 	my $class = shift;
 
+	my $cache = Plugins::Qobuz::API::Common->getCache();
+
+	# migrate auth data from cache to prefs
+	if ( !$prefs->get('token') && $prefs->get('password_md5_hash') && $prefs->get('username') ) {
+		$prefs->set('token', $cache->get('token_' . $prefs->get('username') . $prefs->get('password_md5_hash')));
+		$prefs->remove('password_md5_hash');
+	}
+
+	if ( !$prefs->get('userdata') && (my $userdata = $cache->get('userdata')) ) {
+		$prefs->set('userdata', $userdata);
+	}
+
 	if (main::WEBUI) {
 		require Plugins::Qobuz::Settings;
 		Plugins::Qobuz::Settings->new();
@@ -214,7 +226,7 @@ sub handleFeed {
 	my $params = $args->{params};
 
 	$cb->({
-		items => ( $prefs->get('username') && $prefs->get('password_md5_hash') ) ? [{
+		items => ( $prefs->get('username') && $prefs->get('token') ) ? [{
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
 			type => 'link',

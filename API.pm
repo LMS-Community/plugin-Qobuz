@@ -23,49 +23,33 @@ my $cache = Plugins::Qobuz::API::Common->getCache();
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
-# corrupt cache file can lead to hammering the backend with login attempts.
-# Keep session information in memory, don't rely on disk cache.
-my $memcache = Plugins::Qobuz::MemCache->new();
-
 my ($aid, $as);
 
 sub init {
 	my $class = shift;
 	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
-
-	# try to get a token if needed - pass empty callback to make it look it up anyway
-	$class->getToken(sub {}, !Plugins::Qobuz::API::Common->getCredentials);
+	$class->updateUserdata();
 }
 
+# legacy - for backwards compatibility only
 sub getToken {
 	my ($class, $cb, $force) = @_;
 
-	my $username = $prefs->get('username');
-	my $password = $prefs->get('password_md5_hash');
+	main::INFOLOG && $log->is_info && logBacktrace('Please stop using the deprecated Plugins::Qobuz::API->getToken() method');
 
-	if ( !($username && $password) || $memcache->get('getTokenFailed') ) {
+	my $token = $prefs->get('token');
+
+	$cb->($token) if $cb;
+	return $token;
+}
+
+sub login {
+	my ($class, $username, $password, $cb) = @_;
+
+	if ( !($username && $password) ) {
 		$cb->() if $cb;
 		return;
 	}
-
-	my $cacheKey = Plugins::Qobuz::API::Common::getSessionCacheKey($username, $password);
-	if ( !$force && ( (my $token = $memcache->get($cacheKey)) || !$cb ) ) {
-		$cb->($token) if $cb;
-		return $token;
-	}
-
-	if ( ($memcache->get('login') || 0) > 5 ) {
-		$log->error("Something's wrong: logging in in too short intervals. We're going to pause for a while as to not get blocked by the backend.");
-		$memcache->set('getTokenFailed', 30);
-
-		$cb->() if $cb;
-		return;
-	}
-
-	# Set a timestamp we're going to use to prevent repeated logins.
-	# Don't allow more than one login attempt per x seconds.
-	my $attempts = $memcache->get('login') || 0;
-	$memcache->set('login', $attempts++, 5);
 
 	_get('user/login', sub {
 		my $result = shift;
@@ -75,16 +59,13 @@ sub getToken {
 		my $token;
 		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
 			$log->warn('Failed to get token');
-			# set failure flag to prevent looping
-			$memcache->set('getTokenFailed', 1, 10);
 			$cb->() if $cb;
 			return;
 		}
 
-		$memcache->set($cacheKey, $token, QOBUZ_DEFAULT_EXPIRY);
-		$cache->set($cacheKey, $token, QOBUZ_DEFAULT_EXPIRY);
-		# keep the user data around longer than the token
-		$cache->set('userdata', $result->{user}, time() + QOBUZ_DEFAULT_EXPIRY*2);
+		$prefs->set('token', $token);
+		# TODO - refresh userdata every now and then, currently only happens if OMLI polling is enabled
+		$prefs->set('userdata', $result->{user});
 
 		$cb->($token) if $cb;
 	},{
@@ -93,8 +74,33 @@ sub getToken {
 		device_manufacturer_id => preferences('server')->get('server_uuid'),
 		_nocache => 1,
 	});
+}
 
-	return;
+sub updateUserdata {
+	my ($class, $cb) = @_;
+
+	if ( !($prefs->get('token') && $prefs->get('userdata')) ) {
+		$cb->() if $cb;
+		return;
+	}
+
+	_get('user/get', sub {
+		my $result = shift;
+
+		if ($result && ref $result eq 'HASH') {
+			my $userinfo = Plugins::Qobuz::API::Common->getUserdata();
+
+			foreach my $k (keys %$result) {
+				$userinfo->{$k} = $result->{$k} if defined $result->{$k};
+				$prefs->set('userinfo', $userinfo);
+			}
+		}
+
+		$cb->($result) if $cb;
+	},{
+		user_id => Plugins::Qobuz::API::Common->getUserdata('id'),
+		_nocache => 1,
+	})
 }
 
 sub search {
@@ -642,19 +648,10 @@ sub _get {
 	my $token = '';
 
 	if ($url ne 'user/login') {
-		$token = __PACKAGE__->getToken();
+		$token = $prefs->get('token');
 		if ( !$token ) {
-			if ( $prefs->get('username') && $prefs->get('password_md5_hash') && !$memcache->get('getTokenFailed') ) {
-				__PACKAGE__->getToken(sub {
-					# we'll get back later to finish the original call...
-					_get($url, $cb, $params)
-				});
-			}
-			else {
-				$log->error('No or invalid username/password available') unless $prefs->get('username') && $prefs->get('password_md5_hash');
-				$cb->();
-			}
-			return;
+			$log->error('No or invalid user session');
+			return $cb->();
 		}
 	}
 
@@ -729,11 +726,6 @@ sub _get {
 		},
 		sub {
 			my ($http, $error) = @_;
-
-			# login failed due to invalid username/password: delete password
-			if ($error =~ /^401/ && $http->url =~ m|user/login|i) {
-				$prefs->remove('password_md5_hash');
-			}
 
 			$log->warn("Error: $error");
 			$cb->();
@@ -819,48 +811,6 @@ sub _pagingGet {
 	}, $params);
 }
 
-sub cache { wantarray ? ($cache, $memcache) : $cache }
 sub aid { $aid }
-
-1;
-
-# very simple memory caching class
-package Plugins::Qobuz::MemCache;
-
-use Digest::MD5 qw(md5_hex);
-
-sub new {
-	return bless {}, shift;
-}
-
-sub set {
-	my ($class, $key, $value, $timeout) = @_;
-
-	$timeout ||= Plugins::Qobuz::API::QOBUZ_DEFAULT_EXPIRY;
-
-	$class->{md5_hex($key)} = {
-		v => $value,
-		t => Time::HiRes::time() + $timeout,
-	};
-}
-
-sub get {
-	my ($class, $key) = @_;
-
-	$key = md5_hex($key);
-
-	my $value;
-
-	if (my $cached = $class->{$key}) {
-		if ( $cached->{t} > Time::HiRes::time() ) {
-			$value = $cached->{v};
-		}
-		else {
-			delete $class->{$key};
-		}
-	}
-
-	return $value;
-}
 
 1;

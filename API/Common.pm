@@ -51,15 +51,10 @@ sub getCache {
 	return $cache ||= Slim::Utils::Cache->new('qobuz', 3);
 }
 
-sub getSessionCacheKey {
-	my ($username, $password) = @_;
-	return 'token_' . $username . $password;
-}
-
 sub getUserdata {
 	my ($class, $item) = @_;
 
-	my $userdata = $cache->get('userdata') || {};
+	my $userdata = $prefs->get('userdata') || {};
 
 	return $item ? $userdata->{$item} : $userdata;
 }

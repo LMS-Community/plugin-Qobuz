@@ -15,7 +15,7 @@ use Plugins::Qobuz::ProtocolHandler;
 # don't report the same track twice
 tie my %reportedTracks, 'Tie::Cache::LRU::Expires', EXPIRES => 60, ENTRIES => 10;
 
-my ($cache, $memcache) = Plugins::Qobuz::API->cache();
+my $cache = Plugins::Qobuz::API::Common->getCache();
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 my $aid;
@@ -142,7 +142,7 @@ sub _post {
 	my ( $url, $cb, $event ) = @_;
 
 	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::QOBUZ_BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
-	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), Plugins::Qobuz::API->getToken());
+	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), $prefs->get('token'));
 
 	main::INFOLOG && $log->is_info && $log->info("$url: $body");
 
@@ -159,11 +159,6 @@ sub _post {
 		},
 		sub {
 			my ($http, $error) = @_;
-
-			# login failed due to invalid username/password: delete password
-			if ($error =~ /^401/ && $http->url =~ m|user/login|i) {
-				$prefs->remove('password_md5_hash');
-			}
 
 			$log->warn("Error: $error ($url)");
 			$cb->() if $cb;
