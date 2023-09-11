@@ -69,7 +69,7 @@ sub myAlbums {
 	my ($class, $noPurchases) = @_;
 
 	my $offset = 0;
-	my $allAlbums = [];
+	my $albums = [];
 
 	my $args = {
 		type  => 'albums',
@@ -82,9 +82,6 @@ sub myAlbums {
 	push @categories, 'purchase/getUserPurchases' if !($noPurchases);
 
 	foreach my $query (@categories) {
-		my $albums = [];
-		my $subTotal = 0;
-
 		do {
 			$args->{offset} = $offset;
 
@@ -95,16 +92,14 @@ sub myAlbums {
 			if ( $response && ref $response && $response->{albums} && ref $response->{albums} && $response->{albums}->{items} && ref $response->{albums}->{items} ) {
 				push @$albums, @{ _precacheAlbum($response->{albums}->{items}) };
 
-				if (scalar @$albums < $subTotal && $response->{albums}->{total} > QOBUZ_LIMIT && $response->{albums}->{offset} < $response->{albums}->{total}) {
+				if ($response->{albums}->{total} > QOBUZ_LIMIT && $response->{albums}->{offset} < $response->{albums}->{total}) {
 					$offset = $response->{albums}->{offset} + QOBUZ_LIMIT;
 				}
 			}
 		} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
-
-		push @$allAlbums, @$albums;
 	}
 
-	return $allAlbums;
+	return $albums;
 }
 
 sub getAlbum {
