@@ -6,7 +6,7 @@
 				<div>[% prefs.username | html %]</div>
 				<br/>
 				<input type="hidden" name="username" value="[% prefs.username | html %]">
-				<input name="pref_logout" type="submit" class="stdclick" value="[% "SETUP_SIGNOUT" | string %]"><br/><br/>
+				<input name="pref_logout" type="submit" class="stdclick" value="[% "PLUGIN_QOBUZ_SIGNOUT" | string %]"><br/><br/>
 			[% END %]
 		[% ELSE %]
 			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]

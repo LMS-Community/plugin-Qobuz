@@ -17,6 +17,12 @@ PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
 	FR	Spécifiez votre nom d'utilisateur Qobuz dans "Paramètres/Avancé/Qobuz".
 	NL	Vul alsjeblieft bij de Server instellingen jouw Qobuz gebruikersnaam en wachtwoord in.
 
+PLUGIN_QOBUZ_SIGNOUT
+	DE	Abmelden
+	EN	Sign out
+	FR	Déconnexion
+	NL	Afmelden
+
 PLUGIN_QOBUZ_AUTH_FAILED
 	CS	Autorizace se nezdařila
 	DE	Anmeldung fehlgeschlagen
