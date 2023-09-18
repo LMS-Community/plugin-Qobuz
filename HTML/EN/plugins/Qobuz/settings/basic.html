@@ -1,8 +1,17 @@
 [% PROCESS settings/header.html %]
 
 	[% WRAPPER settingSection %]
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" value="[% prefs.password_md5_hash %]" size="20" />[% END %]
+		[% IF has_session %]
+			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]
+				<div>[% prefs.username | html %]</div>
+				<br/>
+				<input type="hidden" name="username" value="[% prefs.username | html %]">
+				<input name="pref_logout" type="submit" class="stdclick" value="[% "PLUGIN_QOBUZ_SIGNOUT" | string %]"><br/><br/>
+			[% END %]
+		[% ELSE %]
+			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
+			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" size="20" />[% END %]
+		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST" desc="" %]
 			<select name="pref_showComposerWithArtist" id="showComposerWithArtist">
@@ -79,7 +88,7 @@
 		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_FORMAT" desc="" %]
-			<select name="preferredFormat" id="preferredFormat">
+			<select name="pref_preferredFormat" id="preferredFormat">
 			  <option [% prefs.preferredFormat == "5" ? "selected" : "" %] value="5" >MP3 320 kbps </option>
 			  <option [% prefs.preferredFormat == "6" ? "selected" : "" %] value="6" >FLAC 16 bits / 44.1 kHz</option>
 			  <option [% prefs.preferredFormat == "7" ? "selected" : "" %] value="7" >FLAC Hi-Res 24 bits / 96 kHz</option>

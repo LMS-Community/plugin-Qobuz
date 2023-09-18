@@ -62,6 +62,7 @@ sub startScan { if (main::SCANNER) {
 	}
 
 	$class->deleteRemovedTracks();
+	$cache->set('last_update', time(), '1y');
 
 	Slim::Music::Import->endImporter($class);
 } };
@@ -81,10 +82,8 @@ sub scanAlbums {
 	main::INFOLOG && $log->is_info && $log->info("Reading albums...");
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
 
-	my ($albums, $libraryMeta) = Plugins::Qobuz::API::Sync->myAlbums($prefs->get('dontImportPurchases'));
+	my $albums = Plugins::Qobuz::API::Sync->myAlbums($prefs->get('dontImportPurchases'));
 	$progress->total(scalar @$albums);
-
-	$cache->set('latest_album_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
 
 	my @albums;
 
@@ -145,8 +144,7 @@ sub scanArtists {
 	main::INFOLOG && $log->is_info && $log->info("Reading artists...");
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS'));
 
-	my ($artists, $libraryMeta) = Plugins::Qobuz::API::Sync->myArtists();
-	$cache->set('latest_artist_update', $class->libraryMetaId($libraryMeta), time() + 360 * 86400);
+	my $artists = Plugins::Qobuz::API::Sync->myArtists();
 
 	$progress->total($progress->total + scalar @$artists);
 
@@ -230,8 +228,6 @@ sub scanPlaylists {
 		$insertTrackInTempTable_sth && $insertTrackInTempTable_sth->execute($url);
 	}
 
-	$cache->set('playlist_last_update', $latestPlaylistUpdate, time() + 86400 * 360);
-
 	main::INFOLOG && $log->is_info && $log->info("Done, finally!");
 
 	$progress->final();
@@ -251,78 +247,22 @@ sub trackUriPrefix { 'qobuz://' }
 sub needsUpdate {
 	my ($class, $cb) = @_;
 
-	require Async::Util;
 	require Plugins::Qobuz::API;
 
-	my $timestamp = time();
+	Plugins::Qobuz::API->updateUserdata(sub {
+		my $result = shift;
 
-	my @workers = (
-		sub {
-			my ($result, $acb) = @_;
+		my $needUpdate;
 
-			return $acb->() if $class->_ignorePlaylists;
+		if ($result && ref $result eq 'HASH' && $result->{last_update} && ref $result->{last_update} eq 'HASH') {
+			my $timestamps = Storable::dclone($result->{last_update});
+			delete $timestamps->{playlist} if $class->_ignorePlaylists;
 
-			# don't run any further test in the queue if we already have a result
-			return $acb->($result) if $result;
-
-			my $previousPlaylistUpdate = $cache->get('playlist_last_update');
-
-			Plugins::Qobuz::API->getUserPlaylists(sub {
-				my ($result) = @_;
-				my $needUpdate;
-
-				if ($result && ref $result && $result->{playlists} && ref $result->{playlists} && $result->{playlists}->{items} && ref $result->{playlists}->{items}) {
-					my $playlists = $result->{playlists}->{items};
-					my $latestPlaylistUpdate = 0;
-
-					foreach (@$playlists) {
-						if ($_->{updated_at} > $previousPlaylistUpdate) {
-							$needUpdate = 1;
-							last;
-						}
-					}
-				}
-
-				$acb->($needUpdate);
-			}, undef, 1);
-		}, sub {
-			my ($result, $acb) = @_;
-
-			# don't run any further test in the queue if we already have a result
-			return $acb->($result) if $result;
-
-			my $lastUpdateData = $cache->get('latest_album_update') || '';
-
-			Plugins::Qobuz::API->myAlbumsMeta(sub {
-				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
-			}, $prefs->get('dontImportPurchases'));
-		}, sub {
-			my ($result, $acb) = @_;
-
-			# don't run any further test in the queue if we already have a result
-			return $acb->($result) if $result;
-
-			my $lastUpdateData = $cache->get('latest_artist_update') || '';
-
-			Plugins::Qobuz::API->myArtistsMeta(sub {
-				$acb->($class->libraryMetaId($_[0]) eq $lastUpdateData ? 0 : 1);
-			});
+			$needUpdate = $cache->get('last_update') < max(values %$timestamps);
 		}
-	);
 
-	if (scalar @workers) {
-		Async::Util::achain(
-			input => undef,
-			steps => \@workers,
-			cb    => sub {
-				my ($result, $error) = @_;
-				$cb->( ($result && !$error) ? 1 : 0 );
-			}
-		);
-	}
-	else {
-		$cb->();
-	}
+		$cb->($needUpdate);
+	});
 }
 
 sub _ignorePlaylists {
@@ -365,7 +305,7 @@ sub _prepareTrack {
 	if ($track->{composer}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
 	}
-	
+
 	if ($track->{audio_info}) {
 		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
 	}

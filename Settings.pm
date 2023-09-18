@@ -1,13 +1,14 @@
 package Plugins::Qobuz::Settings;
 
 use strict;
-use base qw(Slim::Web::Settings);
-use Slim::Utils::Prefs;
-use Slim::Utils::Log;
 use Digest::MD5 qw(md5_hex);
 
+use base qw(Slim::Web::Settings);
 
-# Used for logging.
+use Slim::Utils::Prefs;
+use Slim::Utils::Log;
+
+my $cache = Plugins::Qobuz::API::Common->getCache();
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
@@ -20,43 +21,54 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums', 'dontImportPurchases', 
-			'appendVersionToTitle', 'sortFavsAlphabetically', 'sortArtistAlbums', 'showYearWithAlbum', 'useClassicalEnhancements', 
-			'classicalGenres','workPlaylistPosition','parentalWarning','showDiscs');
+	return ($prefs, 'filterSearchResults', 'playSamples', 'showComposerWithArtist', 'labelHiResAlbums', 'dontImportPurchases',
+			'appendVersionToTitle', 'sortFavsAlphabetically', 'sortArtistAlbums', 'showYearWithAlbum', 'useClassicalEnhancements',
+			'classicalGenres', 'workPlaylistPosition', 'parentalWarning', 'showDiscs', 'preferredFormat');
 }
 
 sub handler {
-	my ($class, $client, $params) = @_;
+ 	my ($class, $client, $params, $callback, @args) = @_;
 
-	if ($params->{'saveSettings'} && $params->{'username'}) {
-		if ($params->{'username'}) {
+	if ( $params->{pref_logout} ) {
+		$prefs->remove('token');
+		$prefs->remove('userdata');
+	}
+	elsif ( $params->{saveSettings} ) {
+		$params->{'pref_filterSearchResults'} ||= 0;
+		$params->{'pref_playSamples'}         ||= 0;
+		$params->{'pref_dontImportPurchases'} ||= 0;
+
+		if ($params->{'username'} && $params->{'password'}) {
 			my $username = $params->{'username'};
-			$prefs->set('username', "$username"); # add a leading space to make the message display nicely
-		}
+			my $password = md5_hex($params->{'password'});
 
-		if ($params->{'password'} && ($params->{'password'} ne "****")) {
-			my $password_md5_hash = md5_hex($params->{'password'});
-			$prefs->set('password_md5_hash', "$password_md5_hash"); # add a leading space to make the message display nicely
-		}
+			Plugins::Qobuz::API->login($username, $password, sub {
+				my $token = shift;
 
-		if ($params->{'preferredFormat'}) {
-			my $preferredFormat = $params->{'preferredFormat'};
-			$prefs->set('preferredFormat', "$preferredFormat"); # add a leading space to make the message display nicely
-		}
+				if ($token) {
+					$prefs->set('username', "$username");
+					$prefs->remove('password_md5_hash');
+				}
+				else {
+					$params->{'warning'} = Slim::Utils::Strings::string('PLUGIN_QOBUZ_AUTH_FAILED');
+				}
 
-		$params->{pref_filterSearchResults} ||= 0;
-		$params->{pref_playSamples} ||= 0;
-		$params->{pref_dontImportPurchases} ||= 0;
+				my $body = $class->SUPER::handler($client, $params);
+				$callback->( $client, $params, $body, @args );
+			});
+
+			return;
+		}
 	}
 
-	# This puts the value on the webpage.
-	# If the page is just being displayed initially, then this puts the current value found in prefs on the page.
-	$params->{'prefs'}->{'username'} = $prefs->get('username');
-	$params->{'prefs'}->{'password_md5_hash'} = "****";
-	$params->{'prefs'}->{'preferredFormat'} = $prefs->get('preferredFormat');
+	$class->SUPER::handler($client, $params);
+}
 
-	# I have no idea what this does, but it seems important and it's not plugin-specific.
-	return $class->SUPER::handler($client, $params);
+sub beforeRender {
+	my ($class, $params, $client) = @_;
+
+	$params->{'prefs'}->{'username'} = $prefs->get('username');
+	$params->{'has_session'} = $prefs->get('token') && $prefs->get('userdata') && 1;
 }
 
 1;

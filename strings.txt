@@ -17,6 +17,19 @@ PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
 	FR	Spécifiez votre nom d'utilisateur Qobuz dans "Paramètres/Avancé/Qobuz".
 	NL	Vul alsjeblieft bij de Server instellingen jouw Qobuz gebruikersnaam en wachtwoord in.
 
+PLUGIN_QOBUZ_SIGNOUT
+	DE	Abmelden
+	EN	Sign out
+	FR	Déconnexion
+	NL	Afmelden
+
+PLUGIN_QOBUZ_AUTH_FAILED
+	CS	Autorizace se nezdařila
+	DE	Anmeldung fehlgeschlagen
+	EN	Authorization failed
+	FR	Echec de l'autorisation
+	NL	Autorisatie mislukt
+
 PLUGIN_QOBUZ_PREFS
 	DE	Einstellungen
 	EN	Preferences
@@ -247,6 +260,7 @@ PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM
 PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
 	EN	Sort Favorites
+	EN_GB	Sort Favourites
 	NL	Sorteer Favorieten
 
 PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
@@ -397,13 +411,13 @@ PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_INTEGRATED
 	EN	Integrate with work headings
 	DE	Mit Werktiteln integrieren
 	NL	Integreren met werktitels
-	
+
 PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	EN	Album not found in the Qobuz library
 	DE	Album nicht in der Qobuz-Bibliothek gefunden
 	NL	Album niet gevonden in de Qobuz bibliotheek
 	FR	Album introuvable dans la bibliothèque Qobuz
-	
+
 PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY
 	EN	Clear search history
 	DE	Suchverlauf löschen
@@ -417,9 +431,9 @@ PLUGIN_QOBUZ_NEW_SEARCH
 	NL	Nieuwe zoekopdracht
 	FR	Nouvelle recherche
 	ES	Nueva búsqueda
-	
+
 PLUGIN_QOBUZ_SHOW_PARENTAL_WARNING
-	DE	Elternwarnungen anzeigen
+	DE	Elterliche Ermahnungen anzeigen
 	EN	Show Parental Warnings
 	FR	Afficher les avertissements parentaux
 	NL	Toon ouderlijke waarschuwingen
@@ -431,12 +445,12 @@ PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
 	FR	Les albums/pistes avec un contenu explicite seront étiquetés avec [E]
 	NL	Albums/tracks met expliciete inhoud worden gelabeld met [E]
 	ES	Los álbumes/pistas con contenido explícito se etiquetarán con [E]
-	
+
 PLUGIN_QOBUZ_SHOW_DISCS
-	DE	Disc-Überschriften und Playlists anzeigen
+	DE	Disc-Überschriften und Wiedergabelisten anzeigen
 	EN	Show disc headings and playlists
 	FR	Afficher les en-têtes de disque et les listes de lecture
-	NL	Schijfkoppen en afspeellijsten weergeven
+	NL	Schijftitels en afspeellijsten weergeven
 	ES	Mostrar encabezados de discos y listas de reproducción
 
 PLUGIN_QOBUZ_SHOW_DISCS_DESC
