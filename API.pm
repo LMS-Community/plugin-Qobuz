@@ -498,7 +498,7 @@ sub getFileInfo {
 			$preferredFormat = QOBUZ_STREAMING_FLAC;
 		}
 		elsif ($preferredFormat > QOBUZ_STREAMING_FLAC_HIRES) {
-        		if ($maxSupportedSamplerate && $maxSupportedSamplerate <= 96_000) {
+			if ($maxSupportedSamplerate && $maxSupportedSamplerate <= 96_000) {
 				$preferredFormat = QOBUZ_STREAMING_FLAC_HIRES;
 			}
 		}
