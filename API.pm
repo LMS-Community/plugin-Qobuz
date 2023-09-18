@@ -494,11 +494,13 @@ sub getFileInfo {
 
 	if ($format =~ /fl.c/i) {
 		$preferredFormat = $prefs->get('preferredFormat');
-		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES || ($maxSupportedSamplerate && $maxSupportedSamplerate <= 48_000)) {
+		if ($preferredFormat < QOBUZ_STREAMING_FLAC_HIRES || ($maxSupportedSamplerate && $maxSupportedSamplerate < 48_000)) {
 			$preferredFormat = QOBUZ_STREAMING_FLAC;
 		}
 		elsif ($preferredFormat > QOBUZ_STREAMING_FLAC_HIRES) {
-			$preferredFormat = QOBUZ_STREAMING_FLAC_HIRES2;
+        		if ($maxSupportedSamplerate && $maxSupportedSamplerate <= 96_000) {
+				$preferredFormat = QOBUZ_STREAMING_FLAC_HIRES;
+			}
 		}
 	}
 	elsif ($format =~ /mp3/i) {
