@@ -302,8 +302,13 @@ sub getMetadataFor {
 
 	if ($client && $client->playingSong && $client->playingSong->track->url eq $url) {
 		$meta->{bitrate} = $client->playingSong->bitrate if $client->playingSong->bitrate;
-		$meta->{samplerate} = $client->playingSong->pluginData('samplerate') * 1000;
-		$meta->{samplesize} = $client->playingSong->pluginData('samplesize');
+		if ( my $track = $client->playingSong->currentTrack) {
+			$meta->{samplerate} = $track->samplerate if $track->samplerate;
+			$meta->{samplesize} = $track->samplesize if $track->samplesize;
+		} else {
+			$meta->{samplerate} = $client->playingSong->samplerate if $client->playingSong->samplerate;
+			$meta->{samplesize} = $client->playingSong->samplesize if $client->playingSong->samplesize;
+		}
 	}
 
 	$meta->{bitrate} = sprintf("%.0f" . Slim::Utils::Strings::string('KBPS'), $meta->{bitrate}/1000);
