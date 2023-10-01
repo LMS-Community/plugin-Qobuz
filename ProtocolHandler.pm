@@ -245,6 +245,7 @@ sub parseDirectHeaders {
 	# try to calculate exact bitrate so we can display correct progress
 	my $meta = $class->getMetadataFor($client, $url);
 	my $duration = $meta->{duration};
+	my $offset = $song->seekdata() ? $song->seekdata()->{'timeOffset'} : 0;
 
 	# sometimes we only get a 30s/mp3 sample
 	if ($meta->{streamable} && $meta->{streamable} eq 'sample' && $contentType eq 'mp3') {
@@ -254,7 +255,7 @@ sub parseDirectHeaders {
 	$song->duration($duration);
 
 	if ($length && $contentType eq 'flc') {
-		$bitrate = $length*8 / $duration if $duration;
+		$bitrate = $length*8 / ($duration - $offset) if $duration;
 		$song->bitrate($bitrate) if $bitrate;
 	}
 
