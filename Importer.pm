@@ -281,7 +281,6 @@ sub _prepareTrack {
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
 		ARTIST       => $album->{artist}->{name},
 		ARTIST_EXTID => 'qobuz:artist:' . $album->{artist}->{id},
-		TRACKARTIST  => $track->{performer}->{name},
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
@@ -307,6 +306,10 @@ sub _prepareTrack {
 
 	if ($track->{composer}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
+	}
+
+	if ($track->{performer} && $track->{performer}->{name} ne $album->{artist}->{name}) {
+		$attributes->{TRACKARTIST} = $track->{performer}->{name};
 	}
 
 	if ($track->{audio_info}) {
