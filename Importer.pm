@@ -286,8 +286,6 @@ sub _prepareTrack {
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
 		GENRE        => $album->{genre},
-		DISC         => $track->{media_number},
-		DISCC        => $album->{media_count},
 		SECS         => $track->{duration},
 		YEAR         => substr($album->{release_date_stream},0,4),
 		COVER        => $album->{image},
@@ -301,6 +299,11 @@ sub _prepareTrack {
 		CHANNELS     => $track->{maximum_channel_count},
 		LOSSLESS     => $ct eq 'flc',
 	};
+
+	if ($album->{media_count} > 1) {
+		$attributes->{DISC} = $track->{media_number};
+		$attributes->{DISCC} = $album->{media_count};
+	}
 
 	if ($track->{composer}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
