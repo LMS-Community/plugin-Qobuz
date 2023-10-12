@@ -93,7 +93,7 @@ sub scanAlbums {
 		if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 			$progress->update($album->{title});
 			$class->storeTracks([
-				map { _prepareTrack($album, $_) } @{ $albumDetails->{tracks}->{items} }
+				map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
 			]);
 
 			main::SCANNER && Slim::Schema->forceCommit;
@@ -297,6 +297,7 @@ sub _prepareTrack {
 		SAMPLESIZE   => $track->{maximum_bit_depth},
 		CHANNELS     => $track->{maximum_channel_count},
 		LOSSLESS     => $ct eq 'flc',
+		RELEASETYPE  => $album->{release_type},
 	};
 
 	if ($album->{media_count} > 1) {

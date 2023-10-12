@@ -132,6 +132,7 @@ sub _precacheAlbum {
 			parental_warning => $album->{parental_warning},
 			media_count => $album->{media_count},
 			duration => 0,
+			release_type => $album->{release_type},
 		};
 
 		_precacheTracks([ map {
