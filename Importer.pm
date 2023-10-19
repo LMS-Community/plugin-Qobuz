@@ -276,11 +276,18 @@ sub _prepareTrack {
 	my $url = Plugins::Qobuz::API::Common->getUrl($track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
+	my ($artist, $artistId);
+	if (ref $album->{artists}) {
+		($artist, $artistId) = map { $_->{name}, $_->{id} } grep {
+			$_->{roles} && grep(/main-artist/, @{$_->{roles}})
+		} @{$album->{artists}};
+	}
+
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => $album->{artist}->{name},
-		ARTIST_EXTID => 'qobuz:artist:' . $album->{artist}->{id},
+		ARTIST       => $artist || $album->{artist}->{name},
+		ARTIST_EXTID => 'qobuz:artist:' . ($artistId || $album->{artist}->{id}),
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
