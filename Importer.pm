@@ -304,7 +304,7 @@ sub _prepareTrack {
 		SAMPLESIZE   => $track->{maximum_bit_depth},
 		CHANNELS     => $track->{maximum_channel_count},
 		LOSSLESS     => $ct eq 'flc',
-		RELEASETYPE  => $album->{release_type},
+		RELEASETYPE  => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
 	};
 
 	if ($album->{media_count} > 1) {
