@@ -77,15 +77,13 @@ sub scanAlbums {
 		'every' => 1,
 	});
 
-	my @missingAlbums;
+	my %missingAlbums;
 
 	main::INFOLOG && $log->is_info && $log->info("Reading albums...");
 	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
 
 	my $albums = Plugins::Qobuz::API::Sync->myAlbums($prefs->get('dontImportPurchases'));
 	$progress->total(scalar @$albums);
-
-	my @albums;
 
 	foreach my $album (@$albums) {
 		my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
@@ -99,14 +97,15 @@ sub scanAlbums {
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
 		else {
-			push @missingAlbums, $album->{id};
+			$missingAlbums{$album->{id}} = $album->{favorited_at} || $album->{purchased_at};
 		}
 	}
 
-	foreach my $albumId (@missingAlbums) {
+	while ( my ($albumId, $timestamp) = each %missingAlbums ) {
 		my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
 		$progress->update($album->{title});
 
+		$album->{favorited_at} = $timestamp;
 		$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
 
 		$class->storeTracks([
