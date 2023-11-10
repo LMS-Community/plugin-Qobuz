@@ -282,6 +282,8 @@ sub _prepareTrack {
 		} @{$album->{artists}};
 	}
 
+	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
+
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
