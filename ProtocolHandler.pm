@@ -156,7 +156,7 @@ sub trackGain {
  	my $rgmode = preferences('server')->client($client)->get('replayGainMode');
 
 	if ( $rgmode == 0 ) {  # no replay gain
-		return 0;
+		return undef;
 	}
 
 	my $cache = Plugins::Qobuz::API::Common->getCache();
