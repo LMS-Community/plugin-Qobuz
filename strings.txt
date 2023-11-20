@@ -165,13 +165,13 @@ PLUGIN_ON_QOBUZ
 PLUGIN_QOBUZ_NOT_RELEASED
 	DE	Tut uns leid: dieses Werk steht noch nicht zum Hören bereit. Es wird bald verfügbar sein.
 	EN	We're sorry, this work is not available for streaming just yet. It soon will be.
-	FR	Nous sommes désolés : cette œuvre n'est pas encore disponible à l'écoute. Elle le sera bientôt.
+	FR	Malheureusement, cette œuvre n'est pas encore disponible à l'écoute. Elle le sera bientôt.
 	NL	Helaas, deze muziek is nog niet beschikbaar om te luisteren. Binnenkort komt dit beschikbaar.
 
 PLUGIN_QOBUZ_NOT_AVAILABLE
 	DE	Tut uns leid: dieses Werk kann aus rechtlichen Gründen nicht wiedergegeben werden.
 	EN	We're sorry, this work is not available for streaming.
-	FR	Nous sommes désolés : cette œuvre n'est pas disponible à l'écoute.
+	FR	Malheureusement, cette œuvre n'est pas disponible à l'écoute.
 	NL	Helaas, deze muziek is niet beschikbaar om te luisteren.
 
 PLUGIN_QOBUZ_BIOGRAPHY
@@ -403,13 +403,13 @@ PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT
 	EN	<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do.
 	DE	<br /><br />Bei Fragen oder Fehlern: <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Hinweis:</b> Nutze das Plugin "Material Skin" für die bestmögliche Darstellung. Bei der Web-Oberfläche "Standard" wird die Darstellung fehlerhaft, falls "Plattenhüllen anzeigen" ausgewählt wurde.
-	FR	<br /><br />Pour toute question ou constat de dysfonctionnement, <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visiter le forum</a>.<br /><br /><b>Remarque :</b> Pour le meilleur affichage possible, utiliser le plugin "Material Skin". Avec l'interface web "Défaut", l'affichage sera incorrect si "Afficher les pochettes" a été sélectionné.
+	FR	<br /><br />En cas de question ou de dysfonctionnement, <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visiter le forum</a>.<br /><br /><b>Remarque :</b> Pour le meilleur affichage possible, utiliser le plugin "Material Skin". Avec l'interface web "Défaut", l'affichage sera incorrect si "Afficher les pochettes" a été sélectionné.
 	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION
 	EN	Work playlist position
 	DE	Position für Werke-Wiedergabelisten
-	FR	Position de la liste de lecture de travail
+	FR	Position de la liste de lecture de l'œuvre
 	NL	Werk afspeellijst positie
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE
