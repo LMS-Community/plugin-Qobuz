@@ -14,7 +14,7 @@ PLUGIN_QOBUZ_DESC
 PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
 	DE	Bitte geben Sie in den Server-Einstellungen unter Erweitert/Qobuz Benutzernamen und Passwort ein.
 	EN	Please enter Qobuz username and password in Server Settings/Advanced/Qobuz.
-	FR	Spécifiez votre nom d'utilisateur Qobuz dans "Paramètres/Avancé/Qobuz".
+	FR	Veuillez saisir votre nom d'utilisateur Qobuz et votre mot de passe dans les réglages du plugin Qobuz.
 	NL	Vul alsjeblieft bij de Server instellingen jouw Qobuz gebruikersnaam en wachtwoord in.
 
 PLUGIN_QOBUZ_SIGNOUT
@@ -27,7 +27,7 @@ PLUGIN_QOBUZ_AUTH_FAILED
 	CS	Autorizace se nezdařila
 	DE	Anmeldung fehlgeschlagen
 	EN	Authorization failed
-	FR	Echec de l'autorisation
+	FR	Échec de l'authentification
 	NL	Autorisatie mislukt
 
 PLUGIN_QOBUZ_PREFS
@@ -51,7 +51,7 @@ PLUGIN_QOBUZ_PREFS_PASSWORD
 PLUGIN_QOBUZ_PREFS_FORMAT
 	DE	Bevorzugtes Format (FLAC funktioniert nur mit einem "hifi" Premium Konto)
 	EN	Preferred format (FLAC works only with 'hifi' premium account)
-	FR	Format préféré (FLAC ne fonctionnera qu'avec un abonnement "hi-fi")
+	FR	Format préféré (le FLAC peut nécessiter un abonnement spécifique)
 	NL	Voorkeursformaat (ondersteuning van FLAC is afhankelijk van jouw Qobuz abonnement)
 
 PLUGIN_QOBUZ_SUB_GENRES
@@ -165,13 +165,13 @@ PLUGIN_ON_QOBUZ
 PLUGIN_QOBUZ_NOT_RELEASED
 	DE	Tut uns leid: dieses Werk steht noch nicht zum Hören bereit. Es wird bald verfügbar sein.
 	EN	We're sorry, this work is not available for streaming just yet. It soon will be.
-	FR	Nous sommes désolés : cette œuvre n'est pas encore disponible à l'écoute. À paraître bientôt.
+	FR	Malheureusement, cette œuvre n'est pas encore disponible à l'écoute. Elle le sera bientôt.
 	NL	Helaas, deze muziek is nog niet beschikbaar om te luisteren. Binnenkort komt dit beschikbaar.
 
 PLUGIN_QOBUZ_NOT_AVAILABLE
 	DE	Tut uns leid: dieses Werk kann aus rechtlichen Gründen nicht wiedergegeben werden.
 	EN	We're sorry, this work is not available for streaming.
-	FR	Nous sommes désolés : cette œuvre n'est pas disponible à l'écoute.
+	FR	Malheureusement, cette œuvre n'est pas disponible à l'écoute.
 	NL	Helaas, deze muziek is niet beschikbaar om te luisteren.
 
 PLUGIN_QOBUZ_BIOGRAPHY
@@ -213,13 +213,13 @@ PLUGIN_QOBUZ_PLAY_SAMPLES
 PLUGIN_QOBUZ_PLAY_SAMPLES_DESC
 	DE	Manche Musikstücke sind nicht zum online-Hören verfügbar. In diesen Fällen kann jedoch ein 30-Sekunden Hörprobe abgespielt werden. Diese werden mit einem * im Titel gekennzeichnet.
 	EN	Some tracks are not available for streaming. Should the 30-second sample be played instead? These titles will be labeled with an asterisk (*).
-	FR	Certains albums sont uniquement disponibles à l'achat en téléchargement : le détenteur des droits ne souhaite pas qu'il soit disponible en streaming. Voulez-vous écouter des extraits de 30 secondes ?
+	FR	Certains morceaux ne sont pas disponibles en streaming. Seul un extrait de 30 secondes peut être écouté. Ces morceaux sont repérés par un astérisque (*).
 	NL	Sommige nummers zijn niet beschikbaar voor streaming. In plaats daarvan kan een sample van 30 seconden worden gespeeld. Deze worden aangegeven met een asterisk (*).
 
 PLUGIN_QOBUZ_LABEL_HIRES
 	DE	Hi-Res Alben als solche markieren
 	EN	Show Hi-Res label where applicable
-	FR	Taguer les albums Hi-Res
+	FR	Afficher une étiquette Hi-Res le cas échéant
 	NL	Toon Hi-Res label indien van toepassing
 
 PLUGIN_QOBUZ_GOODIES
@@ -261,41 +261,49 @@ PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
 	EN	Sort Favorites
 	EN_GB	Sort Favourites
+	FR	Trier les Favoris
 	NL	Sorteer Favorieten
 
 PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA
 	DE	Alphabetisch sortieren
 	EN	Sort alphabetically
+	FR	Trier par ordre alphabétique
 	NL	Sorteer alphabetisch
 
 PLUGIN_QOBUZ_SORT_FAVORITE_ALBUMS_ALPHA
 	DE	Nach Interpret und Album sortieren
 	EN	Sort by artist and album
+	FR	Trier par artiste et album
 	NL	Sorteer op artiest en album
 
 PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	DE	Nach Hinzufügedatum sortieren
 	EN	Sort by date added
+	FR	Trier par date d'ajout
 	NL	Standaard sorteervolgorde behouden
 
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS
 	DE	Künstleralben sortieren
 	EN	Sort Artist Albums
+	FR	Trier les albums des artistes
 	NL	Sorteer artiestenalbums
 
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA
 	DE	Alphabetisch sortieren
 	EN	Sort alphabetically
+	FR	Trier par ordre alphabétique
 	NL	Sorteer alphabetisch
 
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_NEW
 	DE	Nach Veröffentlichungsdatum sortieren (neueste zuerst)
 	EN	Sort by release date (newest first)
+	FR	Trier par date de sortie (le plus récent en premier)
 	NL	Sorteer op releasedatum (nieuwste eerst)
 
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_OLD
 	DE	Nach Veröffentlichungsdatum sortieren (älteste zuerst)
 	EN	Sort by release date (oldest first)
+	FR	Trier par date de sortie (le plus ancien en premier)
 	NL	Sorteer op releasedatum (oudste eerst)
 
 PLUGIN_QOBUZ_HIRES
@@ -323,24 +331,25 @@ PLUGIN_QOBUZ_AWARDS
 PLUGIN_QOBUZ_TRACKS_COUNT
 	DE	Anzahl Titel
 	EN	Tracks count
-	FR	Nombre de pistes
+	FR	Nombre de morceaux
 	NL	Aantal nummers
 
 PLUGIN_QOBUZ_ALBUMS_PROGRESS
 	DE	Qobuz Alben
 	EN	Qobuz Albums
+	FR	Albums Qobuz
 	NL	Qobuz Albums
 
 PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS
 	DE	Lese Alben...
 	EN	Fetching Albums...
-	FR	Chargement des albums...
+	FR	Récupération des albums...
 	NL	Albums ophalen...
 
 PLUGIN_QOBUZ_ARTISTS_PROGRESS
 	DE	Qobuz Interpreten
 	EN	Qobuz Artists
-	FR	Qobuz Artistes
+	FR	Artistes Qobuz
 	NL	Qobuz Artiesten
 
 PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
@@ -352,13 +361,13 @@ PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS
 PLUGIN_QOBUZ_PROGRESS_READ_TRACKS
 	DE	Lese Titel-Informationen...
 	EN	Fetching Title Information...
-	FR	Récupération des titres...
+	FR	Récupération des informations des morceaux...
 	NL	Nummer informatie ophalen...
 
 PLUGIN_QOBUZ_PLAYLISTS_PROGRESS
 	DE	Qobuz Wiedergabelisten
 	EN	Qobuz Playlists
-	FR	Qobuz Listes de lecture
+	FR	Listes de lecture Qobuz
 	NL	Qobuz Afspeellijsten
 
 PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
@@ -370,46 +379,55 @@ PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS
 	EN	Enhanced classical music display
 	DE	Erweiterte Anzeige von Klassikwerken
+	FR	Affichage amélioré de la musique classique
 	NL	Verbeterde weergave van klassieke werken/componisten
 
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC
 	EN	Choose Yes here if you want the plugin to use Qobuz data to attempt to: <br />* Show a playlist and subheadings for each composer/work within a release. <br />* Add the composer and work names to the track title in the playlist and now playing displays (the playlist cannot show subheadings).
 	DE	Wähle Ja, falls du Qobuz Daten nutzen willst, um folgendes zu erreichen: <br />* Für jedes Werk einer Veröffentlichung eine Wiedergabeliste und Untertitel anzeigen. <br />* Komponisten- und Werkname für jeden Titel in der Wiedergabeliste und im "Aktueller Titel"-Fenster anzeigen (Wiedergabelisten können keine Untertitel anzeigen).
+	FR	Sélectionner "Oui" afin d'utiliser les données Qobuz pour : <br />* Afficher une liste de lecture et des titres secondaires pour chaque élément d'un album. <br />* Afficher le compositeur et le nom de l'œuvre pour chaque morceau dans la liste de lecture et dans la vue "Lecture en cours" (les listes de lecture ne peuvent pas afficher les titres secondaires).
 	NL	Kies 'Ja' als je wilt dat de plug-in Qobuz-gegevens gebruikt om:<br />* Een afspeellijst en subkoppen voor elk werk binnen een release weer te geven<br />* De componist en werken toe te voegen aan de tracktitel in de afspeellijst en in de 'Speelt Nu' weergave (de afspeellijst kan geen subkoppen tonen).
 
 PLUGIN_QOBUZ_CLASSICAL_GENRES
 	EN	Additional classical genres
 	DE	Zusätzliche Klassik Stilrichtungen
+	FR	Genres supplémentaires pour la musique classique
 	NL	Additionele genres
 
 PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC
 	EN	If you find a release for which the enhanced display does not show, add the Qobuz genre (shown in the release listing) to the "additional genres" list here (comma separated if more than one).
 	DE	Falls für eine Veröffentlichung die Erweiterte Anzeige nicht funktioniert, dann füge die Qobuz Stilrichtung (zu finden im Inhaltsverzeichnis der Veröffentlichung) zur Liste "Zusätzliche Klassik Stilrichtungen" hinzu (Einträge durch Kommas trennen).
+	FR	Si l'affichage amélioré ne fonctionne pas pour un album, ajouter le genre Qobuz (affiché dans la liste des albums) aux "genres supplémentaires" (séparés par des virgules s'il y en a plusieurs).
 	NL	Als je een release vindt waarvoor de uitgebreide weergave niet wordt weergegeven, voeg dan het Qobuz-genre (weergegeven in de releaselijst) toe aan de "Additionele genres" (komma gescheiden indien meer dan één).
 
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT
 	EN	<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do.
 	DE	<br /><br />Bei Fragen oder Fehlern: <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Hinweis:</b> Nutze das Plugin "Material Skin" für die bestmögliche Darstellung. Bei der Web-Oberfläche "Standard" wird die Darstellung fehlerhaft, falls "Plattenhüllen anzeigen" ausgewählt wurde.
+	FR	<br /><br />En cas de question ou de dysfonctionnement, <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visiter le forum</a>.<br /><br /><b>Remarque :</b> Pour le meilleur affichage possible, utiliser le plugin "Material Skin". Avec l'interface web "Défaut", l'affichage sera incorrect si "Afficher les pochettes" a été sélectionné.
 	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION
 	EN	Work playlist position
 	DE	Position für Werke-Wiedergabelisten
+	FR	Position de la liste de lecture de l'œuvre
 	NL	Werk afspeellijst positie
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE
 	EN	Before track list
 	DE	Vor den Titeln
+	FR	Avant la liste des morceaux
 	NL	Voor afspeellijst
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_AFTER
 	EN	After track list
 	DE	Nach den Titeln
+	FR	Après la liste des morceaux
 	NL	Na afspeellijst
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_INTEGRATED
 	EN	Integrate with work headings
 	DE	Mit Werktiteln integrieren
+	FR	Intégrée aux morceaux
 	NL	Integreren met werktitels
 
 PLUGIN_QOBUZ_ALBUM_NOT_FOUND
@@ -422,7 +440,7 @@ PLUGIN_QOBUZ_CLEAR_SEARCH_HISTORY
 	EN	Clear search history
 	DE	Suchverlauf löschen
 	NL	Verwijder zoekgeschiedenis
-	FR	Effacer l'historique
+	FR	Effacer l'historique de recherche
 	ES	Limpiar historial de búsqueda
 
 PLUGIN_QOBUZ_NEW_SEARCH
@@ -442,21 +460,21 @@ PLUGIN_QOBUZ_SHOW_PARENTAL_WARNING
 PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
 	DE	Alben/Titel mit explizitem Inhalt werden mit [E] gekennzeichnet.
 	EN	Albums/tracks with explicit content will be labeled with [E]
-	FR	Les albums/pistes avec un contenu explicite seront étiquetés avec [E]
+	FR	Les albums/morceaux avec un contenu explicite seront marqués d'un [E].
 	NL	Albums/tracks met expliciete inhoud worden gelabeld met [E]
 	ES	Los álbumes/pistas con contenido explícito se etiquetarán con [E]
 
 PLUGIN_QOBUZ_SHOW_DISCS
 	DE	Disc-Überschriften und Wiedergabelisten anzeigen
 	EN	Show disc headings and playlists
-	FR	Afficher les en-têtes de disque et les listes de lecture
+	FR	Afficher les titres des disques et les listes de lecture
 	NL	Schijftitels en afspeellijsten weergeven
 	ES	Mostrar encabezados de discos y listas de reproducción
 
 PLUGIN_QOBUZ_SHOW_DISCS_DESC
 	DE	Hat keine Auswirkung, wenn klassische Erweiterungen (siehe unten) verwendet werden und Werke identifiziert wurden
 	EN	Has no effect when classical enhancements (see below) are in use and works have been identified
-	FR	N'a aucun effet lorsque des améliorations classiques (voir ci-dessous) sont utilisées et que des œuvres classiques ont été identifiés
+	FR	N'a aucun effet lorsque "Affichage amélioré de la musique classique" a été choisi (voir ci-dessous) et que des œuvres classiques ont été identifiées
 	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
 	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
 
