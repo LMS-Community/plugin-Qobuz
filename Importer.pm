@@ -306,6 +306,8 @@ sub _prepareTrack {
 		CHANNELS     => $track->{maximum_channel_count},
 		LOSSLESS     => $ct eq 'flc',
 		RELEASETYPE  => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
+		REPLAYGAIN_ALBUM_GAIN => $album->{replay_gain},
+		REPLAYGAIN_ALBUM_PEAK => $album->{replay_peak},
 	};
 
 	if ($album->{media_count} > 1) {
@@ -323,6 +325,7 @@ sub _prepareTrack {
 
 	if ($track->{audio_info}) {
 		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
+		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
 
 	return $attributes;
