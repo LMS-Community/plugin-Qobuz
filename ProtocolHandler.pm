@@ -172,22 +172,24 @@ sub trackGain {
 	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
 
 	if (!$meta) {
-		$log->error("Get track info ($id) failed");
-	} elsif ($rgmode == 1 || (ref $meta->{genre} ne "")  # the track info was not populated from an album
-			|| !($album = $cache->get('albumInfo_' . $meta->{albumId}))
-			|| !defined $album->{replay_gain}) {  # use track gain (
-		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # use zero gain for non-album tracks with Album Gain
+		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
+	} elsif ($rgmode == 1   # track gain in use
+			|| (!($album = $cache->get('album_with_tracks_' . $meta->{albumId})) # OR not in the cached favorites
+				&& (!($album = $cache->get('albumInfo_' . $meta->{albumId})) 	 # ...AND (not in cached albums
+					|| ref $meta->{genre} ne "") )  # ...OR the track info was not populated from an album)
+			|| !defined $album->{replay_gain}) {    # OR album gain not specified (should not occur)
+		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # zero replay gain for non-album tracks if using album gain
 		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
-		main::INFOLOG && $log->info("Using gain value of $gain : $peak for Qobuz track");
+		main::INFOLOG && $log->info("Using gain value of $gain : $peak for track: " .  $meta->{title} );
 	} else {  # album or smart gain
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
 		$gain = $album->{replay_gain} || 0;
 		$peak = $album->{replay_peak} || 0;
-		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for Qobuz track");
+		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for track: " . $meta->{title} );
 	}
 
 	$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
-	main::INFOLOG && $log->info("Net Gain: $netGain");
+	main::INFOLOG && $log->info("Net replay gain: $netGain");
 	return $netGain;
 }
 
