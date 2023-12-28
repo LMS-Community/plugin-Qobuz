@@ -110,7 +110,7 @@ sub search {
 
 	$search = lc($search);
 
-	main::DEBUGLOG && $log->debug('Search : ' . $search);
+	main::INFOLOG && $log->info('Search : ' . $search);
 
 	my $key = uri_escape_utf8("search_${search}_${type}_") . ($args->{_dontPreCache} || 0);
 
@@ -630,10 +630,10 @@ sub _get {
 
 	$url = QOBUZ_BASE_URL . $url . '?' . join('&', sort @query);
 
-	if (main::DEBUGLOG && $log->is_debug) {
+	if (main::INFOLOG && $log->is_info) {
 		my $data = $url;
 		$data =~ s/(?:$aid|$token)//g;
-		$log->debug($data);
+		$log->info($data);
 	}
 
 	if ($params->{_wipecache}) {
