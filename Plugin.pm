@@ -1695,8 +1695,34 @@ sub trackInfoMenuBooklet {
 	eval {
 		my $goodies = $remoteMeta->{goodies};
 		if ($goodies && ref $goodies && scalar @$goodies) {
+		
+			# default skin or Material
+			if ( _isBrowser($client) ) {
+				if (scalar @$goodies == 1 && @$goodies[0]->{name} eq "Livret Num\xE9rique") {
+					$item = {
+						name => _localizeGoodies($client, @$goodies[0]->{name}),
+						weblink => @$goodies[0]->{url},
+					};
+				} else {
+					my $items = [];
+					foreach ( @$goodies ) {
+						if ($_->{url} =~ $GOODIE_URL_PARSER_RE) {
+							push @$items, {
+								name => _localizeGoodies($client, $_->{name}),
+								weblink => $_->{url},
+							};
+						}
+					}
+					if (scalar @$items) {
+						$item = {
+							name => cstring($client, 'PLUGIN_QOBUZ_GOODIES'),
+							items => $items
+						};
+					}
+				}
+			
 			# jive clients like iPeng etc. can display web content, but need special handling...
-			if ( _canWeblink($client) )  {
+			} elsif ( _canWeblink($client) )  {
 				$item = {
 					name => cstring($client, 'PLUGIN_QOBUZ_GOODIES'),
 					itemActions => {
@@ -1708,24 +1734,6 @@ sub trackInfoMenuBooklet {
 						},
 					},
 				};
-			}
-			else {
-				my $items = [];
-				foreach ( @$goodies ) {
-					if ($_->{url} =~ $GOODIE_URL_PARSER_RE) {
-						push @$items, {
-							name => _localizeGoodies($client, $_->{name}),
-							weblink => $_->{url},
-						};
-					}
-				}
-
-				if (scalar @$items) {
-					$item = {
-						name => cstring($client, 'PLUGIN_QOBUZ_GOODIES'),
-						items => $items
-					};
-				}
 			}
 		}
 	};
@@ -1862,6 +1870,11 @@ sub cliQobuzPlayAlbum {
 sub _canWeblink {
 	my ($client) = @_;
 	return $client && $client->controllerUA && ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE);
+}
+
+sub _isBrowser {
+	my ($client) = @_;
+	return ( $client && $client->controllerUA && $client->controllerUA =~ $WEBBROWSER_UA_RE ) || !$client->controllerUA;
 }
 
 sub _stripHTML {
