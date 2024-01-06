@@ -1696,8 +1696,11 @@ sub trackInfoMenuBooklet {
 		my $goodies = $remoteMeta->{goodies};
 		if ($goodies && ref $goodies && scalar @$goodies) {
 		
-			# default skin or Material
-			if ( _isBrowser($client) ) {
+			# Browser client (eg Material)
+			if ( Slim::Utils::Versions->compareVersions($::VERSION, '8.4.0') >= 0 && _isBrowser($client)
+				# or null client (eg Default skin)
+				|| !$client->controllerUA )
+			{
 				if (scalar @$goodies == 1 && @$goodies[0]->{name} eq "Livret Num\xE9rique") {
 					$item = {
 						name => _localizeGoodies($client, @$goodies[0]->{name}),
@@ -1874,7 +1877,7 @@ sub _canWeblink {
 
 sub _isBrowser {
 	my ($client) = @_;
-	return ( $client && $client->controllerUA && $client->controllerUA =~ $WEBBROWSER_UA_RE ) || !$client->controllerUA;
+	return ( $client && $client->controllerUA && $client->controllerUA =~ $WEBBROWSER_UA_RE );
 }
 
 sub _stripHTML {
