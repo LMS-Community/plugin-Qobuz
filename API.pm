@@ -37,14 +37,19 @@ my %apiClients;
 sub new {
 	my ($class, $args) = @_;
 
-	my $client = $args->{client} || return;
-	my $userId = $prefs->client($client)->get('userId') || return;
+	if (!$args->{client} && !$args->{userId}) {
+		return;
+	}
+
+	my $client = $args->{client};
+	my $userId = $args->{userId} || $prefs->client($client)->get('userId') || return;
 
 	if (my $apiClient = $apiClients{$userId}) {
 		return $apiClient;
 	}
 
 	my $self = $apiClients{$userId} = $class->SUPER::new();
+	$self->client($client);
 	$self->userId($userId);
 
 	# update our profile ASAP
@@ -100,16 +105,11 @@ sub login {
 sub updateUserdata {
 	my ($self, $cb) = @_;
 
-	if ( !($prefs->get('token') && $prefs->get('userdata')) ) {
-		$cb->() if $cb;
-		return;
-	}
-
 	$self->_get('user/get', sub {
 		my $result = shift;
 
 		if ($result && ref $result eq 'HASH') {
-			my $userdata = Plugins::Qobuz::API::Common->getUserdata($self->client);
+			my $userdata = Plugins::Qobuz::API::Common->getUserdata($self->userId);
 
 			foreach my $k (keys %$result) {
 				$userdata->{$k} = $result->{$k} if defined $result->{$k};
@@ -391,7 +391,7 @@ sub getUserPlaylists {
 
 		$cb->($playlists);
 	}, {
-		username => $user || Plugins::Qobuz::API::Common->username($self->client),
+		username => $user || Plugins::Qobuz::API::Common->username($self->userId),
 		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,

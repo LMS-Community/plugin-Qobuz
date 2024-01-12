@@ -26,6 +26,7 @@ my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
 my $cache = Plugins::Qobuz::API::Common->getCache();
+my $someUserId = Plugins::Qobuz::API::Common->getSomeUserId();
 
 sub initPlugin {
 	my $class = shift;
@@ -48,27 +49,37 @@ sub initPlugin {
 sub startScan { if (main::SCANNER) {
 	my $class = shift;
 
-	my $playlistsOnly = Slim::Music::Import->scanPlaylistsOnly();
+	my $accounts = _enabledAccounts();
 
-	$class->initOnlineTracksTable();
+	if (scalar @$accounts) {
+		my $playlistsOnly = Slim::Music::Import->scanPlaylistsOnly();
 
-	if (!$playlistsOnly) {
-		$class->scanAlbums();
-		$class->scanArtists();
+		$class->initOnlineTracksTable();
+
+		if (!$playlistsOnly) {
+			$class->scanAlbums($accounts);
+			$class->scanArtists($accounts);
+		}
+
+		if (!$class->_ignorePlaylists) {
+			$class->scanPlaylists($accounts);
+		}
+
+		$class->deleteRemovedTracks();
+		$cache->set('last_update', time(), '1y');
 	}
-
-	if (!$class->_ignorePlaylists) {
-		$class->scanPlaylists();
-	}
-
-	$class->deleteRemovedTracks();
-	$cache->set('last_update', time(), '1y');
 
 	Slim::Music::Import->endImporter($class);
 } };
 
+sub _enabledAccounts {
+	my $accounts = [ grep {
+		!$_->[2];
+	} @{Plugins::Qobuz::API::Common->getAccountList()} ];
+}
+
 sub scanAlbums {
-	my ($class) = @_;
+	my ($class, $accounts) = @_;
 
 	my $progress = Slim::Utils::Progress->new({
 		'type'  => 'importer',
@@ -77,42 +88,45 @@ sub scanAlbums {
 		'every' => 1,
 	});
 
-	my %missingAlbums;
+	foreach my $account (@$accounts) {
+		my %missingAlbums;
 
-	main::INFOLOG && $log->is_info && $log->info("Reading albums...");
-	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS'));
+		main::INFOLOG && $log->is_info && $log->info("Reading albums... " . $account->[0]);
+		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS', $account->[0]));
 
-	my $albums = Plugins::Qobuz::API::Sync->myAlbums($prefs->get('dontImportPurchases'));
-	$progress->total(scalar @$albums);
+		# TODO make dontImportPurchases per account
+		my $albums = Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'));
+		$progress->total(scalar @$albums);
 
-	foreach my $album (@$albums) {
-		my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
+		foreach my $album (@$albums) {
+			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
-		if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
+			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
+				$progress->update($album->{title});
+				$class->storeTracks([
+					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
+				]);
+
+				main::SCANNER && Slim::Schema->forceCommit;
+			}
+			else {
+				$missingAlbums{$album->{id}} = $album->{favorited_at} || $album->{purchased_at};
+			}
+		}
+
+		while ( my ($albumId, $timestamp) = each %missingAlbums ) {
+			my $album = Plugins::Qobuz::API::Sync->getAlbum($account->[1], $albumId);
 			$progress->update($album->{title});
+
+			$album->{favorited_at} = $timestamp;
+			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
+
 			$class->storeTracks([
-				map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
+				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
 			]);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
-		else {
-			$missingAlbums{$album->{id}} = $album->{favorited_at} || $album->{purchased_at};
-		}
-	}
-
-	while ( my ($albumId, $timestamp) = each %missingAlbums ) {
-		my $album = Plugins::Qobuz::API::Sync->getAlbum($albumId);
-		$progress->update($album->{title});
-
-		$album->{favorited_at} = $timestamp;
-		$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
-
-		$class->storeTracks([
-			map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
-		]);
-
-		main::SCANNER && Slim::Schema->forceCommit;
 	}
 
 	$progress->final();
@@ -120,7 +134,7 @@ sub scanAlbums {
 }
 
 sub scanArtists {
-	my ($class) = @_;
+	my ($class, $accounts) = @_;
 
 	my $progress = Slim::Utils::Progress->new({
 		'type'  => 'importer',
@@ -129,34 +143,25 @@ sub scanArtists {
 		'every' => 1,
 	});
 
-	# backwards compatibility for 8.1 and older...
-	my $contributorNameNormalizer;
-	if ($class->can('normalizeContributorName')) {
-		$contributorNameNormalizer = sub {
-			$class->normalizeContributorName($_[0]);
-		};
-	}
-	else {
-		$contributorNameNormalizer = sub { $_[0] };
-	}
+	foreach my $account (@$accounts) {
+		main::INFOLOG && $log->is_info && $log->info("Reading artists... " . $account->[0]);
+		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS', $account->[0]));
 
-	main::INFOLOG && $log->is_info && $log->info("Reading artists...");
-	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ARTISTS'));
+		my $artists = Plugins::Qobuz::API::Sync->myArtists($account->[1]);
 
-	my $artists = Plugins::Qobuz::API::Sync->myArtists();
+		$progress->total($progress->total + scalar @$artists);
 
-	$progress->total($progress->total + scalar @$artists);
+		foreach my $artist (@$artists) {
+			my $name = $artist->{name};
 
-	foreach my $artist (@$artists) {
-		my $name = $artist->{name};
+			$progress->update($name);
+			main::SCANNER && Slim::Schema->forceCommit;
 
-		$progress->update($name);
-		main::SCANNER && Slim::Schema->forceCommit;
-
-		Slim::Schema::Contributor->add({
-			'artist' => $contributorNameNormalizer->($name),
-			'extid'  => 'qobuz:artist:' . $artist->{id},
-		});
+			Slim::Schema::Contributor->add({
+				'artist' => $class->normalizeContributorName($name),
+				'extid'  => 'qobuz:artist:' . $artist->{id},
+			});
+		}
 	}
 
 	$progress->final();
@@ -164,7 +169,7 @@ sub scanArtists {
 }
 
 sub scanPlaylists {
-	my ($class) = @_;
+	my ($class, $accounts) = @_;
 
 	my $dbh = Slim::Schema->dbh();
 
@@ -175,59 +180,61 @@ sub scanPlaylists {
 		'every' => 1,
 	});
 
-	main::INFOLOG && $log->is_info && $log->info("Removing playlists...");
-	$progress->update(string('PLAYLIST_DELETED_PROGRESS'));
-	my $deletePlaylists_sth = $dbh->prepare_cached("DELETE FROM tracks WHERE url LIKE 'qobuz://%.qbz' AND content_type = 'ssp'");
-	$deletePlaylists_sth->execute();
+	foreach my $account (@$accounts) {
+		main::INFOLOG && $log->is_info && $log->info("Removing playlists... " . $account->[0]);
+		$progress->update(string('PLAYLIST_DELETED_PROGRESS'));
+		my $deletePlaylists_sth = $dbh->prepare_cached("DELETE FROM tracks WHERE url LIKE 'qobuz://%.qbz' AND content_type = 'ssp'");
+		$deletePlaylists_sth->execute();
 
-	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS'));
+		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_PLAYLISTS', $account->[0]));
 
-	main::INFOLOG && $log->is_info && $log->info("Reading playlists...");
-	my $playlists = Plugins::Qobuz::API::Sync->myPlaylists();
+		main::INFOLOG && $log->is_info && $log->info("Reading playlists... " . $account->[0]);
+		my $playlists = Plugins::Qobuz::API::Sync->myPlaylists($account->[1]);
 
-	$progress->total(scalar @$playlists);
+		$progress->total(scalar @$playlists);
 
-	$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_TRACKS'));
-	my %tracks;
-	my $c = my $latestPlaylistUpdate = 0;
+		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_TRACKS', $account->[0]));
+		my %tracks;
+		my $c = my $latestPlaylistUpdate = 0;
 
-	main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks...");
+		main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks... " . $account->[0]);
 
-	my $insertTrackInTempTable_sth = $dbh->prepare_cached("INSERT OR IGNORE INTO online_tracks (url) VALUES (?)") if main::SCANNER && !$main::wipe;
+		my $insertTrackInTempTable_sth = $dbh->prepare_cached("INSERT OR IGNORE INTO online_tracks (url) VALUES (?)") if main::SCANNER && !$main::wipe;
 
-	# we need to get the tracks first
-	my $prefix = 'Qobuz' . string('COLON') . ' ';
-	foreach my $playlist (@{$playlists || []}) {
-		next unless $playlist->{id} && $playlist->{duration};
+		# we need to get the tracks first
+		my $prefix = 'Qobuz' . string('COLON') . ' ';
+		foreach my $playlist (@{$playlists || []}) {
+			next unless $playlist->{id} && $playlist->{duration};
 
-		$latestPlaylistUpdate = max($latestPlaylistUpdate, $playlist->{updated_at});
+			$latestPlaylistUpdate = max($latestPlaylistUpdate, $playlist->{updated_at});
 
-		$progress->update($playlist->{name});
-		main::SCANNER && Slim::Schema->forceCommit;
+			$progress->update($playlist->{name});
+			main::SCANNER && Slim::Schema->forceCommit;
 
-		my $url = 'qobuz://' . $playlist->{id} . '.qbz';
+			my $url = 'qobuz://' . $playlist->{id} . '.qbz';
 
-		my $playlistObj = Slim::Schema->updateOrCreate({
-			url        => $url,
-			playlist   => 1,
-			integrateRemote => 1,
-			attributes => {
-				TITLE        => $prefix . $playlist->{name},
-				COVER        => Plugins::Qobuz::API::Common->getPlaylistImage($playlist),
-				AUDIO        => 1,
-				EXTID        => $url,
-				CONTENT_TYPE => 'ssp'
-			},
-		});
+			my $playlistObj = Slim::Schema->updateOrCreate({
+				url        => $url,
+				playlist   => 1,
+				integrateRemote => 1,
+				attributes => {
+					TITLE        => $prefix . $playlist->{name},
+					COVER        => Plugins::Qobuz::API::Common->getPlaylistImage($playlist),
+					AUDIO        => 1,
+					EXTID        => $url,
+					CONTENT_TYPE => 'ssp'
+				},
+			});
 
-		my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl($_) } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($playlist->{id})};
-		$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
+			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id})};
+			$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
 
-		$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
-		$insertTrackInTempTable_sth && $insertTrackInTempTable_sth->execute($url);
+			$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
+			$insertTrackInTempTable_sth && $insertTrackInTempTable_sth->execute($url);
+		}
+
+		main::INFOLOG && $log->is_info && $log->info("Done, finally! " . $account->[0]);
 	}
-
-	main::INFOLOG && $log->is_info && $log->info("Done, finally!");
 
 	$progress->final();
 	main::SCANNER && Slim::Schema->forceCommit;
@@ -236,33 +243,61 @@ sub scanPlaylists {
 sub getArtistPicture { if (main::SCANNER) {
 	my ($class, $id) = @_;
 
-	my $artist = Plugins::Qobuz::API::Sync->getArtist($id);
+	my $artist = Plugins::Qobuz::API::Sync->getArtist($someUserId, $id);
 	return ($artist && ref $artist) ? $artist->{picture} : '';
 } }
 
 sub trackUriPrefix { 'qobuz://' }
 
 # This code is not run in the scanner, but in LMS
-sub needsUpdate {
+sub needsUpdate { if (!main::SCANNER) {
 	my ($class, $cb) = @_;
 
+	require Async::Util;
 	require Plugins::Qobuz::API;
 
-	Plugins::Qobuz::API->updateUserdata(sub {
-		my $result = shift;
+	my @workers = map {
+		my $account = $_;
 
-		my $needUpdate;
+		sub {
+			my ($result, $acb) = @_;
 
-		if ($result && ref $result eq 'HASH' && $result->{last_update} && ref $result->{last_update} eq 'HASH') {
-			my $timestamps = Storable::dclone($result->{last_update});
-			delete $timestamps->{playlist} if $class->_ignorePlaylists;
+			# don't run any further test in the queue if we already have a result
+			return $acb->($result) if $result;
 
-			$needUpdate = $cache->get('last_update') < max(values %$timestamps);
+			my $api = Plugins::Qobuz::API->new({ userId => $account->[1]}) || return $acb->();
+
+			$api->updateUserdata(sub {
+				my $result = shift;
+
+				my $needUpdate;
+
+				if ($result && ref $result eq 'HASH' && $result->{last_update} && ref $result->{last_update} eq 'HASH') {
+					my $timestamps = Storable::dclone($result->{last_update});
+					delete $timestamps->{playlist} if $class->_ignorePlaylists;
+
+					$needUpdate = $cache->get('last_update') < max(values %$timestamps);
+				}
+
+				$acb->($needUpdate);
+			});
 		}
+	} @{ _enabledAccounts() };
 
-		$cb->($needUpdate);
-	});
-}
+	if (scalar @workers) {
+		Async::Util::achain(
+			input => undef,
+			steps => \@workers,
+			cb    => sub {
+				my ($result, $error) = @_;
+				$cb->( ($result && !$error) ? 1 : 0 );
+			}
+		);
+	}
+	else {
+		$cb->();
+	}
+} }
 
 sub _ignorePlaylists {
 	my $class = shift;
@@ -272,7 +307,7 @@ sub _ignorePlaylists {
 sub _prepareTrack {
 	my ($album, $track) = @_;
 
-	my $url = Plugins::Qobuz::API::Common->getUrl($track) || return;
+	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
 	my ($artist, $artistId);

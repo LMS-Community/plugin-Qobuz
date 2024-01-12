@@ -20,12 +20,11 @@ my $log = logger('plugin.qobuz');
 my ($token, $aid, $as);
 
 sub init {
-	my $class = shift;
 	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
 }
 
 sub myArtists {
-	my ($class) = @_;
+	my ($class, $userId) = @_;
 
 	my $args = {
 		type  => 'artists',
@@ -41,7 +40,7 @@ sub myArtists {
 	do {
 		$args->{offset} = $offset;
 
-		my $response = $class->_get('favorite/getUserFavorites', $args);
+		my $response = $class->_get('favorite/getUserFavorites', $userId, $args);
 
 		$offset = 0;
 
@@ -66,7 +65,7 @@ sub myArtists {
 }
 
 sub myAlbums {
-	my ($class, $noPurchases) = @_;
+	my ($class, $userId, $noPurchases) = @_;
 
 	my $offset = 0;
 	my $albums = [];
@@ -85,7 +84,7 @@ sub myAlbums {
 		do {
 			$args->{offset} = $offset;
 
-			my $response = $class->_get($query, $args);
+			my $response = $class->_get($query, $userId, $args);
 
 			$offset = 0;
 
@@ -103,9 +102,9 @@ sub myAlbums {
 }
 
 sub getAlbum {
-	my ($class, $albumId) = @_;
+	my ($class, $userId, $albumId) = @_;
 
-	my $album = $class->_get('album/get', {
+	my $album = $class->_get('album/get', $userId, {
 		album_id => $albumId,
 	});
 
@@ -115,9 +114,10 @@ sub getAlbum {
 }
 
 sub myPlaylists {
-	my ($class, $limit) = @_;
+	my ($class, $userId, $limit) = @_;
 
-	my $playlists = $class->_get('playlist/getUserPlaylists', {
+	my $playlists = $class->_get('playlist/getUserPlaylists', $userId, {
+		# TODO - need to pass the userId or configuration
 		username => Plugins::Qobuz::API::Common->username,
 		limit    => QOBUZ_DEFAULT_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
@@ -130,13 +130,13 @@ sub myPlaylists {
 }
 
 sub getPlaylistTracks {
-	my ($class, $playlistId) = @_;
+	my ($class, $userId, $playlistId) = @_;
 
 	my $offset = 0;
 	my @playlistTracks;
 
 	do {
-		my $response = $class->_get('playlist/get', {
+		my $response = $class->_get('playlist/get', $userId, {
 			playlist_id => $playlistId,
 			extra       => 'tracks',
 			limit       => QOBUZ_DEFAULT_LIMIT,
@@ -161,11 +161,11 @@ sub getPlaylistTracks {
 }
 
 sub getArtist {
-	my ($class, $artistId, $extra) = @_;
+	my ($class, $userId, $artistId, $extra) = @_;
 
 	$artistId =~ s/^qobuz:artist://;
 
-	my $artist = $class->_get('artist/get', {
+	my $artist = $class->_get('artist/get', $userId, {
 		artist_id => $artistId,
 		(extra    => $extra || undef),
 		limit     => QOBUZ_DEFAULT_LIMIT,
@@ -182,13 +182,13 @@ sub getArtist {
 }
 
 sub _get {
-	my ( $class, $url, $params ) = @_;
+	my ( $class, $url, $userId, $params ) = @_;
 
 	# need to get a token first?
 	my $token = '';
 
 	if ($url ne 'user/login') {
-		$token = $prefs->get('token') || return {
+		$token = Plugins::Qobuz::API::Common->getToken($userId) || return {
 			error => 'no access token',
 		};
 	}

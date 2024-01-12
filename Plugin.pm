@@ -236,7 +236,7 @@ sub handleFeed {
 	}
 	# if there's no account assigned to the player, just pick one
 	elsif ( !$prefs->client($client)->get('userId') ) {
-		my ($userId) = map { $_->[1] } @{ Plugins::Qobuz::API::Common->getAccountList };
+		my $userId = Plugins::Qobuz::API::Common->getSomeUserId();
 		$prefs->client($client)->set('userId', $userId) if $userId;
 	}
 

@@ -80,6 +80,11 @@ sub getAccountData {
 	return $accounts->{$userId};
 }
 
+sub getSomeUserId {
+	my ($userId) = map { $_->[1] } @{ $_[0]->getAccountList };
+	return $userId;
+}
+
 sub getToken {
 	my ($class, $clientOrUserId) = @_;
 
@@ -88,9 +93,9 @@ sub getToken {
 }
 
 sub getUserdata {
-	my ($class, $client, $item) = @_;
+	my ($class, $clientOrUserId, $item) = @_;
 
-	my $account = $class->getAccountData($client) || return;
+	my $account = $class->getAccountData($clientOrUserId) || return;
 	my $userdata = $account->{'userdata'} || return;
 
 	return $item ? $userdata->{$item} : $userdata;
