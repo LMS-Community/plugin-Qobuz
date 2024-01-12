@@ -17,6 +17,21 @@ PLUGIN_QOBUZ_REQUIRES_CREDENTIALS
 	FR	Veuillez saisir votre nom d'utilisateur Qobuz et votre mot de passe dans les réglages du plugin Qobuz.
 	NL	Vul alsjeblieft bij de Server instellingen jouw Qobuz gebruikersnaam en wachtwoord in.
 
+PLUGIN_QOBUZ_NO_PLAYER_CONNECTED
+	CS	Nelze získat přístup ke Qobuz bez připojeného přehrávače.
+	DA	Du kan ikke få adgang til tjenesterne på Qobuz medmindre der er tilsluttet en afspiller.
+	DE	Sie können sich ohne Player nicht mit Qobuz verbinden.
+	EN	Cannot access Qobuz services without a player connected.
+	ES	No es posible acceder a servicios Qobuz sin un reproductor conectado.
+	FI	Jos soitinta ei ole yhdistetty, Qobuz-palveluja ei voida käyttää.
+	FR	Impossible d'accéder aux services Qobuz sans une platine connectée.
+	IT	Impossibile accedere ai servizi Qobuz se non è collegato un lettore.
+	NL	Zonder een verbonden muzieksysteem kan je geen verbinding maken met Qobuz.
+	NO	Kan ikke bruke Qobuz-tjenester når det ikke er koplet til en spiller.
+	PL	Bez podłączenia odtwarzacza nie można uzyskać dostępu do usługi Qobuz.
+	RU	Службы Qobuz доступны только при подключенном плеере.
+	SV	Det går inte att få tillgång till Qobuz-tjänsterna eftersom ingen spelare är ansluten.
+
 PLUGIN_QOBUZ_SIGNOUT
 	DE	Abmelden
 	EN	Sign out
@@ -35,6 +50,20 @@ PLUGIN_QOBUZ_PREFS
 	EN	Preferences
 	FR	Préférences
 	NL	Voorkeuren
+
+PLUGIN_QOBUZ_ACCOUNT
+	CS	Účet
+	DA	Konto
+	DE	Konto
+	EN	Account
+	ES	Cuenta
+	FI	Tili
+	FR	Compte
+	NL	Account
+	NO	Konto
+	PL	Konto
+	RU	Учетная запись
+	SV	Konto
 
 PLUGIN_QOBUZ_PREFS_USER
 	DE	Qobuz Konto
@@ -203,6 +232,13 @@ PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES
 	EN	Don't import purchased albums. Check this option if you've downloaded your purchases anyway.
 	FR	Ne pas importer les albums achetés. Cochez cette option si vous avez déjà téléchargé vos musiques achetées.
 	NL	Gekochte albums niet importeren. Vink deze optie aan als je jouw gekochte albums hebt gedownload.
+
+PLUGIN_QOBUZ_IMPORT_LIBRARY
+	CS	Importovat
+	DE	Importieren
+	EN	Import
+	FR	Importer
+	NL	Importeren
 
 PLUGIN_QOBUZ_PLAY_SAMPLES
 	DE	Hörproben wiedergeben

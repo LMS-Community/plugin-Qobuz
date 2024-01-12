@@ -39,8 +39,7 @@ initGenreMap();
 $prefs->setChange(\&initGenreMap, 'classicalGenres');
 
 sub init {
-	my $class = shift;
-	return pack('H*', $_[0]) =~ /^(\d{9})(.*)/
+	return pack('H*', $_[2]) =~ /^(\d{9})(.*)/
 }
 
 sub initGenreMap {
@@ -51,16 +50,56 @@ sub getCache {
 	return $cache ||= Slim::Utils::Cache->new('qobuz', 3);
 }
 
-sub getUserdata {
-	my ($class, $item) = @_;
+sub getAccountList {
+	return [ grep {
+		$_->[0] && $_->[1]
+	} map {[
+		$_->{userdata}->{login},
+		$_->{userdata}->{id},
+		$_->{dontimport}
+	]} sort {
+		$a->{userdata}->{login} cmp $b->{userdata}->{login};
+	} values %{ $prefs->get('accounts') } ];
+}
 
-	my $userdata = $prefs->get('userdata') || {};
+sub hasAccount {
+	return scalar @{ getAccountList() } ? 1 : 0;
+}
+
+sub getAccountData {
+	my ($class, $clientOrUserId) = @_;
+
+	my $accounts = $prefs->get('accounts') || return;
+
+	my $userId = $clientOrUserId;
+
+	if (ref $clientOrUserId) {
+		$userId = $accounts->{$prefs->client($clientOrUserId)->get('userId')} || return;
+	}
+
+	return $accounts->{$userId};
+}
+
+sub getToken {
+	my ($class, $clientOrUserId) = @_;
+
+	my $account = $class->getAccountData($clientOrUserId) || return;
+	return $account->{token};
+}
+
+sub getUserdata {
+	my ($class, $client, $item) = @_;
+
+	my $account = $class->getAccountData($client) || return;
+	my $userdata = $account->{'userdata'} || return;
 
 	return $item ? $userdata->{$item} : $userdata;
 }
 
 sub getCredentials {
-	my $credentials = $_[0]->getUserdata('credential');
+	my ($class, $client) = @_;
+
+	my $credentials = $class->getUserdata($client, 'credential');
 
 	if ($credentials && ref $credentials) {
 		return $credentials;
@@ -68,11 +107,13 @@ sub getCredentials {
 }
 
 sub getDevicedata {
-	$_[0]->getUserdata('device') || {};
+	my ($class, $client) = @_;
+	$class->getUserdata($client, 'device') || {};
 }
 
 sub username {
-	return $_[0]->getUserdata('login') || $prefs->get('username');
+	my ($class, $clientOrUserId) = @_;
+	$class->getUserdata($clientOrUserId, 'login');
 }
 
 sub getArtistName {
@@ -248,13 +289,13 @@ sub addVersionToTitle {
 # - fall back to mp3 samples if not streamable
 # - check user's subscription level
 sub getStreamingFormat {
-	my ($class, $track) = @_;
+	my ($class, $client, $track) = @_;
 
 	if (
 		# user prefers mp3 over flac anyway
 		$prefs->get('preferredFormat') < QOBUZ_STREAMING_FLAC
 		# user is not allowed to stream losslessly
-		|| !$class->canLossless()
+		|| !$class->canLossless($client)
 	) {
 		return 'mp3';
 	}
@@ -272,18 +313,29 @@ sub getStreamingFormat {
 }
 
 sub canLossless {
-	my ($class) = @_;
+	my ($class, $client) = @_;
 
-	my $credentials = $class->getCredentials;
-	return ($credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming});
+	if ($client) {
+		return _canLossless($class->getCredentials($client));
+	}
+
+	# lack of client, see whether we at least have an account which can do lossless
+	my ($accountWithLossless) = grep { _canLossless($_) } values %{ $prefs->get('accounts') || {} };
+
+	return $accountWithLossless ? 1 : 0;
+}
+
+sub _canLossless {
+	my ($credentials) = @_;
+	return $credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming};
 }
 
 sub getUrl {
-	my ($class, $track) = @_;
+	my ($class, $client, $track) = @_;
 
 	return '' unless $track;
 
-	my $ext = $class->getStreamingFormat($track);
+	my $ext = $class->getStreamingFormat($client, $track);
 
 	$track = $track->{id} if $track && ref $track eq 'HASH';
 

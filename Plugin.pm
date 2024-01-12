@@ -36,6 +36,7 @@ tie my %localizationTable, 'Tie::RegexpHash';
 );
 
 $prefs->init({
+	accounts => {},
 	preferredFormat => 6,
 	filterSearchResults => 0,
 	playSamples => 1,
@@ -45,6 +46,25 @@ $prefs->init({
 	parentalWarning => 0,
 	showDiscs => 0,
 });
+
+$prefs->migrate(1,
+	sub {
+		my $token = $prefs->get('token');
+		my $userdata = $prefs->get('userdata');
+
+		# migrate existing account to new list of accounts
+		if ($token && $userdata && (my $id = $userdata->{id})) {
+			my $accounts = $prefs->get('accounts') || {};
+			$accounts->{$id} = {
+				token => $token,
+				userdata => $userdata,
+			};
+		}
+
+		$prefs->remove('token', 'userdata', 'userinfo', 'username');
+		1;
+	}
+);
 
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.qobuz',
@@ -58,18 +78,6 @@ use constant CAN_IMAGEPROXY => (Slim::Utils::Versions->compareVersions($::VERSIO
 
 sub initPlugin {
 	my $class = shift;
-
-	my $cache = Plugins::Qobuz::API::Common->getCache();
-
-	# migrate auth data from cache to prefs
-	if ( !$prefs->get('token') && $prefs->get('password_md5_hash') && $prefs->get('username') ) {
-		$prefs->set('token', $cache->get('token_' . $prefs->get('username') . $prefs->get('password_md5_hash')));
-		$prefs->remove('password_md5_hash');
-	}
-
-	if ( !$prefs->get('userdata') && (my $userdata = $cache->get('userdata')) ) {
-		$prefs->set('userdata', $userdata);
-	}
 
 	if (main::WEBUI) {
 		require Plugins::Qobuz::Settings;
@@ -106,19 +114,6 @@ sub initPlugin {
 		after => 'qobuzTrackInfo'
 	) );
 
-	# XXX items are duplicating default track info values - see http://forums.slimdevices.com/showthread.php?t=113910
-	# Slim::Menu::TrackInfo->registerInfoProvider( qobuzFrequency => (
-	# 	parent => 'moreinfo',
-	# 	after  => 'bitrate',
-	# 	func   => \&infoSamplerate,
-	# ) );
-
-	# Slim::Menu::TrackInfo->registerInfoProvider( qobuzBitsperSample => (
-	# 	parent => 'moreinfo',
-	# 	after  => 'qobuzFrequency',
-	# 	func   => \&infoBitsperSample,
-	# ) );
-
 	Slim::Menu::ArtistInfo->registerInfoProvider( qobuzArtistInfo => (
 		func => \&artistInfoMenu
 	) );
@@ -140,7 +135,7 @@ sub initPlugin {
 
 	Slim::Control::Request::addDispatch(['qobuz', 'playalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
 	Slim::Control::Request::addDispatch(['qobuz', 'addalbum'], [1, 0, 0, \&cliQobuzPlayAlbum]);
-	Slim::Control::Request::addDispatch(['qobuz','recentsearches'],[0, 0, 1, \&_recentSearchesCLI]);
+	Slim::Control::Request::addDispatch(['qobuz','recentsearches'],[1, 0, 1, \&_recentSearchesCLI]);
 
 	# "Local Artwork" requires LMS 7.8+, as it's using its imageproxy.
 	if (CAN_IMAGEPROXY) {
@@ -223,10 +218,33 @@ sub playerMenu {}
 sub handleFeed {
 	my ($client, $cb, $args) = @_;
 
+	if (!$client) {
+		return $cb->({
+			items => [{
+				name => string('PLUGIN_QOBUZ_NO_PLAYER_CONNECTED'),
+				type => 'text'
+			}]
+		});
+	}
+	elsif ( !Plugins::Qobuz::API::Common->hasAccount() ) {
+		return $cb->({
+			items => [{
+				name => cstring($client, 'PLUGIN_QOBUZ_REQUIRES_CREDENTIALS'),
+				type => 'textarea',
+			}]
+		});
+	}
+	# if there's no account assigned to the player, just pick one
+	elsif ( !$prefs->client($client)->get('userId') ) {
+		my ($userId) = map { $_->[1] } @{ Plugins::Qobuz::API::Common->getAccountList };
+		$prefs->client($client)->set('userId', $userId) if $userId;
+	}
+
+# TODO - let user select account to use on a player
 	my $params = $args->{params};
 
 	$cb->({
-		items => ( $prefs->get('username') && $prefs->get('token') ) ? [{
+		items => [{
 			name  => cstring($client, 'SEARCH'),
 			image => 'html/images/search.png',
 			type => 'link',
@@ -335,9 +353,6 @@ sub handleFeed {
 			image => 'html/images/genres.png',
 			type => 'link',
 			url  => \&QobuzGenres
-		}] : [{
-			name => cstring($client, 'PLUGIN_QOBUZ_REQUIRES_CREDENTIALS'),
-			type => 'textarea',
 		}]
 	});
 }
@@ -351,7 +366,7 @@ sub QobuzSearch {
 	my $type   = lc($args->{type} || '');
 	my $search = lc($params->{search});
 
-	Plugins::Qobuz::API->search(sub {
+	getAPIHandler($client)->search(sub {
 		my $searchResult = shift;
 
 		if (!$searchResult) {
@@ -476,7 +491,9 @@ sub browseArtistMenu {
 sub QobuzArtist {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->getArtist(sub {
+	my $api = getAPIHandler($client);
+
+	$api->getArtist(sub {
 		my $artist = shift;
 
 		if ($artist->{status} && $artist->{status} =~ /error/i) {
@@ -509,7 +526,7 @@ sub QobuzArtist {
 			my $images = $artist->{image} || {};
 			push @$items, {
 				name  => cstring($client, 'PLUGIN_QOBUZ_BIOGRAPHY'),
-				image => Plugins::Qobuz::API::Common->getImageFromImagesHash($images) || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png',
+				image => Plugins::Qobuz::API::Common->getImageFromImagesHash($images) || $api->getArtistPicture($artist->{id}) || 'html/images/artists.png',
 				items => [{
 					name => _stripHTML($artist->{biography}->{content}),
 					type => 'textarea',
@@ -555,7 +572,7 @@ sub QobuzArtist {
 			url => sub {
 				my ($client, $cb, $params, $args) = @_;
 
-				Plugins::Qobuz::API->getSimilarArtists(sub {
+				$api->getSimilarArtists(sub {
 					my $searchResult = shift;
 
 					my $items = [];
@@ -576,7 +593,7 @@ sub QobuzArtist {
 			}],
 		};
 
-		Plugins::Qobuz::API->getUserFavorites(sub {
+		$api->getUserFavorites(sub {
 			my $favorites = shift;
 			my $artistId = $artist->{id};
 			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
@@ -603,7 +620,7 @@ sub QobuzGenres {
 
 	my $genreId = $args->{genreId} || '';
 
-	Plugins::Qobuz::API->getGenres(sub {
+	getAPIHandler($client)->getGenres(sub {
 		my $genres = shift;
 
 		if (!$genres) {
@@ -639,7 +656,7 @@ sub QobuzGenre {
 
 	my $genreId = $args->{genreId} || '';
 
-	Plugins::Qobuz::API->getGenre(sub {
+	getAPIHandler($client)->getGenre(sub {
 		my $genre = shift;
 
 		if (!$genre) {
@@ -724,7 +741,7 @@ sub QobuzFeaturedAlbums {
 	my $type    = $args->{type};
 	my $genreId = $args->{genreId};
 
-	Plugins::Qobuz::API->getFeaturedAlbums(sub {
+	getAPIHandler($client)->getFeaturedAlbums(sub {
 		my $albums = shift;
 
 		my $items = [];
@@ -742,7 +759,7 @@ sub QobuzFeaturedAlbums {
 sub QobuzUserPurchases {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->getUserPurchases(sub {
+	getAPIHandler($client)->getUserPurchases(sub {
 		my $searchResult = shift;
 
 		my $items = [];
@@ -764,7 +781,7 @@ sub QobuzUserPurchases {
 sub QobuzUserFavorites {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->getUserFavorites(sub {
+	getAPIHandler($client)->getUserFavorites(sub {
 		my $favorites = shift;
 
 		my $items = [];
@@ -817,7 +834,7 @@ sub QobuzUserFavorites {
 sub QobuzManageFavorites {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->getUserFavorites(sub {
+	getAPIHandler($client)->getUserFavorites(sub {
 		my $favorites = shift;
 
 		my $items = [];
@@ -870,7 +887,7 @@ sub QobuzManageFavorites {
 sub QobuzAddFavorite {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->createFavorite(sub {
+	getAPIHandler($client)->createFavorite(sub {
 		my $result = shift;
 		$cb->({ items => [{
 			name        => cstring($client, 'PLUGIN_QOBUZ_MUSIC_ADDED'),
@@ -883,7 +900,7 @@ sub QobuzAddFavorite {
 sub QobuzDeleteFavorite {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->deleteFavorite(sub {
+	getAPIHandler($client)->deleteFavorite(sub {
 		my $result = shift;
 		$cb->({
 			text        => $result->{status},
@@ -896,7 +913,7 @@ sub QobuzDeleteFavorite {
 sub QobuzUserPlaylists {
 	my ($client, $cb, $params, $args) = @_;
 
-	Plugins::Qobuz::API->getUserPlaylists(sub {
+	getAPIHandler($client)->getUserPlaylists(sub {
 		_playlistCallback(shift, $cb, undef, $params->{isWeb});
 	});
 }
@@ -907,9 +924,10 @@ sub QobuzPublicPlaylists {
 	my $genreId = $args->{genreId};
 	my $tags    = $args->{tags};
 	my $type    = $args->{type} || 'editor-picks';
+	my $api     = getAPIHandler($client);
 
 	if ($type eq 'editor-picks' && !$genreId && !$tags) {
-		Plugins::Qobuz::API->getTags(sub {
+		$api->getTags(sub {
 			my $tags = shift;
 
 			if ($tags && ref $tags) {
@@ -931,14 +949,14 @@ sub QobuzPublicPlaylists {
 				} );
 			}
 			else {
-				Plugins::Qobuz::API->getPublicPlaylists(sub {
+				$api->getPublicPlaylists(sub {
 					_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
 				}, $type);
 			}
 		});
 	}
 	else {
-		Plugins::Qobuz::API->getPublicPlaylists(sub {
+		$api->getPublicPlaylists(sub {
 			_playlistCallback(shift, $cb, 'showOwner', $params->{isWeb});
 		}, $type, $genreId, $tags);
 	}
@@ -988,13 +1006,15 @@ sub QobuzGetTracks {
 	my $albumId = $args->{album_id};
 	my $albumTitle = $args->{album_title};
 
-	Plugins::Qobuz::API->getAlbum(sub {
+	my $api = getAPIHandler($client);
+
+	$api->getAlbum(sub {
 		my $album = shift;
 		my $items = [];
 
 		if (!$album) {  # the album does not exist in the Qobuz library
 			$log->warn("Get album ($albumId) failed");
-			Plugins::Qobuz::API->getUserFavorites(sub {
+			$api->getUserFavorites(sub {
 				my $favorites = shift;
 				my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
 
@@ -1255,7 +1275,7 @@ sub QobuzGetTracks {
 			push @$items, $artistItem;
 		};
 
-		Plugins::Qobuz::API->getUserFavorites(sub {
+		$api->getUserFavorites(sub {
 			my $favorites = shift;
 			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
 
@@ -1365,7 +1385,7 @@ sub QobuzPlaylistGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $playlistId = $args->{playlist_id};
 
-	Plugins::Qobuz::API->getPlaylistTracks(sub {
+	getAPIHandler($client)->getPlaylistTracks(sub {
 		my $playlist = shift;
 
 		if (!$playlist) {
@@ -1393,7 +1413,7 @@ sub _albumItem {
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
 	my $albumYear = $showYearWithAlbum ? $album->{year} || substr($album->{release_date_stream},0,4) || 0 : 0;
 
-	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($client, $album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
@@ -1447,7 +1467,7 @@ sub _artistItem {
 		}],
 	};
 
-	$item->{image} = $artist->{picture} || Plugins::Qobuz::API->getArtistPicture($artist->{id}) || 'html/images/artists.png' if $withIcon;
+	$item->{image} = $artist->{picture} || getAPIHandler($client)->getArtistPicture($artist->{id}) || 'html/images/artists.png' if $withIcon;
 
 	return $item;
 }
@@ -1489,7 +1509,7 @@ sub _trackItem {
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 	};
 
-	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
+	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($client, $track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
@@ -1542,7 +1562,7 @@ sub _trackItem {
 	else {
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
 		$item->{line1}     = '* ' . $item->{line1} if !$track->{streamable};
-		$item->{play}      = Plugins::Qobuz::API::Common->getUrl($track);
+		$item->{play}      = Plugins::Qobuz::API::Common->getUrl($client, $track);
 		$item->{on_select} = 'play';
 		$item->{playall}   = 1;
 	}
@@ -1562,7 +1582,7 @@ sub trackInfoMenu {
 
 	my $items;
 
-	if ( my ($trackId) = Plugins::Qobuz::ProtocolHandler->crackUrl($url) ) {
+	if ( my ($trackId) = Plugins::Qobuz::ProtocolHandler->crackUrl($client, $url) ) {
 		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
 		my $artistId= $remoteMeta ? $remoteMeta->{artistId} : undef;
 
@@ -1837,7 +1857,7 @@ sub cliQobuzPlayAlbum {
 	my $client = $request->client();
 	my $albumId = $request->getParam('_p2');
 
-	Plugins::Qobuz::API->getAlbum(sub {
+	getAPIHandler($client)->getAlbum(sub {
 		my $album = shift;
 
 		if (!$album) {
@@ -1848,7 +1868,7 @@ sub cliQobuzPlayAlbum {
 		my $tracks = [];
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
-			push @$tracks, Plugins::Qobuz::API::Common->getUrl($track);
+			push @$tracks, Plugins::Qobuz::API::Common->getUrl($client, $track);
 		}
 
 		my $action = $request->isCommand([['qobuz'], ['addalbum']]) ? 'addtracks' : 'playtracks';
@@ -1910,6 +1930,7 @@ sub _localDate {  # convert input date string in format YYYY-MM-DD to localized 
 	return strftime(preferences('server')->get('shortdateFormat'), 0, 0, 0, $dt[2], $dt[1] - 1, $dt[0] - 1900);
 }
 
+# TODO - make search per account
 sub addRecentSearch {
 	my $search = shift;
 	main::DEBUGLOG && $log->is_debug && $log->debug("++addRecentSearch");
@@ -1991,6 +2012,22 @@ sub _recentSearchesCLI {
 	$request->setStatusDone;
 	main::DEBUGLOG && $log->is_debug && $log->debug("--_recentSearchesCLI");
 	return;
+}
+
+sub getAPIHandler {
+	my ($client) = @_;
+
+	return unless $client;
+
+	my $api = $client->pluginData('api');
+
+	if ( !$api ) {
+		$api = $client->pluginData( api => Plugins::Qobuz::API->new({
+			client => $client,
+		}) );
+	}
+
+	return $api;
 }
 
 1;

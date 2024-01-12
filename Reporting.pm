@@ -42,9 +42,9 @@ sub startStreaming {
 
 	$reportedTracks{"start_$track_id"} = 1;
 
-	$format ||= Plugins::Qobuz::ProtocolHandler->getFormatForURL($url);
-	my $devicedata = Plugins::Qobuz::API::Common->getDevicedata();
-	my $credentials = Plugins::Qobuz::API::Common->getCredentials() || {};
+	$format ||= Plugins::Qobuz::ProtocolHandler->getFormatForURL($client, $url);
+	my $devicedata = Plugins::Qobuz::API::Common->getDevicedata($client);
+	my $credentials = Plugins::Qobuz::API::Common->getCredentials($client) || {};
 
 	my $format_id = QOBUZ_STREAMING_MP3;
 	if ($format ne 'mp3') {
@@ -54,7 +54,7 @@ sub startStreaming {
 	}
 
 	my $event = {
-		user_id  => Plugins::Qobuz::API::Common->getUserdata('id'),
+		user_id  => Plugins::Qobuz::API::Common->getUserdata($client, 'id'),
 		duration => 0,
 		'date'   => time(),
 		online   => JSON::XS::true,
@@ -67,10 +67,10 @@ sub startStreaming {
 		format_id=> $format_id,
 	};
 
-	Plugins::Qobuz::API->checkPurchase('track', $track_id, sub {
+	Plugins::Qobuz::Plugin::getAPIHandler($client)->checkPurchase('track', $track_id, sub {
 		$event->{purchase} = $_[0] ? JSON::XS::true : JSON::XS::false;
 
-		_post('track/reportStreamingStart', sub {
+		_post('track/reportStreamingStart', $client, sub {
 			$event->{duration} = $duration || 0;
 			$client->pluginData( streamingEvent => $event );
 			$cb->(@_) if $cb;
@@ -123,7 +123,7 @@ sub endStreaming {
 	$event->{'date'} = time();
 	$event->{duration} = max($event->{duration}, time() - $event->{'date'});
 
-	_post('track/reportStreamingEnd', $cb, $event);
+	_post('track/reportStreamingEnd', $client, $cb, $event);
 }
 
 sub _getTrackInfo {
@@ -139,10 +139,10 @@ sub _getTrackInfo {
 }
 
 sub _post {
-	my ( $url, $cb, $event ) = @_;
+	my ( $url, $client, $cb, $event ) = @_;
 
 	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::QOBUZ_BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
-	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), $prefs->get('token'));
+	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), Plugins::Qobuz::API::Common->getToken($client));
 
 	main::INFOLOG && $log->is_info && $log->info("$url: $body");
 

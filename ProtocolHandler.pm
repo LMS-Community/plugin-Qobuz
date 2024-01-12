@@ -62,7 +62,7 @@ sub getSeekData {
 
 	my $url = $song->currentTrack()->url() || return;
 
-	my ($id, $type) = $class->crackUrl($url);
+	my ($id, $type) = $class->crackUrl($client, $url);
 
 	if ($type eq 'mp3' && !$song->bitrate()) {
 		$song->bitrate(MP3_BITRATE);
@@ -86,21 +86,21 @@ sub scanUrl {
 }
 
 sub getFormatForURL {
-	my ($class, $url) = @_;
+	my ($class, $client, $url) = @_;
 
-	my ($id, $type) = $class->crackUrl($url);
+	my ($id, $type) = $class->crackUrl($client, $url);
 
 	if ($type =~ /^(flac|mp3)$/) {
 		$type =~ s/flac/flc/;
 		return $type;
 	}
 
-	my $info = Plugins::Qobuz::API->getCachedFileInfo($id || $url);
+	my $info = Plugins::Qobuz::Plugin::getAPIHandler($client)->getCachedFileInfo($id || $url);
 
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 
 	# fall back to whatever the user can play
-	return Plugins::Qobuz::API::Common->getStreamingFormat();
+	return Plugins::Qobuz::API::Common->getStreamingFormat($client);
 }
 
 sub explodePlaylist {
@@ -111,7 +111,7 @@ sub explodePlaylist {
 
 	if ($type && $id) {
 		if ($type eq 'track') {
-			$url = "qobuz://$id." . Plugins::Qobuz::API::Common->getStreamingFormat($url);
+			$url = "qobuz://$id." . Plugins::Qobuz::API::Common->getStreamingFormat($client, $url);
 		}
 		else {
 			$url = "qobuz://$type:$id.qbz";
@@ -124,7 +124,7 @@ sub explodePlaylist {
 
 		my $getter = $type eq 'album' ? 'getAlbum' : 'getPlaylistTracks';
 
-		Plugins::Qobuz::API->$getter(sub {
+		getAPIHandler($client)->$getter(sub {
 			my $response = shift || [];
 
 			my $uris = [];
@@ -165,7 +165,7 @@ sub trackGain {
 	my $netGain = 0;
 	my $album;
 
-	my ($id) = $class->crackUrl($url);
+	my ($id) = $class->crackUrl($client, $url);
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
 
 	my $meta = $cache->get('trackInfo_' . $id);
@@ -277,20 +277,21 @@ sub parseDirectHeaders {
 sub getMetadataFor {
 	my ( $class, $client, $url ) = @_;
 
-	my ($id) = $class->crackUrl($url);
+	my ($id) = $class->crackUrl($client, $url);
 	$id ||= $url;
 
 	my $meta;
+	my $api = Plugins::Qobuz::Plugin::getAPIHandler($client);
 
 	# grab metadata from backend if needed, otherwise use cached values
 	if ($id && $client && $client->master->pluginData('fetchingMeta')) {
 		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $client;
-		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
+		$meta = $api->getCachedFileInfo($id);
 	}
 	elsif ($id) {
 		$client->master->pluginData( fetchingMeta => 1 ) if $client;
 
-		$meta = Plugins::Qobuz::API->getTrackInfo(sub {
+		$meta = $api->getTrackInfo(sub {
 			$client->master->pluginData( fetchingMeta => 0 ) if $client;
 		}, $id);
 	}
@@ -299,7 +300,7 @@ sub getMetadataFor {
 	if ($meta->{mime_type} && $meta->{mime_type} =~ /(fla?c|mp)/) {
 		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
 	}
-	$meta->{type} ||= $class->getFormatForURL($url);
+	$meta->{type} ||= $class->getFormatForURL($client, $url);
 	$meta->{ct} = $meta->{type};
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? MP3_BITRATE : 750_000;
 
@@ -379,11 +380,13 @@ sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 
 	my $url = $song->currentTrack()->url;
+	my $client = $song->master();
 
 	# Get next track
-	my ($id, $format) = $class->crackUrl($url);
+	my ($id, $format) = $class->crackUrl($client, $url);
+	my $api = Plugins::Qobuz::Plugin::getAPIHandler($client);
 
-	Plugins::Qobuz::API->getFileInfo(sub {
+	$api->getFileInfo(sub {
 		my $streamData = shift;
 
 		if ($streamData) {
@@ -392,7 +395,7 @@ sub getNextTrack {
 			$song->pluginData(samplesize => $streamData->{bit_depth});
 			$song->pluginData(samplerate => $streamData->{sampling_rate});
 
-			Plugins::Qobuz::API->getFileUrl(sub {
+			$api->getFileUrl(sub {
 				$song->streamUrl(shift);
 
 				if (CAN_FLAC_SEEK && $format =~ /fla?c/i) {
@@ -420,7 +423,7 @@ sub getNextTrack {
 }
 
 sub crackUrl {
-	my ($class, $url) = @_;
+	my ($class, $client, $url) = @_;
 
 	return unless $url;
 
@@ -430,7 +433,7 @@ sub crackUrl {
 	($id) = $url =~ m{^qobuz://([^\.]+)$} unless $id;
 	($id) = $url =~ m{^https?://.*?eid=(\d+)} unless $id;
 
-	return ($id, $format || Plugins::Qobuz::API::Common->getStreamingFormat($url));
+	return ($id, $format || Plugins::Qobuz::API::Common->getStreamingFormat($client, $url));
 }
 
 sub audioScrobblerSource {
