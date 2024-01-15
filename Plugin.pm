@@ -171,7 +171,7 @@ sub postinitPlugin {
 		if (!$@) {
 			main::INFOLOG && $log->info("LastMix plugin is available - let's use it!");
 			require Plugins::Qobuz::LastMix;
-			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix', Plugins::Qobuz::API::Common->canLossless());
+			Plugins::LastMix::Services->registerHandler('Plugins::Qobuz::LastMix', 'lossless');
 		}
 	}
 

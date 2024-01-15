@@ -296,12 +296,8 @@ sub addVersionToTitle {
 sub getStreamingFormat {
 	my ($class, $client, $track) = @_;
 
-	if (
-		# user prefers mp3 over flac anyway
-		$prefs->get('preferredFormat') < QOBUZ_STREAMING_FLAC
-		# user is not allowed to stream losslessly
-		|| !$class->canLossless($client)
-	) {
+	# user prefers mp3 over flac anyway
+	if ($prefs->get('preferredFormat') < QOBUZ_STREAMING_FLAC) {
 		return 'mp3';
 	}
 
@@ -315,24 +311,6 @@ sub getStreamingFormat {
 	}
 
 	return 'flac';
-}
-
-sub canLossless {
-	my ($class, $client) = @_;
-
-	if ($client) {
-		return _canLossless($class->getCredentials($client));
-	}
-
-	# lack of client, see whether we at least have an account which can do lossless
-	my ($accountWithLossless) = grep { _canLossless($_) } values %{ $prefs->get('accounts') || {} };
-
-	return $accountWithLossless ? 1 : 0;
-}
-
-sub _canLossless {
-	my ($credentials) = @_;
-	return $credentials && ref $credentials && $credentials->{parameters} && ref $credentials->{parameters} && $credentials->{parameters}->{lossless_streaming};
 }
 
 sub getUrl {
