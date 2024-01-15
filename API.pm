@@ -276,6 +276,7 @@ sub getUserPurchases {
 	},{
 		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	});
 }
@@ -286,6 +287,7 @@ sub getUserPurchasesIds {
 	$self->_get('purchase/getUserPurchasesIds', sub {
 		$cb->(@_) if $cb;
 	},{
+		_user_cache => 1,
 		_use_token => 1,
 	})
 }
@@ -394,6 +396,7 @@ sub getUserPlaylists {
 		username => $user || Plugins::Qobuz::API::Common->username($self->userId),
 		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	});
 }
@@ -659,11 +662,13 @@ sub _get {
 		$log->info($data);
 	}
 
+	my $cacheKey = $url . ($params->{_user_cache} ? $self->userId : '');
+
 	if ($params->{_wipecache}) {
-		$cache->remove($url);
+		$cache->remove($cacheKey);
 	}
 
-	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
+	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
 		$cb->($cached);
 		return;
@@ -680,7 +685,7 @@ sub _get {
 
 			if ($result && !$params->{_nocache}) {
 				if ( !($params->{album_id}) || ( $result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) ) {
-					$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+					$cache->set($cacheKey, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
 				}
 			}
 

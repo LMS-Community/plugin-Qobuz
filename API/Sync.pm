@@ -30,6 +30,7 @@ sub myArtists {
 		type  => 'artists',
 		limit => QOBUZ_LIMIT,
 		_ttl => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	};
 
@@ -74,6 +75,7 @@ sub myAlbums {
 		type  => 'albums',
 		limit => QOBUZ_LIMIT,
 		_ttl => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	};
 
@@ -121,6 +123,7 @@ sub myPlaylists {
 		username => Plugins::Qobuz::API::Common->username,
 		limit    => QOBUZ_DEFAULT_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	});
 
@@ -212,7 +215,9 @@ sub _get {
 		$log->info($data);
 	}
 
-	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
+	my $cacheKey = $url . ($params->{_user_cache} ? $userId : '');
+
+	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
 		main::INFOLOG && $log->is_info && $log->info("found cached response");
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($cached));
 		return $cached;
@@ -228,7 +233,7 @@ sub _get {
 
 		if ($result && !$params->{_nocache}) {
 			if ( !($params->{album_id}) || ( $result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) ) {
-				$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+				$cache->set($cacheKey, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
 			}
 		}
 

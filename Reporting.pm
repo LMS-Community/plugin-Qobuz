@@ -15,7 +15,6 @@ use Plugins::Qobuz::ProtocolHandler;
 # don't report the same track twice
 tie my %reportedTracks, 'Tie::Cache::LRU::Expires', EXPIRES => 60, ENTRIES => 10;
 
-my $cache = Plugins::Qobuz::API::Common->getCache();
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 my $aid;

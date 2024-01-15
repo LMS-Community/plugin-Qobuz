@@ -8,7 +8,6 @@ use base qw(Slim::Web::Settings);
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
 
-my $cache = Plugins::Qobuz::API::Common->getCache();
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
