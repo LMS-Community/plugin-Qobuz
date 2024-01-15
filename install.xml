@@ -6,7 +6,7 @@
 	<importmodule>Plugins::Qobuz::Importer</importmodule>
 	<onlineLibrary>true</onlineLibrary>
 
-	<version>2.16.10</version>
+	<version>3.0.0</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger</creator>
 	<email>slim@herger.net</email>
@@ -20,7 +20,7 @@
 
 	<targetApplication>
 		<id>SqueezeCenter</id>
-		<minVersion>7.6</minVersion>
+		<minVersion>8.3</minVersion>
 		<maxVersion>*</maxVersion>
 	</targetApplication>
 
