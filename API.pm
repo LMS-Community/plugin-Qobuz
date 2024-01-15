@@ -113,8 +113,9 @@ sub updateUserdata {
 
 			foreach my $k (keys %$result) {
 				$userdata->{$k} = $result->{$k} if defined $result->{$k};
-				$prefs->set('userdata', $userdata);
 			}
+
+			$prefs->save();
 		}
 
 		$cb->($result) if $cb;
