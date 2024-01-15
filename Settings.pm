@@ -8,7 +8,6 @@ use base qw(Slim::Web::Settings);
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
 
-my $cache = Plugins::Qobuz::API::Common->getCache();
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
@@ -29,11 +28,18 @@ sub prefs {
 sub handler {
  	my ($class, $client, $params, $callback, @args) = @_;
 
-	if ( $params->{pref_logout} ) {
-		$prefs->remove('token');
-		$prefs->remove('userdata');
+	my ($deleteId) = map {
+		/^delete_(.*)/
+	} grep {
+		/^delete_.*/
+	} keys %$params;
+
+	if ( $deleteId ) {
+		my $accounts = $prefs->get('accounts');
+		delete $accounts->{$deleteId};
+		$prefs->set('accounts', $accounts);
 	}
-	elsif ( $params->{saveSettings} ) {
+	elsif ( $params->{add_account} || $params->{saveSettings} ) {
 		$params->{'pref_filterSearchResults'} ||= 0;
 		$params->{'pref_playSamples'}         ||= 0;
 		$params->{'pref_dontImportPurchases'} ||= 0;
@@ -45,11 +51,7 @@ sub handler {
 			Plugins::Qobuz::API->login($username, $password, sub {
 				my $token = shift;
 
-				if ($token) {
-					$prefs->set('username', "$username");
-					$prefs->remove('password_md5_hash');
-				}
-				else {
+				if (!$token) {
 					$params->{'warning'} = Slim::Utils::Strings::string('PLUGIN_QOBUZ_AUTH_FAILED');
 				}
 
@@ -66,9 +68,7 @@ sub handler {
 
 sub beforeRender {
 	my ($class, $params, $client) = @_;
-
-	$params->{'prefs'}->{'username'} = $prefs->get('username');
-	$params->{'has_session'} = $prefs->get('token') && $prefs->get('userdata') && 1;
+	$params->{accounts} = Plugins::Qobuz::API::Common->getAccountList();
 }
 
 1;
