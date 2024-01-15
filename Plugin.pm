@@ -243,120 +243,153 @@ sub handleFeed {
 # TODO - let user select account to use on a player
 	my $params = $args->{params};
 
-	$cb->({
-		items => [{
-			name  => cstring($client, 'SEARCH'),
-			image => 'html/images/search.png',
-			type => 'link',
-			url  => sub {
-				my ($client, $cb, $params) = @_;
-				my $items = [];
+	my $items = [{
+		name  => cstring($client, 'SEARCH'),
+		image => 'html/images/search.png',
+		type => 'link',
+		url  => sub {
+			my ($client, $cb, $params) = @_;
+			my $items = [];
 
-				my $i = 0;
-				for my $recent ( @{ $prefs->get('qobuz_recent_search') || [] } ) {
-					unshift @$items, {
-						name  => $recent,
-						type  => 'link',
-						url  => sub {
-							my ($client, $cb, $params) = @_;
-							my $menu = searchMenu($client, {
-								search => lc($recent)
-							});
-							$cb->({
-								items => $menu->{items}
-							});
-						},
-						itemActions => {
-							info => {
-								command     => ['qobuz', 'recentsearches'],
-								fixedParams => { deleteMenu => $i++ },
-							},
-						},
-						passthrough => [ { type => 'search' } ],
-		  			};
-	  			}
-
+			my $i = 0;
+			for my $recent ( @{ $prefs->get('qobuz_recent_search') || [] } ) {
 				unshift @$items, {
-					name  => cstring($client, 'PLUGIN_QOBUZ_NEW_SEARCH'),
-					type  => 'search',
+					name  => $recent,
+					type  => 'link',
 					url  => sub {
 						my ($client, $cb, $params) = @_;
-						addRecentSearch($params->{search});
 						my $menu = searchMenu($client, {
-							search => lc($params->{search})
+							search => lc($recent)
 						});
 						$cb->({
 							items => $menu->{items}
 						});
 					},
+					itemActions => {
+						info => {
+							command     => ['qobuz', 'recentsearches'],
+							fixedParams => { deleteMenu => $i++ },
+						},
+					},
 					passthrough => [ { type => 'search' } ],
-	  			};
+				};
+			}
 
-				$cb->({ items => $items });
-			},
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
-			url  => \&QobuzUserPurchases,
-			image => 'html/images/albums.png'
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_USER_FAVORITES'),
-			url  => \&QobuzUserFavorites,
-			image => 'html/images/favorites.png'
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_USERPLAYLISTS'),
-			url  => \&QobuzUserPlaylists,
-			image => 'html/images/playlists.png'
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
-			url  => \&QobuzPublicPlaylists,
-			image => 'html/images/playlists.png',
-			passthrough => [{
-				type    => 'editor-picks',
-			}]
-		},{
-		# 	name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
-		# 	url  => \&QobuzPublicPlaylists,
-		# 	image => 'html/images/playlists.png',
-		# 	passthrough => [{
-		# 		type    => 'last-created',
-		# 	}]
-		# },{
-			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				type    => 'best-sellers',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				type    => 'new-releases-full',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				type    => 'press-awards',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				type    => 'editor-picks',
-			}]
-		},{
-			name  => cstring($client, 'GENRES'),
-			image => 'html/images/genres.png',
-			type => 'link',
-			url  => \&QobuzGenres
+			unshift @$items, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_NEW_SEARCH'),
+				type  => 'search',
+				url  => sub {
+					my ($client, $cb, $params) = @_;
+					addRecentSearch($params->{search});
+					my $menu = searchMenu($client, {
+						search => lc($params->{search})
+					});
+					$cb->({
+						items => $menu->{items}
+					});
+				},
+				passthrough => [ { type => 'search' } ],
+			};
+
+			$cb->({ items => $items });
+		},
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_USERPURCHASES'),
+		url  => \&QobuzUserPurchases,
+		image => 'html/images/albums.png'
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_USER_FAVORITES'),
+		url  => \&QobuzUserFavorites,
+		image => 'html/images/favorites.png'
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_USERPLAYLISTS'),
+		url  => \&QobuzUserPlaylists,
+		image => 'html/images/playlists.png'
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
+		url  => \&QobuzPublicPlaylists,
+		image => 'html/images/playlists.png',
+		passthrough => [{
+			type    => 'editor-picks',
 		}]
-	});
+	},{
+	# 	name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
+	# 	url  => \&QobuzPublicPlaylists,
+	# 	image => 'html/images/playlists.png',
+	# 	passthrough => [{
+	# 		type    => 'last-created',
+	# 	}]
+	# },{
+		name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			type    => 'best-sellers',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			type    => 'new-releases-full',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			type    => 'press-awards',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			type    => 'editor-picks',
+		}]
+	},{
+		name  => cstring($client, 'GENRES'),
+		image => 'html/images/genres.png',
+		type => 'link',
+		url  => \&QobuzGenres
+	}];
+
+	if (scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
+		push @$items, {
+			name => cstring($client, 'PLUGIN_QOBUZ_SELECT_ACCOUNT'),
+			image => __PACKAGE__->_pluginDataFor('icon'),
+			url => \&QobuzSelectAccount,
+		};
+	}
+
+	$cb->({ items => $items });
 }
 
+sub QobuzSelectAccount {
+	my $cb = $_[1];
+
+	my $items = [ map {
+		{
+			name => $_->[0],
+			url => sub {
+				my ($client, $cb2, $params, $args) = @_;
+
+				$client->pluginData(api => 0);
+				$prefs->client($client)->set('userId', $args->{id});
+
+				$cb2->({ items => [{
+					nextWindow => 'grandparent',
+				}] });
+			},
+			passthrough => [{
+				id => $_->[1]
+			}],
+			nextWindow => 'parent'
+		}
+	} @{ Plugins::Qobuz::API::Common->getAccountList() } ];
+
+	$cb->({ items => $items });
+}
 
 sub QobuzSearch {
 	my ($client, $cb, $params, $args) = @_;
