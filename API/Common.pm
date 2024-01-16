@@ -289,12 +289,8 @@ sub addVersionToTitle {
 	return $track->{title};
 }
 
-# figure out what streaming format we can use
-# - check preference
-# - fall back to mp3 samples if not streamable
-# - check user's subscription level
 sub getStreamingFormat {
-	my ($class, $client, $track) = @_;
+	my ($class, $track) = @_;
 
 	# user prefers mp3 over flac anyway
 	if ($prefs->get('preferredFormat') < QOBUZ_STREAMING_FLAC) {
@@ -305,11 +301,6 @@ sub getStreamingFormat {
 		return $1 >= QOBUZ_STREAMING_FLAC ? 'flac' : 'mp3';
 	}
 
-	# track is not available in flac
-	if (!($track && ref $track eq 'HASH' && $track->{streamable})) {
-		return 'mp3';
-	}
-
 	return 'flac';
 }
 
@@ -318,7 +309,7 @@ sub getUrl {
 
 	return '' unless $track;
 
-	my $ext = $class->getStreamingFormat($client, $track);
+	my $ext = $class->getStreamingFormat($track);
 
 	$track = $track->{id} if $track && ref $track eq 'HASH';
 

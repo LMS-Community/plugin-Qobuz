@@ -1446,7 +1446,7 @@ sub _albumItem {
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
 	my $albumYear = $showYearWithAlbum ? $album->{year} || substr($album->{release_date_stream},0,4) || 0 : 0;
 
-	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($client, $album) eq 'flac' ) {
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
 		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
 
@@ -1542,7 +1542,7 @@ sub _trackItem {
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 	};
 
-	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($client, $track->{album}) eq 'flac' ) {
+	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
@@ -1748,7 +1748,7 @@ sub trackInfoMenuBooklet {
 	eval {
 		my $goodies = $remoteMeta->{goodies};
 		if ($goodies && ref $goodies && scalar @$goodies) {
-		
+
 			# Browser client (eg Material)
 			if ( Slim::Utils::Versions->compareVersions($::VERSION, '8.4.0') >= 0 && _isBrowser($client)
 				# or null client (eg Default skin)
@@ -1776,7 +1776,7 @@ sub trackInfoMenuBooklet {
 						};
 					}
 				}
-			
+
 			# jive clients like iPeng etc. can display web content, but need special handling...
 			} elsif ( _canWeblink($client) )  {
 				$item = {
