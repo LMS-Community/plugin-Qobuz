@@ -95,7 +95,21 @@ sub getFormatForURL {
 		return $type;
 	}
 
-	my $info = Plugins::Qobuz::Plugin::getAPIHandler($client)->getCachedFileInfo($id || $url);
+	$id ||= $url;
+	my $api = Plugins::Qobuz::Plugin::getAPIHandler($client);
+	my $info;
+
+	# grab metadata from backend if needed, otherwise use cached values
+	if ($id && $client && $client->master->pluginData('fetchingMeta')) {
+		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $client;
+		$info = $api->getCachedFileInfo($id);
+	}
+	elsif ($id) {
+		$client->master->pluginData( fetchingMeta => 1 ) if $client;
+		$info = $api->getTrackInfo(sub {
+			$client->master->pluginData( fetchingMeta => 0 ) if $client;
+		}, $id);
+	}
 
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 
