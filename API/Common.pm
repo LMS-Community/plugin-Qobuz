@@ -81,7 +81,9 @@ sub getAccountData {
 }
 
 sub getSomeUserId {
-	my ($userId) = map { $_->[1] } @{ $_[0]->getAccountList };
+	my ($class) = @_;
+
+	my ($userId) = map { $_->[1] } @{ $class->getAccountList };
 	return $userId;
 }
 

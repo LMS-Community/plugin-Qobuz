@@ -218,15 +218,7 @@ sub playerMenu {}
 sub handleFeed {
 	my ($client, $cb, $args) = @_;
 
-	if (!$client) {
-		return $cb->({
-			items => [{
-				name => string('PLUGIN_QOBUZ_NO_PLAYER_CONNECTED'),
-				type => 'text'
-			}]
-		});
-	}
-	elsif ( !Plugins::Qobuz::API::Common->hasAccount() ) {
+	if ( !Plugins::Qobuz::API::Common->hasAccount() ) {
 		return $cb->({
 			items => [{
 				name => cstring($client, 'PLUGIN_QOBUZ_REQUIRES_CREDENTIALS'),
@@ -235,7 +227,7 @@ sub handleFeed {
 		});
 	}
 	# if there's no account assigned to the player, just pick one
-	elsif ( !$prefs->client($client)->get('userId') ) {
+	elsif ( $client && !$prefs->client($client)->get('userId') ) {
 		my $userId = Plugins::Qobuz::API::Common->getSomeUserId();
 		$prefs->client($client)->set('userId', $userId) if $userId;
 	}
@@ -2064,16 +2056,25 @@ sub _recentSearchesCLI {
 }
 
 sub getAPIHandler {
-	my ($client) = @_;
+	my ($clientOrId) = @_;
 
-	return unless $client;
+	$clientOrId ||= Plugins::Qobuz::API::Common->getSomeUserId();
 
-	my $api = $client->pluginData('api');
+	my $api;
 
-	if ( !$api ) {
-		$api = $client->pluginData( api => Plugins::Qobuz::API->new({
-			client => $client,
-		}) );
+	if (ref $clientOrId) {
+		$api = $clientOrId->pluginData('api');
+
+		if ( !$api ) {
+			$api = $clientOrId->pluginData( api => Plugins::Qobuz::API->new({
+				client => $clientOrId
+			}) );
+		}
+	}
+	else {
+		$api = Plugins::Qobuz::API->new({
+			userId => $clientOrId
+		});
 	}
 
 	return $api;
