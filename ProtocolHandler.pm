@@ -62,7 +62,7 @@ sub getSeekData {
 
 	my $url = $song->currentTrack()->url() || return;
 
-	my ($id, $type) = $class->crackUrl($client, $url);
+	my ($id, $type) = $class->crackUrl($url);
 
 	if ($type eq 'mp3' && !$song->bitrate()) {
 		$song->bitrate(MP3_BITRATE);
@@ -86,16 +86,16 @@ sub scanUrl {
 }
 
 sub getFormatForURL {
-	my ($class, $client, $url) = @_;
+	my ($class, $url) = @_;
 
-	my ($id, $type) = $class->crackUrl($client, $url);
+	my ($id, $type) = $class->crackUrl($url);
 
 	if ($type =~ /^(flac|mp3)$/) {
 		$type =~ s/flac/flc/;
 		return $type;
 	}
 
-	my $info = Plugins::Qobuz::Plugin::getAPIHandler($client)->getCachedFileInfo($id || $url);
+	my $info = Plugins::Qobuz::API->getCachedFileInfo($id || $url);
 
 	return $info->{mime_type} =~ /flac/ ? 'flc' : 'mp3' if $info && $info->{mime_type};
 
@@ -124,7 +124,7 @@ sub explodePlaylist {
 
 		my $getter = $type eq 'album' ? 'getAlbum' : 'getPlaylistTracks';
 
-		getAPIHandler($client)->$getter(sub {
+		Plugins::Qobuz::Plugin::getAPIHandler($client)->$getter(sub {
 			my $response = shift || [];
 
 			my $uris = [];
@@ -165,7 +165,7 @@ sub trackGain {
 	my $netGain = 0;
 	my $album;
 
-	my ($id) = $class->crackUrl($client, $url);
+	my ($id) = $class->crackUrl($url);
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
 
 	my $meta = $cache->get('trackInfo_' . $id);
@@ -277,7 +277,7 @@ sub parseDirectHeaders {
 sub getMetadataFor {
 	my ( $class, $client, $url ) = @_;
 
-	my ($id) = $class->crackUrl($client, $url);
+	my ($id) = $class->crackUrl($url);
 	$id ||= $url;
 
 	my $meta;
@@ -300,7 +300,7 @@ sub getMetadataFor {
 	if ($meta->{mime_type} && $meta->{mime_type} =~ /(fla?c|mp)/) {
 		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
 	}
-	$meta->{type} ||= $class->getFormatForURL($client, $url);
+	$meta->{type} ||= $class->getFormatForURL($url);
 	$meta->{ct} = $meta->{type};
 	$meta->{bitrate} = $meta->{type} eq 'mp3' ? MP3_BITRATE : 750_000;
 
@@ -383,7 +383,7 @@ sub getNextTrack {
 	my $client = $song->master();
 
 	# Get next track
-	my ($id, $format) = $class->crackUrl($client, $url);
+	my ($id, $format) = $class->crackUrl($url);
 	my $api = Plugins::Qobuz::Plugin::getAPIHandler($client);
 
 	$api->getFileInfo(sub {
@@ -423,7 +423,7 @@ sub getNextTrack {
 }
 
 sub crackUrl {
-	my ($class, $client, $url) = @_;
+	my ($class, $url) = @_;
 
 	return unless $url;
 

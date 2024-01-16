@@ -1615,7 +1615,7 @@ sub trackInfoMenu {
 
 	my $items;
 
-	if ( my ($trackId) = Plugins::Qobuz::ProtocolHandler->crackUrl($client, $url) ) {
+	if ( my ($trackId) = Plugins::Qobuz::ProtocolHandler->crackUrl($url) ) {
 		my $albumId = $remoteMeta ? $remoteMeta->{albumId} : undef;
 		my $artistId= $remoteMeta ? $remoteMeta->{artistId} : undef;
 

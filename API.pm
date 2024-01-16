@@ -564,7 +564,7 @@ sub getFileInfo {
 
 # this call is synchronous, as it's only working on cached data
 sub getCachedFileInfo {
-	my ($self, $trackId, $urlOnly, $preferredFormat) = @_;
+	my ($class, $trackId, $urlOnly, $preferredFormat) = @_;
 
 	$preferredFormat ||= $prefs->get('preferredFormat');
 

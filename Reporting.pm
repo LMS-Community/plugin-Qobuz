@@ -41,7 +41,7 @@ sub startStreaming {
 
 	$reportedTracks{"start_$track_id"} = 1;
 
-	$format ||= Plugins::Qobuz::ProtocolHandler->getFormatForURL($client, $url);
+	$format ||= Plugins::Qobuz::ProtocolHandler->getFormatForURL($url);
 	my $devicedata = Plugins::Qobuz::API::Common->getDevicedata($client);
 	my $credentials = Plugins::Qobuz::API::Common->getCredentials($client) || {};
 
