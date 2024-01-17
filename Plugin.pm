@@ -346,7 +346,7 @@ sub handleFeed {
 		url  => \&QobuzGenres
 	}];
 
-	if (scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
+	if ($client && scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
 		push @$items, {
 			name => cstring($client, 'PLUGIN_QOBUZ_SELECT_ACCOUNT'),
 			image => __PACKAGE__->_pluginDataFor('icon'),

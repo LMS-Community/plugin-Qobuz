@@ -54,11 +54,11 @@ sub getAccountList {
 	return [ grep {
 		$_->[0] && $_->[1]
 	} map {[
-		$_->{userdata}->{login},
+		$_->{userdata}->{display_name} || $_->{userdata}->{login},
 		$_->{userdata}->{id},
 		$_->{dontimport}
 	]} sort {
-		$a->{userdata}->{login} cmp $b->{userdata}->{login};
+		lc($a->{userdata}->{display_name} || $a->{userdata}->{login}) cmp lc($b->{userdata}->{display_name} || $b->{userdata}->{login});
 	} values %{ $prefs->get('accounts') } ];
 }
 
