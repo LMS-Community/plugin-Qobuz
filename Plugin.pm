@@ -226,13 +226,7 @@ sub handleFeed {
 			}]
 		});
 	}
-	# if there's no account assigned to the player, just pick one
-	elsif ( $client && !$prefs->client($client)->get('userId') ) {
-		my $userId = Plugins::Qobuz::API::Common->getSomeUserId();
-		$prefs->client($client)->set('userId', $userId) if $userId;
-	}
 
-# TODO - let user select account to use on a player
 	my $params = $args->{params};
 
 	my $items = [{
@@ -2066,6 +2060,12 @@ sub getAPIHandler {
 		$api = $clientOrId->pluginData('api');
 
 		if ( !$api ) {
+			# if there's no account assigned to the player, just pick one
+			if ( !$prefs->client($clientOrId)->get('userId') ) {
+				my $userId = Plugins::Qobuz::API::Common->getSomeUserId();
+				$prefs->client($clientOrId)->set('userId', $userId) if $userId;
+			}
+
 			$api = $clientOrId->pluginData( api => Plugins::Qobuz::API->new({
 				client => $clientOrId
 			}) );
@@ -2076,6 +2076,8 @@ sub getAPIHandler {
 			userId => $clientOrId
 		});
 	}
+
+	logBacktrace("Failed to get a Qobuz API instance: $clientOrId") unless $api;
 
 	return $api;
 }
