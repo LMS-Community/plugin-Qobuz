@@ -15,7 +15,8 @@ sub isEnabled {
 
 	return unless Slim::Utils::PluginManager->isEnabled('Plugins::Qobuz::Plugin');
 
-	return scalar keys @{$prefs->get('accounts')} ? 'Qobuz' : undef;
+	require Plugins::Qobuz::API::Common;
+	return Plugins::Qobuz::API::Common->hasAccount() ? 'Qobuz' : undef;
 }
 
 sub lookup {
