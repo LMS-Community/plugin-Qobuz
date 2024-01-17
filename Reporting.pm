@@ -143,7 +143,7 @@ sub _post {
 	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::QOBUZ_BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
 	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), Plugins::Qobuz::API::Common->getToken($client));
 
-	main::INFOLOG && $log->is_info && $log->info("$url: $body");
+	main::INFOLOG && $log->is_info && $log->info("$url: " . to_json($event));
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {

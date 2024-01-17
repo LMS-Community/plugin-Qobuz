@@ -71,11 +71,9 @@ sub getAccountData {
 
 	my $accounts = $prefs->get('accounts') || return;
 
-	my $userId = $clientOrUserId;
-
-	if (ref $clientOrUserId) {
-		$userId = $accounts->{$prefs->client($clientOrUserId)->get('userId')} || return;
-	}
+	my $userId = ref $clientOrUserId
+		? $prefs->client($clientOrUserId)->get('userId')
+		: $clientOrUserId;
 
 	return $accounts->{$userId};
 }
