@@ -15,7 +15,7 @@
 					<td style="vertical-align: middle; padding-right: 10px">
 						<select class="stdedit" name="pref_dontimport_[% account.1 %]">
 							<option [% IF !account.2 %]selected [% END %]value="0">[% "YES"| string %]</option>
-							<option [% IF accounts.2 %]selected [% END %]value="1">[% "NO" | string %]</option>
+							<option [% IF account.2 %]selected [% END %]value="1">[% "NO" | string %]</option>
 						</select>
 					</td>
 					<td style="vertical-align: middle">

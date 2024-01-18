@@ -34,8 +34,9 @@ sub handler {
 		/^delete_.*/
 	} keys %$params;
 
+	my $accounts = $prefs->get('accounts');
+
 	if ( $deleteId ) {
-		my $accounts = $prefs->get('accounts');
 		delete $accounts->{$deleteId};
 		$prefs->set('accounts', $accounts);
 	}
@@ -43,6 +44,20 @@ sub handler {
 		$params->{'pref_filterSearchResults'} ||= 0;
 		$params->{'pref_playSamples'}         ||= 0;
 		$params->{'pref_dontImportPurchases'} ||= 0;
+
+		foreach my $k (keys %$params) {
+			next if $k !~ /pref_dontimport_(.*)/;
+
+			my $id = $1;
+			my $account = $accounts->{$id} || next;
+
+			if ($params->{$k}) {
+				$account->{dontimport} = 1;
+			}
+			else {
+				delete $account->{dontimport};
+			}
+		}
 
 		if ($params->{'username'} && $params->{'password'}) {
 			my $username = $params->{'username'};
