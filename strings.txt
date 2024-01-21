@@ -93,10 +93,10 @@ PLUGIN_QOBUZ_PREFS_PASSWORD
 	NL	Wachtwoord
 
 PLUGIN_QOBUZ_PREFS_FORMAT
-	DE	Bevorzugtes Format (FLAC funktioniert nur mit einem "hifi" Premium Konto)
-	EN	Preferred format (FLAC works only with 'hifi' premium account)
-	FR	Format préféré (le FLAC peut nécessiter un abonnement spécifique)
-	NL	Voorkeursformaat (ondersteuning van FLAC is afhankelijk van jouw Qobuz abonnement)
+	DE	Bevorzugtes Format
+	EN	Preferred format
+	FR	Format préféré
+	NL	Voorkeursformaat
 
 PLUGIN_QOBUZ_SUB_GENRES
 	DE	Unterteilungen
@@ -289,6 +289,9 @@ PLUGIN_QOBUZ_PERFORMERS
 	EN	Personnel
 	FR	Interprète
 	NL	Performer
+
+PLUGIN_QOBUZ_MYWEEKLYQ
+	EN	My Weekly Q
 
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
