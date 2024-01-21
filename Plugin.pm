@@ -338,6 +338,11 @@ sub handleFeed {
 		image => 'html/images/genres.png',
 		type => 'link',
 		url  => \&QobuzGenres
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_MYWEEKLYQ'),
+		type  => 'playlist',
+		url  => \&QobuzMyWeeklyQ,
+		image => 'html/images/playlists.png'
 	}];
 
 	if ($client && scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
@@ -375,6 +380,31 @@ sub QobuzSelectAccount {
 	} @{ Plugins::Qobuz::API::Common->getAccountList() } ];
 
 	$cb->({ items => $items });
+}
+
+sub QobuzMyWeeklyQ {
+	my ($client, $cb, $params) = @_;
+
+	getAPIHandler($client)->getMyWeekly(sub {
+		my $myWeekly = shift;
+
+		if (!$myWeekly) {
+			$cb->();
+			return;
+		}
+
+		my $tracks = [];
+
+		foreach my $track ( @{$myWeekly->{tracks}->{items} || []} ) {
+			push @$tracks, _trackItem($client, $track);
+		}
+
+		return $cb->({
+			name  => $myWeekly->{title},
+			name2 => $myWeekly->{baseline},
+			items => $tracks,
+		});
+	});
 }
 
 sub QobuzSearch {

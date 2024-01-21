@@ -28,6 +28,9 @@ sub prefs {
 sub handler {
  	my ($class, $client, $params, $callback, @args) = @_;
 
+	# keep track of the user agent for request using the web token
+	$prefs->set('useragent', $params->{userAgent}) if $params->{userAgent};
+
 	my ($deleteId) = map {
 		/^delete_(.*)/
 	} grep {
