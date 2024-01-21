@@ -84,6 +84,7 @@ sub handler {
 sub beforeRender {
 	my ($class, $params, $client) = @_;
 	$params->{accounts} = Plugins::Qobuz::API::Common->getAccountList();
+	$params->{canImporter} = Plugins::Qobuz::Plugin::CAN_IMPORTER;
 }
 
 1;
