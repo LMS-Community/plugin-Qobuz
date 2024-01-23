@@ -1405,7 +1405,7 @@ sub QobuzGetTracks {
 				foreach my $item (@uniquePerformers) {
 					my @tracks = @{$tracks->{$item->{'name'}}->{'tracks'}};
 					if ( @tracks && scalar @tracks < $album->{tracks_count} ) {
-						$item->{'name'} .= scalar @tracks == 1 ? " (track " : " (tracks ";
+						$item->{'name'} .= scalar @tracks == 1 ? " (" . cstring($client, 'PLUGIN_QOBUZ_TRACK_LC') . " " : " (" . cstring($client, 'PLUGIN_QOBUZ_TRACKS_LC') . " ";
 						$item->{'name'} .= join(", ", @tracks) . ")";
 					}
 				}
