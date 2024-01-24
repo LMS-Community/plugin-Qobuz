@@ -1410,7 +1410,7 @@ sub QobuzGetTracks {
 					}
 				}
 				my $item = {
-					name => cstring($client, 'ALL_ARTISTS'),
+					name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
 					items => \@uniquePerformers,
 				};
 				push @$items, $item;

@@ -285,10 +285,11 @@ PLUGIN_QOBUZ_BOOKLET
 	NL	Boekje
 
 PLUGIN_QOBUZ_PERFORMERS
-	DE	Performer
-	EN	Personnel
-	FR	Interprète
-	NL	Performer
+	DE	Credits
+	EN	Credits
+	FR	Crédits
+	NL	Credits
+	ES	Créditos
 
 PLUGIN_QOBUZ_MYWEEKLYQ
 	EN	My Weekly Q
@@ -537,14 +538,14 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
 
 PLUGIN_QOBUZ_TRACKS_LC
-	DE	titel
+	DE	Titel
 	EN	tracks
 	FR	pistes
 	NL	nummers
 	ES	pistas
 
 PLUGIN_QOBUZ_TRACK_LC
-	DE	titel
+	DE	Titel
 	EN	track
 	FR	piste
 	NL	nummer
