@@ -285,10 +285,11 @@ PLUGIN_QOBUZ_BOOKLET
 	NL	Boekje
 
 PLUGIN_QOBUZ_PERFORMERS
-	DE	Performer
-	EN	Personnel
-	FR	Interprète
-	NL	Performer
+	DE	Credits
+	EN	Credits
+	FR	Crédits
+	NL	Credits
+	ES	Créditos
 
 PLUGIN_QOBUZ_MYWEEKLYQ
 	EN	My Weekly Q
@@ -535,4 +536,18 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 	FR	N'a aucun effet lorsque "Affichage amélioré de la musique classique" a été choisi (voir ci-dessous) et que des œuvres classiques ont été identifiées
 	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
 	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
+
+PLUGIN_QOBUZ_TRACKS_LC
+	DE	Titel
+	EN	tracks
+	FR	pistes
+	NL	nummers
+	ES	pistas
+
+PLUGIN_QOBUZ_TRACK_LC
+	DE	Titel
+	EN	track
+	FR	piste
+	NL	nummer
+	ES	pista
 

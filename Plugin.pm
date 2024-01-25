@@ -1167,8 +1167,18 @@ sub QobuzGetTracks {
 		my $workComposer;
 		my $lastDisc;
 		my $discs = {};
+		my @performers;
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
+
+			if (my $trackPerformers = trackInfoMenuPerformers($client, undef, undef, $track)) {
+				my $performerItems = $trackPerformers->{items};
+				foreach my $item (@$performerItems) {
+					$item->{'track'} = $track->{'track_number'};
+				}
+				push @performers, @$performerItems;
+			}
+
 			$totalDuration += $track->{duration};
 			my $formattedTrack = _trackItem($client, $track);
 			my $work = delete $formattedTrack->{work};
@@ -1378,6 +1388,34 @@ sub QobuzGetTracks {
 				nextWindow => 'parent'
 			};
 
+			if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
+				push @$items, $item;
+			}
+
+			# Build a consolidated list of all artists on the album
+			my @uniquePerformers;
+			if ( scalar @performers ) {
+				my %seen = ();
+				my $tracks;
+				foreach my $item (@performers) {
+					push @{$tracks->{$item->{'name'}}->{'tracks'}}, $item->{'track'};
+					delete $item->{'track'};
+					push(@uniquePerformers, $item) unless $seen{$item->{'name'}}++;
+				}
+				foreach my $item (@uniquePerformers) {
+					my @tracks = @{$tracks->{$item->{'name'}}->{'tracks'}};
+					if ( @tracks && scalar @tracks < $album->{tracks_count} ) {
+						$item->{'name'} .= scalar @tracks == 1 ? " (" . cstring($client, 'PLUGIN_QOBUZ_TRACK_LC') . " " : " (" . cstring($client, 'PLUGIN_QOBUZ_TRACKS_LC') . " ";
+						$item->{'name'} .= join(", ", @tracks) . ")";
+					}
+				}
+				my $item = {
+					name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
+					items => \@uniquePerformers,
+				};
+				push @$items, $item;
+			}
+
 			push @$items,{
 				name  => $album->{genre},
 				label => 'GENRE',
@@ -1409,10 +1447,6 @@ sub QobuzGetTracks {
 					}],
 				};
 			};
-
-			if (my $item = trackInfoMenuBooklet($client, undef, undef, $album)) {
-				push @$items, $item;
-			}
 
 			my $rDate = _localDate($album->{release_date_stream});
 			push @$items, {
