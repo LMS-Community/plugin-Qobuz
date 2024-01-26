@@ -526,8 +526,6 @@ sub QobuzSearch {
 sub browseArtistMenu {
 	my ($client, $cb, $params, $args) = @_;
 
-	my $items = [];
-
 	my $artistId = $params->{artist_id} || $args->{artist_id};
 	if ( defined($artistId) && $artistId =~ /^\d+$/ && (my $artistObj = Slim::Schema->resultset("Contributor")->find($artistId))) {
 		if (my ($extId) = grep /qobuz:artist:(\d+)/, @{$artistObj->extIds}) {
