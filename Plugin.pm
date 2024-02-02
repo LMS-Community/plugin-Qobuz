@@ -100,18 +100,8 @@ sub initPlugin {
 	);
 
 	# Track Info item
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuzPerformers => (
-		func  => \&trackInfoMenuPerformers,
-	) );
-
 	Slim::Menu::TrackInfo->registerInfoProvider( qobuzTrackInfo => (
 		func  => \&trackInfoMenu,
-		after => 'qobuzPerformers'
-	) );
-
-	Slim::Menu::TrackInfo->registerInfoProvider( qobuzBooklet => (
-		func  => \&trackInfoMenuBooklet,
-		after => 'qobuzTrackInfo'
 	) );
 
 	Slim::Menu::ArtistInfo->registerInfoProvider( qobuzArtistInfo => (
@@ -845,6 +835,25 @@ sub QobuzFeaturedAlbums {
 	}, $type, $genreId);
 }
 
+sub QobuzLabel {
+	my ($client, $cb, $params, $args) = @_;
+	my $labelId = $args->{labelId};
+
+	getAPIHandler($client)->getLabel(sub {
+		my $albums = shift;
+
+		my $items = [];
+
+		foreach my $album ( @{$albums->{albums}->{items}} ) {
+			push @$items, _albumItem($client, $album);
+		}
+
+		$cb->({
+			items => $items
+		})
+	}, $labelId);
+}
+
 sub QobuzUserPurchases {
 	my ($client, $cb, $params, $args) = @_;
 
@@ -1167,7 +1176,7 @@ sub QobuzGetTracks {
 		my $workComposer;
 		my $lastDisc;
 		my $discs = {};
-		my @performers;
+		my $performers= [];
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 
@@ -1176,7 +1185,7 @@ sub QobuzGetTracks {
 				foreach my $item (@$performerItems) {
 					$item->{'track'} = $track->{'track_number'};
 				}
-				push @performers, @$performerItems;
+				push @$performers, @$performerItems;
 			}
 
 			$totalDuration += $track->{duration};
@@ -1392,29 +1401,8 @@ sub QobuzGetTracks {
 				push @$items, $item;
 			}
 
-			# Build a consolidated list of all artists on the album
-			my @uniquePerformers;
-			if ( scalar @performers ) {
-				my %seen = ();
-				my $tracks;
-				foreach my $item (@performers) {
-					push @{$tracks->{$item->{'name'}}->{'tracks'}}, $item->{'track'};
-					delete $item->{'track'};
-					push(@uniquePerformers, $item) unless $seen{$item->{'name'}}++;
-				}
-				foreach my $item (@uniquePerformers) {
-					my @tracks = @{$tracks->{$item->{'name'}}->{'tracks'}};
-					if ( @tracks && scalar @tracks < $album->{tracks_count} ) {
-						$item->{'name'} .= scalar @tracks == 1 ? " (" . cstring($client, 'PLUGIN_QOBUZ_TRACK_LC') . " " : " (" . cstring($client, 'PLUGIN_QOBUZ_TRACKS_LC') . " ";
-						$item->{'name'} .= join(", ", @tracks) . ")";
-					}
-				}
-				my $item = {
-					name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
-					items => \@uniquePerformers,
-				};
-				push @$items, $item;
-			}
+			# Add a consolidated list of all artists on the album
+			$items = _albumPerformers($client, $performers, $album->{tracks_count}, $items);
 
 			push @$items,{
 				name  => $album->{genre},
@@ -1457,7 +1445,10 @@ sub QobuzGetTracks {
 			if ($album->{label} && $album->{label}->{name}) {
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
-					type  => 'text'
+					url   => \&QobuzLabel,
+					passthrough => [{
+						labelId  => $album->{label}->{id},
+					}],
 				};
 			}
 
@@ -1491,6 +1482,34 @@ sub QobuzGetTracks {
 			}, @_ );
 		});
 	}, $albumId);
+}
+
+sub _albumPerformers {
+	my ($client, $performers, $trackCount, $items) = @_;
+	my @uniquePerformers;
+
+	if ( scalar @$performers ) {
+		my %seen = ();
+		my $tracks;
+		foreach my $item (@$performers) {
+			push @{$tracks->{$item->{'name'}}->{'tracks'}}, $item->{'track'};
+			delete $item->{'track'};
+			push(@uniquePerformers, $item) unless $seen{$item->{'name'}}++;
+		}
+		foreach my $item (@uniquePerformers) {
+			my @tracks = @{$tracks->{$item->{'name'}}->{'tracks'}};
+			if ( @tracks && scalar @tracks < $trackCount ) {
+				$item->{'name'} .= scalar @tracks == 1 ? " (" . cstring($client, 'PLUGIN_QOBUZ_TRACK_LC') . " " : " (" . cstring($client, 'PLUGIN_QOBUZ_TRACKS_LC') . " ";
+				$item->{'name'} .= join(", ", @tracks) . ")";
+			}
+		}
+		my $item = {
+			name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
+			items => \@uniquePerformers,
+		};
+		push @$items, $item;
+	}
+	return $items;
 }
 
 sub QobuzWorkGetTracks {
@@ -1530,7 +1549,6 @@ sub QobuzPlaylistGetTracks {
 
 sub _albumItem {
 	my ($client, $album) = @_;
-
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
@@ -1702,6 +1720,10 @@ sub trackInfoMenu {
 	my $artist = $track->remote ? $remoteMeta->{artist} : $track->artistName;
 	my $album  = $track->remote ? $remoteMeta->{album}  : ( $track->album ? $track->album->name : undef );
 	my $title  = $track->remote ? $remoteMeta->{title}  : $track->title;
+	my $label  = $track->remote ? $remoteMeta->{label} : undef;
+	my $labelId = $track->remote ? $remoteMeta->{labelId} : undef;
+	my $composer  = $track->remote ? [$remoteMeta->{composer}] : undef;
+	my $work = $composer && $remoteMeta->{work} ? ["$remoteMeta->{composer} $remoteMeta->{work}"] : undef;
 
 	my $items;
 
@@ -1731,11 +1753,20 @@ sub trackInfoMenu {
 				name => cstring($client, 'PLUGIN_QOBUZ_MANAGE_FAVORITES'),
 				url  => \&QobuzManageFavorites,
 				passthrough => [$args],
-			}
+			} if $args
 		}
+
+		if (my $item = trackInfoMenuPerformers($client, undef, undef, $remoteMeta)) {
+			push @$items, $item
+		}
+
+		if (my $item = trackInfoMenuBooklet($client, undef, undef, $remoteMeta)) {
+			push @$items, $item
+		}
+
 	}
 
-	return _objInfoHandler( $client, $artist, $album, $title, $items );
+	return _objInfoHandler( $client, $artist, $album, $title, $items, $label, $labelId, $composer, $work );
 }
 
 sub artistInfoMenu {
@@ -1751,29 +1782,113 @@ sub albumInfoMenu {
 	my @artists;
 	push @artists, $album->artistsForRoles('ARTIST'), $album->artistsForRoles('ALBUMARTIST');
 
-	return _objInfoHandler( $client, $artists[0]->name, $albumTitle );
+	my $label;
+	my $labelId;
+	my $composers;
+	my $works;
+	my $qobuzAlbum;
+	my $items = [];
+
+	if ( !%$remoteMeta && $url =~ /^qobuz:/ ) {
+		my $albumId = (split /:/, $url)[-1];
+
+		getAPIHandler($client)->getAlbum(sub {
+			$qobuzAlbum = shift;
+
+			if (!$qobuzAlbum) {
+				$log->error("Get album ($albumId) failed");
+				return;
+			}
+		}, $albumId);
+
+		if ( $qobuzAlbum ) {
+			my %seen;
+			foreach my $track (@{$qobuzAlbum->{tracks}->{items}}) {
+				my $composer = $track->{'composer'}->{'name'};
+				my $work = $track->{'work'};
+				if ( $track->{'album'}->{'label'} && !$seen{$track->{'label'}} ) {
+					$seen{$track->{'album'}->{'label'}} = 1;
+					$label = $track->{'album'}->{'label'};
+					$labelId = $track->{'album'}->{'labelId'};
+				}
+				if ( $composer && !$seen{$composer} ) {
+					$seen{$composer} = 1;
+					push @$composers, $composer;
+				}
+				if ( $composer && $work && !$seen{"$work $composer"} ) {
+					$seen{"$work $composer"} = 1;
+					push @$works, "$composer $work";
+				}
+			}
+
+			my $args = ();
+			$args->{albumId} = $qobuzAlbum->{id};
+			$args->{album} = $qobuzAlbum->{title};
+			$args->{artistId} = $qobuzAlbum->{artist}->{id};
+			$args->{artist} = $qobuzAlbum->{artist}->{name};
+			push @$items, {
+				name => cstring($client, 'PLUGIN_QOBUZ_MANAGE_FAVORITES'),
+				url  => \&QobuzManageFavorites,
+				passthrough => [$args],
+			} if $args;
+
+			my $performers = [];
+			foreach my $track (@{$qobuzAlbum->{tracks}->{items}}) {
+				if (my $trackPerformers = trackInfoMenuPerformers($client, undef, undef, $track)) {
+					my $performerItems = $trackPerformers->{items};
+					foreach my $item (@$performerItems) {
+						$item->{'track'} = $track->{'track_number'};
+					}
+					push @$performers, @$performerItems;
+				}
+			}
+
+			$items = _albumPerformers($client, $performers, $qobuzAlbum->{tracks_count}, $items);
+
+			if (my $item = trackInfoMenuBooklet($client, undef, undef, $qobuzAlbum)) {
+				push @$items, $item
+			}
+		}
+	}
+
+	return _objInfoHandler( $client, $artists[0]->name, $albumTitle, undef, $items, $label, $labelId, $composers, $works);
 }
 
 sub _objInfoHandler {
-	my ( $client, $artist, $album, $track, $items ) = @_;
+	my ( $client, $artist, $album, $track, $items, $label, $labelId, $composer, $work ) = @_;
 
 	$items ||= [];
 
+	my $nameType = {};
+	$nameType->{$artist} = cstring($client, 'ARTIST');
+	$nameType->{$album} = cstring($client, 'ALBUM');
+	$nameType->{$track} = cstring($client, 'TRACK');
+	$nameType->{$_} = cstring($client, 'COMPOSER') foreach @$composer;
+	$nameType->{$_} = cstring($client, 'PLUGIN_QOBUZ_WORK') foreach @$work;
+
 	my %seen;
-	foreach ($artist, $album, $track) {
+	foreach ($artist, $album, $track, @$composer, @$work) {
 		# prevent duplicate entries if eg. album & artist have the same name
 		next if $seen{$_};
 
 		$seen{$_} = 1;
 
 		push @$items, {
-			name => cstring($client, 'PLUGIN_QOBUZ_SEARCH', $_),
+			name => cstring($client, 'PLUGIN_QOBUZ_SEARCH', $nameType->{$_}, $_),
 			url  => \&QobuzSearch,
 			passthrough => [{
 				q => $_,
 			}]
 		} if $_;
 	}
+
+	push @$items, {
+		name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $label,
+		url   => \&QobuzLabel,
+		passthrough => [{
+			labelId  => $labelId,
+		}],
+	} if $label && $labelId;
 
 	my $menu;
 	if ( scalar @$items == 1) {
@@ -1803,7 +1918,10 @@ sub trackInfoMenuPerformers {
 			s/,/:/;
 			{
 				name => $_,
-				type => 'text'
+				url  => \&QobuzSearch,
+				passthrough => [{
+					q => (split /:/, $_)[0],
+				}]
 			}
 		} sort {
 			return $a cmp $b if $a =~ $MAIN_ARTIST_RE && $b =~ $MAIN_ARTIST_RE;
@@ -1827,12 +1945,11 @@ sub trackInfoMenuPerformers {
 		};
 	}
 
-	return [];
+	return {};
 }
 
 sub trackInfoMenuBooklet {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
-
 	my $item;
 
 	eval {
@@ -1844,7 +1961,7 @@ sub trackInfoMenuBooklet {
 				# or null client (eg Default skin)
 				|| !$client->controllerUA )
 			{
-				if (scalar @$goodies == 1 && @$goodies[0]->{name} eq "Livret Num\xE9rique") {
+				if (scalar @$goodies == 1 && lc(@$goodies[0]->{name}) eq "livret num\xe9rique") {
 					$item = {
 						name => _localizeGoodies($client, @$goodies[0]->{name}),
 						weblink => @$goodies[0]->{url},

@@ -183,10 +183,11 @@ PLUGIN_QOBUZ_REMOVE_FAVORITE
 	NL	Verwijder '%s' van Qobuz favorieten
 
 PLUGIN_QOBUZ_SEARCH
-	DE	Suche '%s'
-	EN	Search '%s'
-	FR	Rechercher "%s"
-	NL	Zoek '%s'
+	DE	Suche %s '%s'
+	EN	Search %s '%s'
+	FR	Rechercher %s "%s"
+	NL	Zoek %s '%s'
+	ES	Buscar %s '%s'
 
 PLUGIN_QOBUZ_PUBLICPLAYLISTS
 	DE	Qobuz Wiedergabelisten
@@ -550,4 +551,11 @@ PLUGIN_QOBUZ_TRACK_LC
 	FR	piste
 	NL	nummer
 	ES	pista
+
+PLUGIN_QOBUZ_WORK
+	EN	Work
+	DE	Werke
+	FR	Œuvre
+	NL	Werk
+	ES	Composición
 

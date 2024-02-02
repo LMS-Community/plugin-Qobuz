@@ -218,6 +218,22 @@ sub getArtist {
 	});
 }
 
+sub getLabel {
+	my ($self, $cb, $labelId) = @_;
+
+	$self->_get('label/get', sub {
+		my $results = shift;
+
+		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
+
+		$cb->($results) if $cb;
+	}, {
+		label_id => $labelId,
+		extra     => 'albums',
+		limit     => QOBUZ_DEFAULT_LIMIT,
+	});
+}
+
 sub getArtistPicture {
 	my ($self, $artistId) = @_;
 
