@@ -230,6 +230,7 @@ sub _precacheTracks {
 
 sub precacheTrack {
 	my ($class, $track) = @_;
+
 	if ( !$track && ref $class eq 'HASH' ) {
 		$track = $class;
 		$class = __PACKAGE__;
