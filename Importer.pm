@@ -90,9 +90,10 @@ sub scanAlbums {
 
 	foreach my $account (@$accounts) {
 		my %missingAlbums;
+		my $accountName = $account->[0] || '';
 
-		main::INFOLOG && $log->is_info && $log->info("Reading albums... " . $account->[0]);
-		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS', $account->[0]));
+		main::INFOLOG && $log->is_info && $log->info("Reading albums... " . $accountName);
+		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS', $accountName));
 
 		# TODO make dontImportPurchases per account
 		my $albums = Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'));
@@ -105,7 +106,7 @@ sub scanAlbums {
 				$progress->update($album->{title});
 				$class->storeTracks([
 					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
-				]);
+				], undef, $accountName);
 
 				main::SCANNER && Slim::Schema->forceCommit;
 			}
@@ -123,7 +124,7 @@ sub scanAlbums {
 
 			$class->storeTracks([
 				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
-			]);
+			], undef, $accountName);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}

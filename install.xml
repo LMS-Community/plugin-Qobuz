@@ -8,7 +8,7 @@
 
 	<version>3.1.0</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
-	<creator>Pierre Beck / Michael Herger</creator>
+	<creator>Pierre Beck / Michael Herger / darrell / SamY / sveninndh</creator>
 	<email>slim@herger.net</email>
 	<defaultState>enabled</defaultState>
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
