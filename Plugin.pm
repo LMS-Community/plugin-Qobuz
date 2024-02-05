@@ -12,6 +12,7 @@ use Slim::Player::ProtocolHandlers;
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Strings qw(string cstring);
+use Scalar::Util qw(looks_like_number);
 
 use Plugins::Qobuz::API;
 use Plugins::Qobuz::API::Common;
@@ -1174,7 +1175,7 @@ sub QobuzGetTracks {
 		my $workComposer;
 		my $lastDisc;
 		my $discs = {};
-		my $performers= [];
+		my $performers= {};
 
 		foreach my $track (@{$album->{tracks}->{items}}) {
 
@@ -1182,8 +1183,9 @@ sub QobuzGetTracks {
 				my $performerItems = $trackPerformers->{items};
 				foreach my $item (@$performerItems) {
 					$item->{'track'} = $track->{'track_number'};
+					$item->{'disc'} = $track->{'media_number'}||1;
 				}
-				push @$performers, @$performerItems;
+				push @{$performers->{$track->{'media_number'}}}, @$performerItems;
 			}
 
 			$totalDuration += $track->{duration};
@@ -1484,29 +1486,60 @@ sub QobuzGetTracks {
 
 sub _albumPerformers {
 	my ($client, $performers, $trackCount, $items) = @_;
-	my @uniquePerformers;
 
-	if ( scalar @$performers ) {
-		my %seen = ();
-		my $tracks;
-		foreach my $item (@$performers) {
+	my @uniquePerformers;
+	my %seen = ();
+	my $tracks;
+
+	foreach my $disc (sort(keys %$performers)) {
+		my %discAdded = ();
+		foreach my $item (@{$performers->{$disc}}) {
+			push @{$tracks->{$item->{'name'}}->{'tracks'}}, " " . cstring($client, 'DISC') . " $disc" . cstring($client, 'COLON') . " " unless $discAdded{$item->{'name'}}++ || scalar keys %$performers == 1;
 			push @{$tracks->{$item->{'name'}}->{'tracks'}}, $item->{'track'};
 			delete $item->{'track'};
 			push(@uniquePerformers, $item) unless $seen{$item->{'name'}}++;
 		}
+	}
+
+	if ( scalar @uniquePerformers ) {
 		foreach my $item (@uniquePerformers) {
 			my @tracks = @{$tracks->{$item->{'name'}}->{'tracks'}};
-			if ( @tracks && scalar @tracks < $trackCount ) {
-				$item->{'name'} .= scalar @tracks == 1 ? " (" . cstring($client, 'PLUGIN_QOBUZ_TRACK_LC') . " " : " (" . cstring($client, 'PLUGIN_QOBUZ_TRACKS_LC') . " ";
-				$item->{'name'} .= join(", ", @tracks) . ")";
+			my $creditCount = scalar @tracks - (scalar keys %$performers == 1 ? 0 : scalar keys %$performers);
+			if ( @tracks && scalar $creditCount < $trackCount ) {
+				$item->{'name'} .= " ( ";
+
+				# collapse the track list so that, eg, 1,2,3,5,7,8,9,11,12 becomes 1-3, 5, 7-9, 11-12 and add punctuation to make multi-disc albums somewhat intelligible
+				# there's probably a much more perly way of doing this...
+				my $sep = "-";
+				my $o;
+				for my $i ( 0 .. $#tracks ) {
+					if ( looks_like_number($tracks[$i]) && $tracks[$i+1] == $tracks[$i]+1) {
+						$o .= "$tracks[$i]$sep" if $sep;
+						$sep = undef;
+					} else {
+						$sep = "-";
+						if ( looks_like_number($tracks[$i]) && looks_like_number($tracks[$i+1]) ) {
+							$o .= "$tracks[$i], ";
+						} elsif ( looks_like_number($tracks[$i]) && $tracks[$i+1] && !looks_like_number($tracks[$i+1]) ) {
+							$o .= "$tracks[$i]; ";
+						} else {
+							$o .= "$tracks[$i]";
+						}
+					}
+				}
+
+				$item->{'name'} .= "$o )";
 			}
 		}
+
 		my $item = {
 			name => cstring($client, 'PLUGIN_QOBUZ_PERFORMERS'),
 			items => \@uniquePerformers,
+			type => 'actions',
 		};
 		push @$items, $item;
 	}
+
 	return $items;
 }
 
@@ -1547,6 +1580,7 @@ sub QobuzPlaylistGetTracks {
 
 sub _albumItem {
 	my ($client, $album) = @_;
+
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
@@ -1730,7 +1764,7 @@ sub trackInfoMenu {
 		my $artistId= $remoteMeta ? $remoteMeta->{artistId} : undef;
 
 		if ($trackId || $albumId || $artistId) {
-			my $args = ();
+			my $args = {};
 			if ($artistId && $artist) {
 				$args->{artistId} = $artistId;
 				$args->{artist}   = $artist;
@@ -1751,7 +1785,7 @@ sub trackInfoMenu {
 				name => cstring($client, 'PLUGIN_QOBUZ_MANAGE_FAVORITES'),
 				url  => \&QobuzManageFavorites,
 				passthrough => [$args],
-			} if $args
+			} if keys %$args
 		}
 
 		if (my $item = trackInfoMenuPerformers($client, undef, undef, $remoteMeta)) {
@@ -1819,7 +1853,7 @@ sub albumInfoMenu {
 				}
 			}
 
-			my $args = ();
+			my $args = {};
 			$args->{albumId} = $qobuzAlbum->{id};
 			$args->{album} = $qobuzAlbum->{title};
 			$args->{artistId} = $qobuzAlbum->{artist}->{id};
@@ -1828,16 +1862,16 @@ sub albumInfoMenu {
 				name => cstring($client, 'PLUGIN_QOBUZ_MANAGE_FAVORITES'),
 				url  => \&QobuzManageFavorites,
 				passthrough => [$args],
-			} if $args;
+			} if keys %$args;
 
-			my $performers = [];
+			my $performers = {};
 			foreach my $track (@{$qobuzAlbum->{tracks}->{items}}) {
 				if (my $trackPerformers = trackInfoMenuPerformers($client, undef, undef, $track)) {
 					my $performerItems = $trackPerformers->{items};
 					foreach my $item (@$performerItems) {
 						$item->{'track'} = $track->{'track_number'};
 					}
-					push @$performers, @$performerItems;
+					push @{$performers->{$track->{'media_number'}}}, @$performerItems;
 				}
 			}
 
@@ -1948,6 +1982,7 @@ sub trackInfoMenuPerformers {
 
 sub trackInfoMenuBooklet {
 	my ( $client, $url, $track, $remoteMeta, $tags ) = @_;
+
 	my $item;
 
 	eval {
