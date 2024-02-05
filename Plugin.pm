@@ -743,83 +743,59 @@ sub QobuzGenre {
 
 	my $genreId = $args->{genreId} || '';
 
-	getAPIHandler($client)->getGenre(sub {
-		my $genre = shift;
+	my $items = [{
+		name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'best-sellers',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'new-releases-full',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'press-awards',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
+		url  => \&QobuzFeaturedAlbums,
+		image => 'html/images/albums.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'editor-picks',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
+		url  => \&QobuzPublicPlaylists,
+		image => 'html/images/playlists.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'editor-picks',
+		}]
+	},{
+		name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
+		url  => \&QobuzPublicPlaylists,
+		image => 'html/images/playlists.png',
+		passthrough => [{
+			genreId => $genreId,
+			type    => 'last-created',
+		}]
+	}];
 
-		if (!$genre) {
-			$log->error("Get genre ($genreId) failed");
-			return;
-		}
-
-		my $items = [{
-			name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'best-sellers',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'new-releases-full',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'press-awards',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
-			url  => \&QobuzFeaturedAlbums,
-			image => 'html/images/albums.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'editor-picks',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_PUBLICPLAYLISTS'),
-			url  => \&QobuzPublicPlaylists,
-			image => 'html/images/playlists.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'editor-picks',
-			}]
-		},{
-			name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
-			url  => \&QobuzPublicPlaylists,
-			image => 'html/images/playlists.png',
-			passthrough => [{
-				genreId => $genreId,
-				type    => 'last-created',
-			}]
-		}];
-
-		if ($genre->{subgenresCount}) {
-			push @$items, {
-				name => cstring($client, 'PLUGIN_QOBUZ_SUB_GENRES'),
-				url  => \&QobuzGenres,
-				image => 'html/images/genres.png',
-				passthrough => [{
-					genreId => $genreId,
-				}]
-			}
-		}
-
-		foreach my $album ( @{$genre->{albums}->{items}} ) {
-			push @$items, _albumItem($client, $album);
-		}
-
-		$cb->({
-			items => $items
-		});
-	}, $genreId);
+	$cb->({
+		items => $items
+	});
 }
 
 

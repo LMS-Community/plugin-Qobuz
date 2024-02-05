@@ -252,16 +252,6 @@ sub getGenres {
 	$self->_get('genre/list', $cb, $params);
 }
 
-sub getGenre {
-	my ($self, $cb, $genreId) = @_;
-
-	$self->_get('genre/get', $cb, {
-		genre_id => $genreId,
-		extra => 'subgenresCount,albums',
-		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
-	});
-}
-
 sub getAlbum {
 	my ($self, $cb, $albumId) = @_;
 
