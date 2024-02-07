@@ -1823,7 +1823,6 @@ sub albumInfoMenu {
 	my $labelId;
 	my $composers;
 	my $works;
-#	my $qobuzAlbum;
 	my $items = [];
 
 	if ( !%$remoteMeta && $url =~ /^qobuz:/ ) {
