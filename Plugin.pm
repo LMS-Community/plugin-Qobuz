@@ -77,6 +77,8 @@ my $log = Slim::Utils::Log->addLogCategory( {
 use constant PLUGIN_TAG => 'qobuz';
 use constant CAN_IMAGEPROXY => (Slim::Utils::Versions->compareVersions($::VERSION, '7.8.0') >= 0);
 
+my $cache = Plugins::Qobuz::API::Common->getCache();
+
 sub initPlugin {
 	my $class = shift;
 
@@ -1513,17 +1515,20 @@ sub _albumPerformers {
 				my $sep = "-";
 				my $o;
 				for my $i ( 0 .. $#tracks ) {
-					if ( looks_like_number($tracks[$i]) && $tracks[$i+1] == $tracks[$i]+1) {
-						$o .= "$tracks[$i]$sep" if $sep;
+					my $currentValue = $tracks[$i];
+					my $currentIsNumber = looks_like_number($currentValue);
+					my $nextValue = $tracks[$i+1];
+					my $nextIsNumber = looks_like_number($nextValue);
+					if ( $currentIsNumber && $nextIsNumber && $nextValue == $currentValue+1 ) {
+						$o .= "$currentValue$sep" if $sep;
 						$sep = undef;
 					} else {
+						$o .= "$currentValue";
 						$sep = "-";
-						if ( looks_like_number($tracks[$i]) && looks_like_number($tracks[$i+1]) ) {
-							$o .= "$tracks[$i], ";
-						} elsif ( looks_like_number($tracks[$i]) && $tracks[$i+1] && !looks_like_number($tracks[$i+1]) ) {
-							$o .= "$tracks[$i]; ";
-						} else {
-							$o .= "$tracks[$i]";
+						if ( $currentIsNumber && $nextIsNumber ) {
+							$o .= ", ";
+						} elsif ( $currentIsNumber && $nextValue && !$nextIsNumber ) {
+							$o .= "; ";
 						}
 					}
 				}
@@ -1818,12 +1823,13 @@ sub albumInfoMenu {
 	my $labelId;
 	my $composers;
 	my $works;
-	my $qobuzAlbum;
+#	my $qobuzAlbum;
 	my $items = [];
 
 	if ( !%$remoteMeta && $url =~ /^qobuz:/ ) {
 		my $albumId = (split /:/, $url)[-1];
 
+		my $qobuzAlbum = $cache->get('album_with_tracks_' . $albumId);
 		getAPIHandler($client)->getAlbum(sub {
 			$qobuzAlbum = shift;
 
@@ -1831,7 +1837,10 @@ sub albumInfoMenu {
 				$log->error("Get album ($albumId) failed");
 				return;
 			}
-		}, $albumId);
+			elsif ( $qobuzAlbum->{release_date_stream} && $qobuzAlbum->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) {
+				$cache->set('album_with_tracks_' . $albumId, $qobuzAlbum, QOBUZ_DEFAULT_EXPIRY);
+			}
+		}, $albumId) unless $qobuzAlbum;
 
 		if ( $qobuzAlbum ) {
 			my %seen;
