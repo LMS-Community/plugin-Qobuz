@@ -6,7 +6,7 @@
 	<importmodule>Plugins::Qobuz::Importer</importmodule>
 	<onlineLibrary>true</onlineLibrary>
 
-	<version>3.1.0</version>
+	<version>3.2.0</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
 	<creator>Pierre Beck / Michael Herger / darrell / SamY / sveninndh</creator>
 	<email>slim@herger.net</email>
