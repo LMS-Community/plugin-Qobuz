@@ -47,7 +47,7 @@ sub initGenreMap {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 3);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 4);
 }
 
 sub getAccountList {
@@ -186,6 +186,8 @@ sub _precacheAlbum {
 			media_count => $album->{media_count},
 			duration => 0,
 			release_type => $album->{release_type},
+			label => $album->{label}->{name},
+			labelId => $album->{label}->{id},
 		};
 
 		_precacheTracks([ map {
@@ -259,6 +261,8 @@ sub precacheTrack {
 		track_number => $track->{track_number},
 		media_number => $track->{media_number},
 		media_count => $album->{media_count},
+		label => ref $album->{label} ? $album->{label}->{name} : $album->{label},
+		labelId => ref $album->{label} ? $album->{label}->{id} : $album->{labelId},
 	};
 
 	if ($track->{audio_info}) {
