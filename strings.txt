@@ -542,14 +542,14 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 PLUGIN_QOBUZ_TRACKS_LC
 	DE	Titel
 	EN	tracks
-	FR	Pistes
+	FR	pistes
 	NL	nummers
 	ES	pistas
 
 PLUGIN_QOBUZ_TRACK_LC
 	DE	Titel
 	EN	track
-	FR	Piste
+	FR	piste
 	NL	nummer
 	ES	pista
 
