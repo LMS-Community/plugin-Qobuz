@@ -445,14 +445,16 @@ sub getPublicPlaylists {
 
 	my $args = {
 		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
-		limit => 100,		# for whatever reason this query doesn't accept more than 100 results
-		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
+		limit => QOBUZ_USERDATA_LIMIT,
+		_ttl  => QOBUZ_USER_DATA_EXPIRY, #QOBUZ_EDITORIAL_EXPIRY,
+		_extractor => 'playlists',
+		_use_token => 1,
 	};
 
 	$args->{genre_ids} = $genreId if $genreId;
 	$args->{tags} = $tags if $tags;
 
-	$self->_get('playlist/getFeatured', $cb, $args);
+	$self->_pagingGet('playlist/getFeatured', $cb, $args); 
 }
 
 sub getPlaylistTracks {
@@ -469,10 +471,6 @@ sub getPlaylistTracks {
 		extra       => 'tracks',
 		limit       => QOBUZ_USERDATA_LIMIT,
 		_extractor  => 'tracks',
-		_maxKey     => sub {
-			my ($results) = @_;
-			$results->{tracks_count};
-		},
 		_ttl        => QOBUZ_USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
@@ -759,15 +757,22 @@ sub _pagingGet {
 
 	my $limit = $params->{limit};
 	$params->{limit} = min($params->{limit}, QOBUZ_LIMIT);
+	
+	my $extractor = ref $params->{_extractor} ? '' : $params->{_extractor};
 
-	my $getMaxFn = ref $params->{_maxKey} ? delete $params->{_maxKey} : sub {
-		my ($results) = @_;
-		$results->{$params->{_maxKey}}->{total};
+	my $getMaxFn = ref $params->{_maxKey} ? $params->{_maxKey} : sub {
+		my $results = shift;
+		$results->{$params->{_maxKey} || $extractor}->{total};
+	};
+	
+	my $getLimitFn = ref $params->{_limitKey} ? $params->{_limitKey} : sub {
+		my $results = shift;
+		$results->{$params->{_limitKey} || $extractor}->{limit};
 	};
 
-	my $extractorFn = ref $params->{_extractor} ? delete $params->{_extractor} : sub {
+	my $extractorFn = ref $params->{_extractor} ? $params->{_extractor} : sub {
 		my ($results) = @_;
-		my $extractor = $params->{_extractor};
+
 
 		my $collector;
 		map {
@@ -784,10 +789,16 @@ sub _pagingGet {
 		return $collector;
 	};
 
+	delete $params->{_extractor};
+	delete $params->{_limitKey};
+	delete $params->{_maxKey};
+
 	$self->_get($url, sub {
 		my ($result) = @_;
 
 		my $total = $getMaxFn->($result) || QOBUZ_LIMIT;
+		my $count = $getLimitFn->($result) || $params->{limit};
+		$params->{limit} = $count if ( $count < $params->{limit} );
 
 		main::DEBUGLOG && $log->is_debug && $log->debug("Need another page? " . Data::Dump::dump({
 			total => $total,
