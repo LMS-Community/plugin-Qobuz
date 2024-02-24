@@ -446,7 +446,7 @@ sub getPublicPlaylists {
 	my $args = {
 		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
 		limit => QOBUZ_USERDATA_LIMIT,
-		_ttl  => QOBUZ_USER_DATA_EXPIRY, #QOBUZ_EDITORIAL_EXPIRY,
+		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
 		_extractor => 'playlists',
 		_use_token => 1,
 	};
