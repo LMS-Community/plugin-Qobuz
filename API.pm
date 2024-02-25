@@ -448,6 +448,8 @@ sub getPublicPlaylists {
 		limit => QOBUZ_USERDATA_LIMIT,
 		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
 		_extractor => 'playlists',
+		_maxKey    => 'playlists',
+		_limitKey  => 'playlists',
 		_use_token => 1,
 	};
 
@@ -471,6 +473,8 @@ sub getPlaylistTracks {
 		extra       => 'tracks',
 		limit       => QOBUZ_USERDATA_LIMIT,
 		_extractor  => 'tracks',
+		_maxKey     => 'tracks',
+		_limitKey   => 'tracks',
 		_ttl        => QOBUZ_USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
@@ -757,22 +761,21 @@ sub _pagingGet {
 
 	my $limit = $params->{limit};
 	$params->{limit} = min($params->{limit}, QOBUZ_LIMIT);
-	
-	my $extractor = ref $params->{_extractor} ? '' : $params->{_extractor};
 
 	my $getMaxFn = ref $params->{_maxKey} ? $params->{_maxKey} : sub {
 		my $results = shift;
-		$results->{$params->{_maxKey} || $extractor}->{total};
+		$results->{$params->{_maxKey}}->{total};
 	};
 	
 	my $getLimitFn = ref $params->{_limitKey} ? $params->{_limitKey} : sub {
 		my $results = shift;
-		$results->{$params->{_limitKey} || $extractor}->{limit};
+		return $params->{limit} unless $params->{_limitKey};
+		$results->{$params->{_limitKey}}->{limit};
 	};
 
 	my $extractorFn = ref $params->{_extractor} ? $params->{_extractor} : sub {
 		my ($results) = @_;
-
+		my $extractor = $params->{_extractor};
 
 		my $collector;
 		map {
