@@ -1,6 +1,7 @@
 package Plugins::Qobuz::API;
 
 use strict;
+use base qw(Slim::Utils::Accessor);
 
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
@@ -9,6 +10,7 @@ use JSON::XS::VersionOneAndTwo;
 use List::Util qw(min max);
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
+use Scalar::Util qw(blessed);
 
 use Slim::Networking::SimpleAsyncHTTP;
 use Slim::Utils::Log;
@@ -17,100 +19,152 @@ use Slim::Utils::Prefs;
 use Plugins::Qobuz::API::Common;
 
 use constant URL_EXPIRY => 60 * 10;       # Streaming URLs are short lived
+use constant BROWSER_UA => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15';
 
 # bump the second parameter if you decide to change the schema of cached data
 my $cache = Plugins::Qobuz::API::Common->getCache();
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
 
-my ($aid, $as);
+my %apiClients;
 
-sub init {
-	my $class = shift;
-	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
-	$class->updateUserdata();
+{
+	__PACKAGE__->mk_accessor( rw => qw(
+		client
+		userId
+	) );
 }
 
-# legacy - for backwards compatibility only
-sub getToken {
-	my ($class, $cb, $force) = @_;
+sub new {
+	my ($class, $args) = @_;
 
-	main::INFOLOG && $log->is_info && logBacktrace('Please stop using the deprecated Plugins::Qobuz::API->getToken() method');
+	if (!$args->{client} && !$args->{userId}) {
+		return;
+	}
 
-	my $token = $prefs->get('token');
+	my $client = $args->{client};
+	my $userId = $args->{userId} || $prefs->client($client)->get('userId') || return;
 
-	$cb->($token) if $cb;
-	return $token;
+	if (my $apiClient = $apiClients{$userId}) {
+		return $apiClient;
+	}
+
+	my $self = $apiClients{$userId} = $class->SUPER::new();
+	$self->client($client);
+	$self->userId($userId);
+
+	# update our profile ASAP
+	$self->updateUserdata();
+
+	return $self;
+}
+
+my ($aid, $as, $cid);
+
+sub init {
+	($aid, $as, $cid) = Plugins::Qobuz::API::Common->init(@_);
 }
 
 sub login {
-	my ($class, $username, $password, $cb) = @_;
+	my ($class, $username, $password, $cb, $args) = @_;
 
 	if ( !($username && $password) ) {
 		$cb->() if $cb;
 		return;
 	}
 
-	_get('user/login', sub {
+	my $params = {
+		username => $username,
+		password => $password,
+		device_manufacturer_id => preferences('server')->get('server_uuid'),
+		_nocache => 1,
+		_cid     => $args->{cid} ? 1 : 0,
+	};
+
+	$class->_get('user/login', sub {
 		my $result = shift;
 
 		main::INFOLOG && $log->is_info && !$log->is_info && $log->info(Data::Dump::dump($result));
 
-		my $token;
-		if ( ! ($result && ($token = $result->{user_auth_token})) ) {
+		my ($token, $user_id);
+		if ( ! ($result && ($token = $result->{user_auth_token}) && $result->{user} && ($user_id = $result->{user}->{id})) ) {
 			$log->warn('Failed to get token');
 			$cb->() if $cb;
 			return;
 		}
 
-		$prefs->set('token', $token);
-		# TODO - refresh userdata every now and then, currently only happens if OMLI polling is enabled
-		$prefs->set('userdata', $result->{user});
+		my $accounts = $prefs->get('accounts') || {};
 
-		$cb->($token) if $cb;
-	},{
-		username => $username,
-		password => $password,
-		device_manufacturer_id => preferences('server')->get('server_uuid'),
-		_nocache => 1,
-	});
+		if (!$args || !$args->{cid}) {
+			$accounts->{$user_id}->{token} = $token;
+			$accounts->{$user_id}->{userdata} = $result->{user};
+
+			$class->login($username, $password, sub {
+				$cb->(@_) if $cb;
+			}, {
+				cid => 1,
+				token => $token,
+			});
+		}
+		else {
+			$accounts->{$user_id}->{webToken} = $token;
+			$cb->($args->{token}) if $cb;
+		}
+
+		$prefs->set('accounts', $accounts);
+	}, $params);
 }
 
 sub updateUserdata {
-	my ($class, $cb) = @_;
+	my ($self, $cb) = @_;
 
-	if ( !($prefs->get('token') && $prefs->get('userdata')) ) {
-		$cb->() if $cb;
-		return;
-	}
-
-	_get('user/get', sub {
+	$self->_get('user/get', sub {
 		my $result = shift;
 
 		if ($result && ref $result eq 'HASH') {
-			my $userinfo = Plugins::Qobuz::API::Common->getUserdata();
+			my $userdata = Plugins::Qobuz::API::Common->getUserdata($self->userId);
 
 			foreach my $k (keys %$result) {
-				$userinfo->{$k} = $result->{$k} if defined $result->{$k};
-				$prefs->set('userinfo', $userinfo);
+				$userdata->{$k} = $result->{$k} if defined $result->{$k};
 			}
+
+			$prefs->save();
 		}
 
 		$cb->($result) if $cb;
 	},{
-		user_id => Plugins::Qobuz::API::Common->getUserdata('id'),
+		user_id => $self->userId,
 		_nocache => 1,
 	})
 }
 
+sub getMyWeekly {
+	my ($self, $cb) = @_;
+
+	$self->_get('dynamic-tracks/get', sub {
+		my $myWeekly = shift;
+
+		$myWeekly->{tracks}->{items} = _precacheTracks($myWeekly->{tracks}->{items} || []) if $myWeekly->{tracks};
+
+		$cb->($myWeekly);
+	}, {
+		type        => 'weekly',
+		limit       => 50,
+		offset      => 0,
+		_ttl        => 60 * 60 * 12,
+		_use_token  => 1,
+		_cid        => 1,
+	});
+}
+
 sub search {
-	my ($class, $cb, $search, $type, $args) = @_;
+	my ($self, $cb, $search, $type, $args) = @_;
 
 	$args ||= {};
 
 	$search = lc($search);
 
-	main::DEBUGLOG && $log->debug('Search : ' . $search);
+	main::INFOLOG && $log->info('Search : ' . $search);
 
 	my $key = uri_escape_utf8("search_${search}_${type}_") . ($args->{_dontPreCache} || 0);
 
@@ -124,11 +178,11 @@ sub search {
 	$args->{query} ||= $search;
 	$args->{type}  ||= $type if $type && $type =~ /(?:albums|artists|tracks|playlists)/;
 
-	_get('catalog/search', sub {
+	$self->_get('catalog/search', sub {
 		my $results = shift;
 
 		if ( !$args->{_dontPreCache} ) {
-			_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+			$self->_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 
 			$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
 
@@ -142,14 +196,14 @@ sub search {
 }
 
 sub getArtist {
-	my ($class, $cb, $artistId) = @_;
+	my ($self, $cb, $artistId) = @_;
 
-	_get('artist/get', sub {
+	$self->_get('artist/get', sub {
 		my $results = shift;
 
 		if ( $results && (my $images = $results->{image}) ) {
 			my $pic = Plugins::Qobuz::API::Common->getImageFromImagesHash($images);
-			_precacheArtistPictures([
+			$self->_precacheArtistPictures([
 				{ id => $artistId, picture => $pic }
 			]) if $pic;
 		}
@@ -164,23 +218,39 @@ sub getArtist {
 	});
 }
 
+sub getLabel {
+	my ($self, $cb, $labelId) = @_;
+
+	$self->_get('label/get', sub {
+		my $results = shift;
+
+		$results->{albums}->{items} = _precacheAlbum($results->{albums}->{items}) if $results->{albums};
+
+		$cb->($results) if $cb;
+	}, {
+		label_id => $labelId,
+		extra     => 'albums',
+		limit     => QOBUZ_DEFAULT_LIMIT,
+	});
+}
+
 sub getArtistPicture {
-	my ($class, $artistId) = @_;
+	my ($self, $artistId) = @_;
 
 	my $url = $cache->get('artistpicture_' . $artistId) || '';
 
-	_precacheArtistPictures([{ id => $artistId }]) unless $url;
+	$self->_precacheArtistPictures([{ id => $artistId }]) unless $url;
 
 	return $url;
 }
 
 sub getSimilarArtists {
-	my ($class, $cb, $artistId) = @_;
+	my ($self, $cb, $artistId) = @_;
 
-	_get('artist/getSimilarArtists', sub {
+	$self->_get('artist/getSimilarArtists', sub {
 		my $results = shift;
 
-		_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
+		$self->_precacheArtistPictures($results->{artists}->{items}) if $results && $results->{artists};
 
 		$cb->($results);
 	}, {
@@ -190,28 +260,18 @@ sub getSimilarArtists {
 }
 
 sub getGenres {
-	my ($class, $cb, $genreId) = @_;
+	my ($self, $cb, $genreId) = @_;
 
 	my $params = {};
 	$params->{parent_id} = $genreId if $genreId;
 
-	_get('genre/list', $cb, $params);
-}
-
-sub getGenre {
-	my ($class, $cb, $genreId) = @_;
-
-	_get('genre/get', $cb, {
-		genre_id => $genreId,
-		extra => 'subgenresCount,albums',
-		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
-	});
+	$self->_get('genre/list', $cb, $params);
 }
 
 sub getAlbum {
-	my ($class, $cb, $albumId) = @_;
+	my ($self, $cb, $albumId) = @_;
 
-	_get('album/get', sub {
+	$self->_get('album/get', sub {
 		my $album = shift;
 
 		($album) = @{_precacheAlbum([$album])} if $album;
@@ -223,7 +283,7 @@ sub getAlbum {
 }
 
 sub getFeaturedAlbums {
-	my ($class, $cb, $type, $genreId) = @_;
+	my ($self, $cb, $type, $genreId) = @_;
 
 	my $args = {
 		type     => $type,
@@ -233,7 +293,7 @@ sub getFeaturedAlbums {
 
 	$args->{genre_id} = $genreId if $genreId;
 
-	_get('album/getFeatured', sub {
+	$self->_get('album/getFeatured', sub {
 		my $albums = shift;
 
 		$albums->{albums}->{items} = _precacheAlbum($albums->{albums}->{items}) if $albums->{albums};
@@ -243,9 +303,9 @@ sub getFeaturedAlbums {
 }
 
 sub getUserPurchases {
-	my ($class, $cb, $limit) = @_;
+	my ($self, $cb, $limit) = @_;
 
-	_get('purchase/getUserPurchases', sub {
+	$self->_get('purchase/getUserPurchases', sub {
 		my $purchases = shift;
 
 		$purchases->{albums}->{items} = _precacheAlbum($purchases->{albums}->{items}) if $purchases->{albums};
@@ -255,24 +315,26 @@ sub getUserPurchases {
 	},{
 		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	});
 }
 
 sub getUserPurchasesIds {
-	my ($class, $cb) = @_;
+	my ($self, $cb) = @_;
 
-	_get('purchase/getUserPurchasesIds', sub {
+	$self->_get('purchase/getUserPurchasesIds', sub {
 		$cb->(@_) if $cb;
 	},{
+		_user_cache => 1,
 		_use_token => 1,
 	})
 }
 
 sub checkPurchase {
-	my ($class, $type, $id, $cb) = @_;
+	my ($self, $type, $id, $cb) = @_;
 
-	$class->getUserPurchasesIds(sub {
+	$self->getUserPurchasesIds(sub {
 		my ($purchases) = @_;
 
 		$type = $type . 's';
@@ -293,9 +355,9 @@ sub checkPurchase {
 }
 
 sub getUserFavorites {
-	my ($class, $cb, $force) = @_;
+	my ($self, $cb, $force) = @_;
 
-	_pagingGet('favorite/getUserFavorites', sub {
+	$self->_pagingGet('favorite/getUserFavorites', sub {
 		my ($favorites) = @_;
 
 		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
@@ -335,33 +397,33 @@ sub getUserFavorites {
 }
 
 sub createFavorite {
-	my ($class, $cb, $args) = @_;
+	my ($self, $cb, $args) = @_;
 
 	$args->{_use_token} = 1;
 	$args->{_nocache}   = 1;
 
-	_get('favorite/create', sub {
+	$self->_get('favorite/create', sub {
 		$cb->(shift);
-		$class->getUserFavorites(sub{}, 'refresh')
+		$self->getUserFavorites(sub{}, 'refresh')
 	}, $args);
 }
 
 sub deleteFavorite {
-	my ($class, $cb, $args) = @_;
+	my ($self, $cb, $args) = @_;
 
 	$args->{_use_token} = 1;
 	$args->{_nocache}   = 1;
 
-	_get('favorite/delete', sub {
+	$self->_get('favorite/delete', sub {
 		$cb->(shift);
-		$class->getUserFavorites(sub{}, 'refresh')
+		$self->getUserFavorites(sub{}, 'refresh')
 	}, $args);
 }
 
 sub getUserPlaylists {
-	my ($class, $cb, $user, $limit) = @_;
+	my ($self, $cb, $user, $limit) = @_;
 
-	_get('playlist/getUserPlaylists', sub {
+	$self->_get('playlist/getUserPlaylists', sub {
 		my $playlists = shift;
 
 		$playlists->{playlists}->{items} = [ sort {
@@ -370,32 +432,37 @@ sub getUserPlaylists {
 
 		$cb->($playlists);
 	}, {
-		username => $user || Plugins::Qobuz::API::Common->username,
+		username => $user || Plugins::Qobuz::API::Common->username($self->userId),
 		limit    => $limit || QOBUZ_USERDATA_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
 		_use_token => 1,
 	});
 }
 
 sub getPublicPlaylists {
-	my ($class, $cb, $type, $genreId, $tags) = @_;
+	my ($self, $cb, $type, $genreId, $tags) = @_;
 
 	my $args = {
 		type  => $type =~ /(?:last-created|editor-picks)/ ? $type : 'editor-picks',
-		limit => 100,		# for whatever reason this query doesn't accept more than 100 results
+		limit => QOBUZ_USERDATA_LIMIT,
 		_ttl  => QOBUZ_EDITORIAL_EXPIRY,
+		_extractor => 'playlists',
+		_maxKey    => 'playlists',
+		_limitKey  => 'playlists',
+		_use_token => 1,
 	};
 
 	$args->{genre_ids} = $genreId if $genreId;
 	$args->{tags} = $tags if $tags;
 
-	_get('playlist/getFeatured', $cb, $args);
+	$self->_pagingGet('playlist/getFeatured', $cb, $args);
 }
 
 sub getPlaylistTracks {
-	my ($class, $cb, $playlistId) = @_;
+	my ($self, $cb, $playlistId) = @_;
 
-	_pagingGet('playlist/get', sub {
+	$self->_pagingGet('playlist/get', sub {
 		my $tracks = shift;
 
 		$tracks->{tracks}->{items} = _precacheTracks($tracks->{tracks}->{items});
@@ -406,19 +473,17 @@ sub getPlaylistTracks {
 		extra       => 'tracks',
 		limit       => QOBUZ_USERDATA_LIMIT,
 		_extractor  => 'tracks',
-		_maxKey     => sub {
-			my ($results) = @_;
-			$results->{tracks_count};
-		},
+		_maxKey     => 'tracks',
+		_limitKey   => 'tracks',
 		_ttl        => QOBUZ_USER_DATA_EXPIRY,
 		_use_token  => 1,
 	});
 }
 
 sub getTags {
-	my ($class, $cb) = @_;
+	my ($self, $cb) = @_;
 
-	_get('playlist/getTags', sub {
+	$self->_get('playlist/getTags', sub {
 		my $result = shift;
 
 		my $tags = [];
@@ -443,7 +508,7 @@ sub getTags {
 }
 
 sub getTrackInfo {
-	my ($class, $cb, $trackId) = @_;
+	my ($self, $cb, $trackId) = @_;
 
 	return $cb->() unless $trackId;
 
@@ -458,7 +523,7 @@ sub getTrackInfo {
 		return $meta;
 	}
 
-	_get('track/get', sub {
+	$self->_get('track/get', sub {
 		my $meta = shift || { id => $trackId };
 
 		$meta = precacheTrack($meta);
@@ -470,7 +535,7 @@ sub getTrackInfo {
 }
 
 sub getFileUrl {
-	my ($class, $cb, $trackId, $format, $client) = @_;
+	my ($self, $cb, $trackId, $format, $client) = @_;
 
 	my $maxSupportedSamplerate = min(map {
 		$_->maxSupportedSamplerate
@@ -478,11 +543,11 @@ sub getFileUrl {
 		$_->maxSupportedSamplerate
 	} $client->syncGroupActiveMembers);
 
-	$class->getFileInfo($cb, $trackId, $format, 'url', $maxSupportedSamplerate);
+	$self->getFileInfo($cb, $trackId, $format, 'url', $maxSupportedSamplerate);
 }
 
 sub getFileInfo {
-	my ($class, $cb, $trackId, $format, $urlOnly, $maxSupportedSamplerate) = @_;
+	my ($self, $cb, $trackId, $format, $urlOnly, $maxSupportedSamplerate) = @_;
 
 	$cb->() unless $trackId;
 
@@ -509,12 +574,12 @@ sub getFileInfo {
 
 	$preferredFormat ||= $prefs->get('preferredFormat') || QOBUZ_STREAMING_MP3;
 
-	if ( my $cached = $class->getCachedFileInfo($trackId, $urlOnly, $preferredFormat) ) {
+	if ( my $cached = $self->getCachedFileInfo($trackId, $urlOnly, $preferredFormat) ) {
 		$cb->($cached);
 		return $cached
 	}
 
-	_get('track/getFileUrl', sub {
+	$self->_get('track/getFileUrl', sub {
 		my $track = shift;
 
 		if ($track) {
@@ -553,7 +618,7 @@ sub getCachedFileInfo {
 my @artistsToLookUp;
 my $artistLookup;
 sub _precacheArtistPictures {
-	my ($artists) = @_;
+	my ($self, $artists) = @_;
 
 	return unless $artists && ref $artists eq 'ARRAY';
 
@@ -567,27 +632,31 @@ sub _precacheArtistPictures {
 		}
 	}
 
-	_lookupArtistPicture() if @artistsToLookUp && !$artistLookup;
+	$self->_lookupArtistPicture() if @artistsToLookUp && !$artistLookup;
 }
 
 sub _lookupArtistPicture {
+	my ($self) = @_;
+
 	if ( !scalar @artistsToLookUp ) {
 		$artistLookup = 0;
 	}
 	else {
 		$artistLookup = 1;
-		__PACKAGE__->getArtist(\&_lookupArtistPicture, shift @artistsToLookUp);
+		$self->getArtist(sub { $self->_lookupArtistPicture() }, shift @artistsToLookUp);
 	}
 }
 
 sub _get {
-	my ( $url, $cb, $params ) = @_;
+	my ( $self, $url, $cb, $params ) = @_;
 
 	# need to get a token first?
 	my $token = '';
 
-	if ($url ne 'user/login') {
-		$token = $prefs->get('token');
+	if ($url ne 'user/login' && blessed $self) {
+		$token = ($params->{_cid} || 0)
+			? Plugins::Qobuz::API::Common->getWebToken($self->userId)
+			: Plugins::Qobuz::API::Common->getToken($self->userId);
 		if ( !$token ) {
 			$log->error('No or invalid user session');
 			return $cb->();
@@ -604,7 +673,8 @@ sub _get {
 		push @query, $k . '=' . uri_escape_utf8($v);
 	}
 
-	push @query, "app_id=$aid";
+	my $appId = (delete $params->{_cid} && $cid) || $aid;
+	push @query, "app_id=$appId";
 
 	# signed requests - see
 	# https://github.com/Qobuz/api-documentation#signed-requests-authentification-
@@ -630,21 +700,30 @@ sub _get {
 
 	$url = QOBUZ_BASE_URL . $url . '?' . join('&', sort @query);
 
-	if (main::DEBUGLOG && $log->is_debug) {
+	if (main::INFOLOG && $log->is_info) {
 		my $data = $url;
-		$data =~ s/(?:$aid|$token)//g;
-		$log->debug($data);
+		$data =~ s/(?:$aid|$token|$cid)//g;
+		$log->info($data);
 	}
+
+	my $cacheKey = $url . ($params->{_user_cache} ? $self->userId : '');
 
 	if ($params->{_wipecache}) {
-		$cache->remove($url);
+		$cache->remove($cacheKey);
 	}
 
-	if (!$params->{_nocache} && (my $cached = $cache->get($url))) {
+	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
 		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
 		$cb->($cached);
 		return;
 	}
+
+	my %headers = (
+		'X-User-Auth-Token' => $token,
+		'X-App-Id' => $appId,
+	);
+
+	$headers{'User-Agent'} = ($prefs->get('useragent') || BROWSER_UA) if $appId == $cid;
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
@@ -657,7 +736,7 @@ sub _get {
 
 			if ($result && !$params->{_nocache}) {
 				if ( !($params->{album_id}) || ( $result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) ) {
-					$cache->set($url, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
+					$cache->set($cacheKey, $result, $params->{_ttl} || QOBUZ_DEFAULT_EXPIRY);
 				}
 			}
 
@@ -667,27 +746,31 @@ sub _get {
 			my ($http, $error) = @_;
 
 			$log->warn("Error: $error");
+			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($http));
+
 			$cb->();
 		},
 		{
 			timeout => 15,
 		},
-	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
+	)->get($url, %headers);
 }
 
 sub _pagingGet {
-	my ( $url, $cb, $params ) = @_;
+	my ( $self, $url, $cb, $params ) = @_;
 
 	my $limit = $params->{limit};
 	$params->{limit} = min($params->{limit}, QOBUZ_LIMIT);
 
 	my $getMaxFn = ref $params->{_maxKey} ? delete $params->{_maxKey} : sub {
 		my ($results) = @_;
-		# warn Data::Dump::dump($results);
-		# warn $params->{_maxKey};
-		# warn $results->{$params->{_maxKey}};
 		$results->{$params->{_maxKey}}->{total};
 	};
+
+	my $getLimitFn = ref $params->{_limitKey} ? delete $params->{_limitKey} : sub { if ($params->{_limitKey}) {
+		my $results = shift;
+		$results->{$params->{_limitKey}}->{limit};
+	} };
 
 	my $extractorFn = ref $params->{_extractor} ? delete $params->{_extractor} : sub {
 		my ($results) = @_;
@@ -708,10 +791,12 @@ sub _pagingGet {
 		return $collector;
 	};
 
-	_get($url, sub {
+	$self->_get($url, sub {
 		my ($result) = @_;
 
 		my $total = $getMaxFn->($result) || QOBUZ_LIMIT;
+		my $count = $getLimitFn->($result) || $params->{limit};
+		$params->{limit} = $count if ( $count < $params->{limit} );
 
 		main::DEBUGLOG && $log->is_debug && $log->debug("Need another page? " . Data::Dump::dump({
 			total => $total,
@@ -734,7 +819,7 @@ sub _pagingGet {
 			};
 
 			while (my ($id, $params) = each %$chunks) {
-				_get($url, sub {
+				$self->_get($url, sub {
 					$results->{$id} = shift;
 					delete $chunks->{$id};
 

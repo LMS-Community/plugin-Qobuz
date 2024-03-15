@@ -124,7 +124,7 @@ sub explodePlaylist {
 
 		my $getter = $type eq 'album' ? 'getAlbum' : 'getPlaylistTracks';
 
-		Plugins::Qobuz::API->$getter(sub {
+		Plugins::Qobuz::Plugin::getAPIHandler($client)->$getter(sub {
 			my $response = shift || [];
 
 			my $uris = [];
@@ -284,13 +284,13 @@ sub getMetadataFor {
 
 	# grab metadata from backend if needed, otherwise use cached values
 	if ($id && $client && $client->master->pluginData('fetchingMeta')) {
-		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] ) if $client;
+		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
 		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
 	}
 	elsif ($id) {
 		$client->master->pluginData( fetchingMeta => 1 ) if $client;
 
-		$meta = Plugins::Qobuz::API->getTrackInfo(sub {
+		$meta = Plugins::Qobuz::Plugin::getAPIHandler($client)->getTrackInfo(sub {
 			$client->master->pluginData( fetchingMeta => 0 ) if $client;
 		}, $id);
 	}
@@ -379,11 +379,13 @@ sub getNextTrack {
 	my ($class, $song, $successCb, $errorCb) = @_;
 
 	my $url = $song->currentTrack()->url;
+	my $client = $song->master();
 
 	# Get next track
 	my ($id, $format) = $class->crackUrl($url);
+	my $api = Plugins::Qobuz::Plugin::getAPIHandler($client);
 
-	Plugins::Qobuz::API->getFileInfo(sub {
+	$api->getFileInfo(sub {
 		my $streamData = shift;
 
 		if ($streamData) {
@@ -392,7 +394,7 @@ sub getNextTrack {
 			$song->pluginData(samplesize => $streamData->{bit_depth});
 			$song->pluginData(samplerate => $streamData->{sampling_rate});
 
-			Plugins::Qobuz::API->getFileUrl(sub {
+			$api->getFileUrl(sub {
 				$song->streamUrl(shift);
 
 				if (CAN_FLAC_SEEK && $format =~ /fla?c/i) {

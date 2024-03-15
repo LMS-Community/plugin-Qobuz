@@ -1,17 +1,50 @@
 [% PROCESS settings/header.html %]
 
 	[% WRAPPER settingSection %]
-		[% IF has_session %]
-			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]
-				<div>[% prefs.username | html %]</div>
-				<br/>
-				<input type="hidden" name="username" value="[% prefs.username | html %]">
-				<input name="pref_logout" type="submit" class="stdclick" value="[% "PLUGIN_QOBUZ_SIGNOUT" | string %]"><br/><br/>
+		[% IF accounts; WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" %]
+			<table>
+			[% IF accounts.0 %]
+				<tr>
+					<th>[% "PLUGIN_QOBUZ_ACCOUNT" | string %][% "COLON" | string %]</th>
+					[% IF canImporter %]
+					<th>[% "PLUGIN_QOBUZ_IMPORT_LIBRARY"| string %][% "COLON" | string %]</th>
+					[% END %]
+					<th></th>
+				</tr>
+				[% FOREACH account = accounts %]
+				<tr>
+					<td style="vertical-align: middle; padding-right: 10px">[% account.0 | html %]</td>
+					[% IF canImporter %]
+					<td style="vertical-align: middle; padding-right: 10px">
+						<select class="stdedit" name="pref_dontimport_[% account.1 %]">
+							<option [% IF !account.2 %]selected [% END %]value="0">[% "YES"| string %]</option>
+							<option [% IF account.2 %]selected [% END %]value="1">[% "NO" | string %]</option>
+						</select>
+					</td>
+					[% END %]
+					<td style="vertical-align: middle">
+						<input name="delete_[% account.1 %]" type="submit" value="&nbsp;[% "PLUGIN_QOBUZ_SIGNOUT" | string %]&nbsp;" class="stdclick" />
+					</td>
+				</tr>
+				[% END %]
+				<tr><td colspan=3>&nbsp;</td></tr>
 			[% END %]
-		[% ELSE %]
-			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_USER" desc="" %]<input type="text" class="stdedit" name="username" id="username" value="[% prefs.username %]" size="20" />[% END %]
-			[% WRAPPER settingGroup title="PLUGIN_QOBUZ_PREFS_PASSWORD" desc="" %]<input type="password" class="stdedit" name="password" id="password" size="20" />[% END %]
-		[% END %]
+				<tr>
+					<td>[% "SETUP_USERNAME" | string %][% "COLON" | string %]</td>
+					<td>[% "PLUGIN_QOBUZ_PREFS_PASSWORD" | string %][% "COLON" | string %]</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td><input type="text" class="stdedit" name="username" id="username" size="20" /></td>
+					<td><input type="password" class="stdedit" name="password" id="password" size="20" /></td>
+					<td style="vertical-align: middle">
+						<input name="add_account" type="submit" value="&nbsp;[% "ADD" | string %]&nbsp;" class="stdclick" />
+					</td>
+				</tr>
+			</table>
+		[% END; END %]
+
+		<hr class="sub-sep"/>
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST" desc="" %]
 			<select name="pref_showComposerWithArtist" id="showComposerWithArtist">

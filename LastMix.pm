@@ -15,7 +15,8 @@ sub isEnabled {
 
 	return unless Slim::Utils::PluginManager->isEnabled('Plugins::Qobuz::Plugin');
 
-	return ( $prefs->get('username') && $prefs->get('token') ) ? 'Qobuz' : undef;
+	require Plugins::Qobuz::API::Common;
+	return Plugins::Qobuz::API::Common->hasAccount() ? 'Qobuz' : undef;
 }
 
 sub lookup {
@@ -25,7 +26,7 @@ sub lookup {
 	$class->cb($cb) if $cb;
 	$class->args($args) if $args;
 
-	Plugins::Qobuz::API->search(sub {
+	Plugins::Qobuz::Plugin::getAPIHandler($client)->search(sub {
 		my $searchResult = shift;
 
 		if (!$searchResult) {
@@ -48,7 +49,7 @@ sub lookup {
 
 			next unless $artist;
 
-			my $url = Plugins::Qobuz::API::Common->getUrl($track);
+			my $url = Plugins::Qobuz::API::Common->getUrl($client, $track);
 
 			$tracks{$url} = $track;
 
