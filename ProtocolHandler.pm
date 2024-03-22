@@ -378,7 +378,14 @@ sub getMetadataFor {
 sub getIcon {
 	my ($class, $url) = @_;
 
-	my ($id) = $class->crackUrl($url);
+	my ($type, $id) = $url =~ /^qobuz:(\w+):(\w+)$/;
+
+	if ($type && $type eq 'album') {
+		my $meta = $cache->get('albumInfo_' . $id) || {};
+		return $meta->{image} if $meta->{image};
+	}
+
+	($id) = $class->crackUrl($url) unless $type && $id;
 	my $meta = $cache->get('trackInfo_' . $id) || {};
 
 	return Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
