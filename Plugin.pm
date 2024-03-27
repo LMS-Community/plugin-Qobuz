@@ -666,9 +666,8 @@ sub QobuzArtist {
 					}
 
 					push @$albums, {
-						name => $relType,
-						image => 'html/images/albums.png',
-						type => 'text'
+						name => "*** $relType ***",
+						type => 'text',
 					} ;
 				}
 				push @$albums, _albumItem($client, $album);
