@@ -620,16 +620,23 @@ sub QobuzArtist {
 		# use album list if it was returned in the artist lookup
 		if ($artist->{albums}) {
 			my $albums = [];
-
+			my $numAlbums = 0;
+			my $numEps = 0;
+			my $numSingles = 0;
+			
 			# group by release type if requested
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
+					next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};					
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = "Album";
+						$numAlbums++;
 					} elsif ($album->{tracks_count} < 4) {
 						$album->{release_type} = "Single";
+						$numSingles++;
 					} else {
 						$album->{release_type} = "Ep";
+						$numEps++;
 					}
 				}
 			}
@@ -655,19 +662,23 @@ sub QobuzArtist {
 				if ($album->{release_type} ne $lastReleaseType) {
 					$lastReleaseType = $album->{release_type};
 					my $relType = "";
+					my $relNum = 0;
 					if ($lastReleaseType eq "Album") {
 						$relType = cstring($client, 'ALBUMS');
+						$relNum = $numAlbums;
 					} elsif ($lastReleaseType eq "Ep") {
 						$relType = cstring($client, 'RELEASE_TYPE_EPS');
+						$relNum = $numEps;
 					} elsif ($lastReleaseType eq "Single") {
 						$relType = cstring($client, 'RELEASE_TYPE_SINGLES');
+						$relNum = $numSingles;
 					} else {
 						$relType = "Unknown";  #should never occur
 					}
 
 					push @$albums, {
-						name => "*** $relType ***",
-						type => 'text',
+						name => "$relType ($relNum)",
+						image => 'html/images/albums.png',					
 					} ;
 				}
 				push @$albums, _albumItem($client, $album);
