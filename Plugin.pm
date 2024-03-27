@@ -46,6 +46,7 @@ $prefs->init({
 	useClassicalEnhancements => 1,
 	parentalWarning => 0,
 	showDiscs => 0,
+	groupReleases => 0,
 });
 
 $prefs->migrate(1,
@@ -581,8 +582,10 @@ sub QobuzArtist {
 			return;
 		}
 
+		my $groupByReleaseType = $prefs->get('groupReleases');
+
 		my $items = [{
-			name  => cstring($client, 'ALBUMS'),
+			name  => $groupByReleaseType ? cstring($client, 'PLUGIN_QOBUZ_RELEASES') : cstring($client, 'ALBUMS'),
 			# placeholder URL - please see below for albums returned in the artist query
 			url   => \&QobuzSearch,
 			image => 'html/images/albums.png',
@@ -618,28 +621,59 @@ sub QobuzArtist {
 		if ($artist->{albums}) {
 			my $albums = [];
 
+			# group by release type if requested
+			if ($groupByReleaseType) {
+				for my $album ( @{$artist->{albums}->{items}} ) {
+					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
+						$album->{release_type} = "Album";
+					} elsif ($album->{tracks_count} < 4) {
+						$album->{release_type} = "Single";
+					} else {
+						$album->{release_type} = "Ep";
+					}
+				}
+			}
+
 			# sort by release date if requested
 			my $sortByDate = $prefs->get('sortArtistAlbums');
 
 			$artist->{albums}->{items} = [ sort {
 				if ($sortByDate) {
-					return $sortByDate == 1 ? $b->{released_at}*1 <=> $a->{released_at}*1 : $a->{released_at}*1 <=> $b->{released_at}*1;
+					return $sortByDate == 1 ? ( $a->{release_type} cmp $b->{release_type} || $b->{released_at}*1 <=> $a->{released_at}*1 )
+											: ( $a->{release_type} cmp $b->{release_type} || $a->{released_at}*1 <=> $b->{released_at}*1 );
 				}
 				else {
-					# push singles and EPs down the list
-					if ( ($a->{tracks_count} >= 4 && $b->{tracks_count} < 4) || ($a->{tracks_count} < 4 && $b->{tracks_count} >=4) ) {
-						return $b->{tracks_count} <=> $a->{tracks_count};
-					}
-
-					return lc($a->{title}) cmp lc($b->{title});
+					return $a->{release_type} cmp $b->{release_type} || lc($a->{title}) cmp lc($b->{title});
 				}
 
 			} @{$artist->{albums}->{items} || []} ];
 
+			my $lastReleaseType = "";
+
 			for my $album ( @{$artist->{albums}->{items}} ) {
 				next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
+				if ($album->{release_type} ne $lastReleaseType) {
+					$lastReleaseType = $album->{release_type};
+					my $relType = "";
+					if ($lastReleaseType eq "Album") {
+						$relType = cstring($client, 'ALBUMS');
+					} elsif ($lastReleaseType eq "Ep") {
+						$relType = cstring($client, 'RELEASE_TYPE_EPS');
+					} elsif ($lastReleaseType eq "Single") {
+						$relType = cstring($client, 'RELEASE_TYPE_SINGLES');
+					} else {
+						$relType = "Unknown";  #should never occur
+					}
+
+					push @$albums, {
+						name => $relType,
+						image => 'html/images/albums.png',
+						type => 'text'
+					} ;
+				}
 				push @$albums, _albumItem($client, $album);
 			}
+
 			if (@$albums) {
 				$items->[0]->{items} = $albums;
 				delete $items->[0]->{url};
@@ -1386,6 +1420,10 @@ sub QobuzGetTracks {
 				name  => $album->{genre},
 				label => 'GENRE',
 				type  => 'text'
+			},{
+				name => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
+				label => 'PLUGIN_QOBUZ_RELEASE_TYPE',
+				type => 'text'
 			},{
 				name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
 				label => 'ALBUMLENGTH',
