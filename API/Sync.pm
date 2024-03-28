@@ -120,7 +120,7 @@ sub myPlaylists {
 
 	my $playlists = $class->_get('playlist/getUserPlaylists', $userId, {
 		# TODO - need to pass the userId or configuration
-		username => Plugins::Qobuz::API::Common->username,
+		username => Plugins::Qobuz::API::Common->username($userId),
 		limit    => QOBUZ_DEFAULT_LIMIT,
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_user_cache => 1,
