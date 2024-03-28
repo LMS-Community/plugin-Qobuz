@@ -152,7 +152,7 @@ sub _precacheAlbum {
 	$albums = __PACKAGE__->filterPlayables($albums);
 
 	foreach my $album (@$albums) {
-		foreach (qw(composer duration articles article_ids catchline
+		foreach (qw(composer articles article_ids catchline
 			# maximum_bit_depth maximum_channel_count maximum_sampling_rate maximum_technical_specifications
 			popularity previewable qobuz_id sampleable slug streamable_at subtitle created_at
 			product_type product_url purchasable purchasable_at relative_url release_date_download release_date_original
