@@ -548,7 +548,7 @@ PLUGIN_QOBUZ_GROUP_RELEASES
 	ES	Lanzamientos de artistas grupales por tipo
 
 PLUGIN_QOBUZ_GROUP_RELEASES_DESC
-	DE	Gruppieren Sie Künstlerveröffentlichungen nach Typ, wie von Spotify und iTunes definiert: d. h. Alben, EPs und Singles
+	DE	Nach Veröffentlichungstyp gruppieren, wie von Spotify und iTunes definiert: d. h. Alben, EPs und Singles
 	EN	Group artist releases by type, as defined by Spotify and iTunes: i.e. Albums, EPs and Singles
 	FR	Regroupez les sorties d'artistes par type, tel que défini par Spotify et iTunes : c'est-à-dire albums, EP et singles.
 	NL	Groepeer releases van artiesten op type, zoals gedefinieerd door Spotify en iTunes: dat wil zeggen albums, EP's en singles
