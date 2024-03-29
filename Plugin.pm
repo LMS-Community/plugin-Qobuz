@@ -22,6 +22,10 @@ use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION,
 use constant CLICOMMAND => 'qobuzquery';
 use constant MAX_RECENT => 30;
 
+use constant ALBUM => '1';
+use constant EP => '2';
+use constant SINGLE => '3';
+
 # Keep in sync with Music & Artist Information plugin
 my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|OpenSqueeze|Squeezer|Squeeze-Control)\b/i;
 my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
@@ -629,13 +633,13 @@ sub QobuzArtist {
 				for my $album ( @{$artist->{albums}->{items}} ) {
 					next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};					
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
-						$album->{release_type} = "Album";
+						$album->{release_type} = ALBUM;
 						$numAlbums++;
 					} elsif ($album->{tracks_count} < 4) {
-						$album->{release_type} = "Single";
+						$album->{release_type} = SINGLE;
 						$numSingles++;
 					} else {
-						$album->{release_type} = "Ep";
+						$album->{release_type} = EP;
 						$numEps++;
 					}
 				}
@@ -663,13 +667,13 @@ sub QobuzArtist {
 					$lastReleaseType = $album->{release_type};
 					my $relType = "";
 					my $relNum = 0;
-					if ($lastReleaseType eq "Album") {
+					if ($lastReleaseType eq ALBUM) {
 						$relType = cstring($client, 'ALBUMS');
 						$relNum = $numAlbums;
-					} elsif ($lastReleaseType eq "Ep") {
+					} elsif ($lastReleaseType eq EP) {
 						$relType = cstring($client, 'RELEASE_TYPE_EPS');
 						$relNum = $numEps;
-					} elsif ($lastReleaseType eq "Single") {
+					} elsif ($lastReleaseType eq SINGLE) {
 						$relType = cstring($client, 'RELEASE_TYPE_SINGLES');
 						$relNum = $numSingles;
 					} else {
