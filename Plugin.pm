@@ -2298,8 +2298,10 @@ sub getAPIHandler {
 		$api = $clientOrId->pluginData('api');
 
 		if ( !$api ) {
+			my $userdata = Plugins::Qobuz::API::Common->getAccountData($clientOrId);
+
 			# if there's no account assigned to the player, just pick one
-			if ( !$prefs->client($clientOrId)->get('userId') ) {
+			if (!$userdata) {
 				my $userId = Plugins::Qobuz::API::Common->getSomeUserId();
 				$prefs->client($clientOrId)->set('userId', $userId) if $userId;
 			}
