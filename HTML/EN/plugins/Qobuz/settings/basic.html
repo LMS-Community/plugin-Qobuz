@@ -69,6 +69,11 @@
 			</select>
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_GROUP_RELEASES" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_groupReleases %]checked [% END %] class="stdedit" name="pref_groupReleases" id="pref_groupReleases" value="1" />
+			<label for="pref_groupReleases" class="stdlabel">[% "PLUGIN_QOBUZ_GROUP_RELEASES_DESC" | string %]</label>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE" desc="" %]
 			<select name="pref_appendVersionToTitle" id="appendVersionToTitle">
 				<option [% prefs.appendVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>

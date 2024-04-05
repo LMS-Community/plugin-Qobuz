@@ -540,6 +540,20 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
 	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
 
+PLUGIN_QOBUZ_GROUP_RELEASES
+	DE	Gruppieren Sie Künstlerveröffentlichungen nach Typ
+	EN	Group artist releases by type
+	FR	Regrouper les sorties d'artistes par type
+	NL	Groepeer releases van artiesten op type
+	ES	Lanzamientos de artistas grupales por tipo
+
+PLUGIN_QOBUZ_GROUP_RELEASES_DESC
+	DE	Nach Veröffentlichungstyp gruppieren, wie von Spotify und iTunes definiert: d. h. Alben, EPs und Singles
+	EN	Group artist releases by type, as defined by Spotify and iTunes: i.e. Albums, EPs and Singles
+	FR	Regroupez les sorties d'artistes par type, tel que défini par Spotify et iTunes : c'est-à-dire albums, EP et singles.
+	NL	Groepeer releases van artiesten op type, zoals gedefinieerd door Spotify en iTunes: dat wil zeggen albums, EP's en singles
+	ES	Lanzamientos de artistas grupales por tipo, según lo definido por Spotify e iTunes: es decir, álbumes, EP y sencillos.
+
 PLUGIN_QOBUZ_TRACKS_LC
 	DE	Titel
 	EN	tracks
@@ -561,3 +575,8 @@ PLUGIN_QOBUZ_WORK
 	NL	Werk
 	ES	Composición
 
+PLUGIN_QOBUZ_RELEASE_TYPE
+	EN	Qobuz Release Type
+
+PLUGIN_QOBUZ_RELEASES
+	EN	Releases

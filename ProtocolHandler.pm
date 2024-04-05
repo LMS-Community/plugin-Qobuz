@@ -22,6 +22,7 @@ use constant CAN_FLAC_SEEK => (Slim::Utils::Versions->compareVersions($::VERSION
 use constant PAGE_URL_REGEXP => qr{(?:open|play)\.qobuz\.com/(.+)/([a-z0-9]+)};
 Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__) if Slim::Player::ProtocolHandlers->can('registerURLHandler');
 
+my $cache = Plugins::Qobuz::API::Common->getCache();
 my $log   = logger('plugin.qobuz');
 my $prefs = preferences('plugin.qobuz');
 
@@ -159,7 +160,6 @@ sub trackGain {
 		return undef;
 	}
 
-	my $cache = Plugins::Qobuz::API::Common->getCache();
 	my $gain = 0;
 	my $peak = 0;
 	my $netGain = 0;
@@ -373,6 +373,22 @@ sub getMetadataFor {
 
 	$meta->{tracknum} = $meta->{track_number};
 	return $meta;
+}
+
+sub getIcon {
+	my ($class, $url) = @_;
+
+	my ($type, $id) = $url =~ /^qobuz:(\w+):(\w+)$/;
+
+	if ($type && $type eq 'album') {
+		my $meta = $cache->get('albumInfo_' . $id) || {};
+		return $meta->{image} if $meta->{image};
+	}
+
+	($id) = $class->crackUrl($url) unless $type && $id;
+	my $meta = $cache->get('trackInfo_' . $id) || {};
+
+	return Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
 }
 
 sub getNextTrack {
