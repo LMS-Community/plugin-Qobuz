@@ -351,8 +351,11 @@ sub _prepareTrack {
 		$attributes->{DISCC} = $album->{media_count};
 	}
 
-	if ($track->{composer}) {
+	if ($track->{composer} && $track->{composer}->{name}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
+		if ($track->{work}) {
+			$attributes->{WORK} = $track->{work};
+		}
 	}
 
 	if ($track->{performer} && $track->{performer}->{name} ne $album->{artist}->{name}) {
