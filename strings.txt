@@ -543,7 +543,7 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 PLUGIN_QOBUZ_GROUP_RELEASES
 	DE	Gruppieren Sie Künstlerveröffentlichungen nach Typ
 	EN	Group artist releases by type
-	FR	Regrouper les enregistrements des artistes par type de sortie
+	FR	Regrouper les albums des artistes par type de sortie
 	NL	Groepeer releases van artiesten op type
 	ES	Lanzamientos de artistas grupales por tipo
 
