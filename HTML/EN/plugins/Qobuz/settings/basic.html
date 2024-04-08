@@ -111,11 +111,15 @@
 			<input type="text" class="stdedit" name="pref_classicalGenres" id="classicalGenres" value="[% prefs.classicalGenres %]" size="80">
 		[% "PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT" | string %]
 		[% END %]
+
 		<hr class="sub-sep"/>
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_IMPORT" desc="" %]
 			<input type="checkbox" [% IF prefs.pref_dontImportPurchases %]checked [% END %] class="stdedit" name="pref_dontImportPurchases" id="pref_dontImportPurchases" value="1" />
 			<label for="pref_dontImportPurchases" class="stdlabel">[% "PLUGIN_QOBUZ_DONT_IMPORT_PURCHASES" | string %]</label>
+			<br />
+			<input type="checkbox" [% IF prefs.pref_importWorks %]checked [% END %] class="stdedit" name="pref_importWorks" id="pref_importWorks" value="1" />
+			<label for="pref_importWorks" class="stdlabel">[% "PLUGIN_QOBUZ_IMPORT_WORKS_DESC" | string %]</label>
 		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_LABEL_HIRES" desc="" %]

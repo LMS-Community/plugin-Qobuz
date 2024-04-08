@@ -582,3 +582,10 @@ PLUGIN_QOBUZ_RELEASE_TYPE
 PLUGIN_QOBUZ_RELEASES
 	EN	Releases
 	FR	Albums
+
+PLUGIN_QOBUZ_IMPORT_WORKS_DESC
+	EN	Import Qobuz Work tag
+	DE	Qobuz Work-Tag importieren
+	FR	Importer la balise Qobuz Work
+	NL	Qobuz Work-tag importeren
+	ES	Importar etiqueta de trabajo Qobuz
