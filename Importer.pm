@@ -353,7 +353,7 @@ sub _prepareTrack {
 
 	if ($track->{composer} && $track->{composer}->{name}) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
-		if ($track->{work}) {
+		if ( $track->{work} && $prefs->get('importWorks') ) {
 			$attributes->{WORK} = $track->{work};
 		}
 	}

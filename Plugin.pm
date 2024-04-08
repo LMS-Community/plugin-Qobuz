@@ -51,6 +51,7 @@ $prefs->init({
 	parentalWarning => 0,
 	showDiscs => 0,
 	groupReleases => 0,
+	importWorks => 1,
 });
 
 $prefs->migrate(1,
