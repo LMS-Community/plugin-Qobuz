@@ -50,7 +50,7 @@ $prefs->init({
 	useClassicalEnhancements => 1,
 	parentalWarning => 0,
 	showDiscs => 0,
-	groupReleases => 0,
+	groupReleases => 1,
 	importWorks => 1,
 });
 
@@ -624,9 +624,12 @@ sub QobuzArtist {
 
 		# use album list if it was returned in the artist lookup
 		if ($artist->{albums}) {
+			my $releases = [];
 			my $albums = [];
 			my $numAlbums = 0;
+			my $eps = [];
 			my $numEps = 0;
+			my $singles = [];
 			my $numSingles = 0;
 			
 			# group by release type if requested
@@ -664,33 +667,55 @@ sub QobuzArtist {
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
 				next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
-				if ($album->{release_type} ne $lastReleaseType) {
-					$lastReleaseType = $album->{release_type};
-					my $relType = "";
-					my $relNum = 0;
-					if ($lastReleaseType eq ALBUM) {
-						$relType = cstring($client, 'ALBUMS');
-						$relNum = $numAlbums;
-					} elsif ($lastReleaseType eq EP) {
-						$relType = cstring($client, 'RELEASE_TYPE_EPS');
-						$relNum = $numEps;
-					} elsif ($lastReleaseType eq SINGLE) {
-						$relType = cstring($client, 'RELEASE_TYPE_SINGLES');
-						$relNum = $numSingles;
-					} else {
-						$relType = "Unknown";  #should never occur
+				if ($groupByReleaseType) {
+					if ($album->{release_type} eq ALBUM) {
+						push @$albums, _albumItem($client, $album);
+					} elsif ($album->{release_type} eq EP) {
+						push @$eps, _albumItem($client, $album);
+					} elsif ($album->{release_type} eq SINGLE) {
+						push @$singles, _albumItem($client, $album);
 					}
+		
+					if ($album->{release_type} ne $lastReleaseType) {
+						$lastReleaseType = $album->{release_type};
+						my $relType = "";
+						my $relNum = 0;
+						my $relItems;
+						my $relIcon = "";
+						
+						if ($lastReleaseType eq ALBUM) {
+							$relType = cstring($client, 'ALBUMS');
+							$relNum = $numAlbums;
+							$relItems = $albums;
+							$relIcon = 'plugins/Qobuz/html/images/Qobuz_MTL_svg_release-album.png';
+						} elsif ($lastReleaseType eq EP) {
+							$relType = cstring($client, 'RELEASE_TYPE_EPS');
+							$relNum = $numEps;
+							$relItems = $eps;
+							$relIcon = 'plugins/Qobuz/html/images/Qobuz_MTL_svg_release-ep.png';
+						} elsif ($lastReleaseType eq SINGLE) {
+							$relType = cstring($client, 'RELEASE_TYPE_SINGLES');
+							$relNum = $numSingles;
+							$relItems = $singles;
+							$relIcon = 'plugins/Qobuz/html/images/Qobuz_MTL_svg_release-single.png';
+						} else {
+							$relType = "Unknown";  #should never occur
+						}
 
-					push @$albums, {
-						name => "$relType ($relNum)",
-						image => 'html/images/albums.png',					
-					} ;
+						push @$releases, {
+							name => "$relType ($relNum)",
+							image => $relIcon,	
+							type => 'header',
+							playall => 1,
+							items => $relItems							
+						} ;
+					}
 				}
-				push @$albums, _albumItem($client, $album);
+				push @$releases, _albumItem($client, $album);
 			}
 
-			if (@$albums) {
-				$items->[0]->{items} = $albums;
+			if (@$releases) {
+				$items->[0]->{items} = $releases;
 				delete $items->[0]->{url};
 			}
 		}
@@ -1329,7 +1354,7 @@ sub QobuzGetTracks {
 				# insert disc item before the first of its tracks
 				splice @$items, $discs->{$disc}->{index}, 0, {
 					name => $discs->{$disc}->{title},
-					image => $discs->{$disc}->{image},
+					image => 'html/images/albums.png',
 					type => 'playlist',
 					playall => 1,
 					url => \&QobuzWorkGetTracks,
