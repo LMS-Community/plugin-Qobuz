@@ -73,6 +73,12 @@ $prefs->migrate(1,
 	}
 );
 
+# reset the API ref when a player changes user
+$prefs->setChange( sub {
+	my ($pref, $userId, $client) = @_;
+	$client->pluginData(api => 0);
+}, 'userId');
+
 my $log = Slim::Utils::Log->addLogCategory( {
 	category     => 'plugin.qobuz',
 	defaultLevel => 'ERROR',
@@ -363,8 +369,6 @@ sub QobuzSelectAccount {
 			name => $_->[0],
 			url => sub {
 				my ($client, $cb2, $params, $args) = @_;
-
-				$client->pluginData(api => 0);
 				$prefs->client($client)->set('userId', $args->{id});
 
 				$cb2->({ items => [{
@@ -631,11 +635,11 @@ sub QobuzArtist {
 			my $numEps = 0;
 			my $singles = [];
 			my $numSingles = 0;
-			
+
 			# group by release type if requested
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
-					next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};					
+					next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = ALBUM;
 						$numAlbums++;
@@ -675,14 +679,14 @@ sub QobuzArtist {
 					} elsif ($album->{release_type} eq SINGLE) {
 						push @$singles, _albumItem($client, $album);
 					}
-		
+
 					if ($album->{release_type} ne $lastReleaseType) {
 						$lastReleaseType = $album->{release_type};
 						my $relType = "";
 						my $relNum = 0;
 						my $relItems;
 						my $relIcon = "";
-						
+
 						if ($lastReleaseType eq ALBUM) {
 							$relType = cstring($client, 'ALBUMS');
 							$relNum = $numAlbums;
@@ -704,10 +708,10 @@ sub QobuzArtist {
 
 						push @$releases, {
 							name => "$relType ($relNum)",
-							image => $relIcon,	
+							image => $relIcon,
 							type => 'header',
 							playall => 1,
-							items => $relItems							
+							items => $relItems
 						} ;
 					}
 				}
