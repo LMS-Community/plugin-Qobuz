@@ -586,6 +586,6 @@ PLUGIN_QOBUZ_RELEASES
 PLUGIN_QOBUZ_IMPORT_WORKS_DESC
 	EN	Import Qobuz Work tag
 	DE	Qobuz Werke importieren
-	FR	Importer la balise Qobuz Work
+	FR	Importer le tag Qobuz Work (œuvre)
 	NL	Qobuz Work-tag importeren
 	ES	Importar etiqueta de trabajo Qobuz
