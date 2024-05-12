@@ -5,6 +5,7 @@
 	<module>Plugins::Qobuz::Plugin</module>
 	<importmodule>Plugins::Qobuz::Importer</importmodule>
 	<onlineLibrary>true</onlineLibrary>
+	<category>musicservices</category>
 
 	<version>3.5.0</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
