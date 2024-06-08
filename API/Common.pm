@@ -201,7 +201,10 @@ sub _precacheAlbum {
 			$cache->set('albumInfo_' . $albumInfo->{id}, $albumInfo, QOBUZ_DEFAULT_EXPIRY);
 		}
 		elsif (my $cachedAlbumInfo = $cache->get('albumInfo_' . $album->{id})) {
-			if (defined $cachedAlbumInfo->{replay_gain}) {
+			if (!ref $cachedAlbumInfo) {
+				$cache->remove('albumInfo_' . $album->{id});
+			}
+			elsif (defined $cachedAlbumInfo->{replay_gain}) {
 				$album->{replay_gain} = $cachedAlbumInfo->{replay_gain};
 			}
 		}
