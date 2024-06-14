@@ -102,7 +102,7 @@ sub scanAlbums {
 		foreach my $album (@$albums) {
 			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
-			if ($albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
+			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
 				$class->storeTracks([
 					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }

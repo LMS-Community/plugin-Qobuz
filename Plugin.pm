@@ -1897,9 +1897,9 @@ sub albumInfoMenu {
 			elsif ( $qobuzAlbum->{release_date_stream} && $qobuzAlbum->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) {
 				$cache->set('album_with_tracks_' . $albumId, $qobuzAlbum, QOBUZ_DEFAULT_EXPIRY);
 			}
-		}, $albumId) unless $qobuzAlbum;
+		}, $albumId) unless $qobuzAlbum && ref $qobuzAlbum;
 
-		if ( $qobuzAlbum ) {
+		if ( $qobuzAlbum && ref $qobuzAlbum ) {
 			my %seen;
 			foreach my $track (@{$qobuzAlbum->{tracks}->{items}}) {
 				my $composer = $track->{'composer'}->{'name'};

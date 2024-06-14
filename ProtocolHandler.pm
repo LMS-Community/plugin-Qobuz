@@ -173,11 +173,18 @@ sub trackGain {
 
 	if (!$meta) {
 		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
-	} elsif ($rgmode == 1   # track gain in use
-			|| (!($album = $cache->get('album_with_tracks_' . $meta->{albumId})) # OR not in the cached favorites
-				&& (!($album = $cache->get('albumInfo_' . $meta->{albumId})) 	 # ...AND (not in cached albums
-					|| ref $meta->{genre} ne "") )  # ...OR the track info was not populated from an album)
-			|| !defined $album->{replay_gain}) {    # OR album gain not specified (should not occur)
+	} elsif (
+		$rgmode == 1   # track gain in use
+		|| (
+			!($album = $cache->get('album_with_tracks_' . $meta->{albumId})) # OR not in the cached favorites
+			&& (
+				!($album = $cache->get('albumInfo_' . $meta->{albumId})) 	 # ...AND (not in cached albums
+				|| ref $meta->{genre} ne ""
+			)
+		)
+		# ...OR the track info was not populated from an album)
+		|| !ref $album || !defined $album->{replay_gain}
+	) {    # OR album gain not specified (should not occur)
 		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # zero replay gain for non-album tracks if using album gain
 		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
 		main::INFOLOG && $log->info("Using gain value of $gain : $peak for track: " .  $meta->{title} );
