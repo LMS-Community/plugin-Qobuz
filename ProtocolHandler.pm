@@ -164,6 +164,8 @@ sub trackGain {
 	my $peak = 0;
 	my $netGain = 0;
 	my $album;
+	my $randomPlay = exists $INC{'Slim/Plugin/RandomPlay/Plugin.pm'};
+	my $mode = '';
 
 	my ($id) = $class->crackUrl($url);
 	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
@@ -171,20 +173,30 @@ sub trackGain {
 	my $meta = $cache->get('trackInfo_' . $id);
 	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
 
+	if ($randomPlay) {
+		$mode = Slim::Plugin::RandomPlay::Plugin::active($client);
+		main::INFOLOG && $log->info("Random play type: /" . $mode . "/");
+	}
+
 	if (!$meta) {
 		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
 	} elsif (
 		$rgmode == 1   # track gain in use
-		|| (
-			!($album = $cache->get('album_with_tracks_' . $meta->{albumId})) # OR not in the cached favorites
-			&& (
-				!($album = $cache->get('albumInfo_' . $meta->{albumId})) 	 # ...AND (not in cached albums
-				|| ref $meta->{genre} ne ""
+		|| (   # or Random Play is in effect (but not in 'album' or 'work' mode)
+			$randomPlay && $mode     # plugin is installed and active...
+				&& $mode ne 'album'  #...but not in 'album' (release) mode
+				&& $mode ne 'work'   #...or 'work' mode
 			)
-		)
-		# ...OR the track info was not populated from an album)
+		|| (   # OR not in the cached favorites...
+			!($album = $cache->get('album_with_tracks_' . $meta->{albumId}))
+			&& (   # ...AND (not in cached albums
+				!($album = $cache->get('albumInfo_' . $meta->{albumId}))
+					|| ref $meta->{genre} ne ""
+				)
+			)
+		# ...OR the track info was not populated from an album OR album gain not specified)
 		|| !ref $album || !defined $album->{replay_gain}
-	) {    # OR album gain not specified (should not occur)
+	) {
 		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # zero replay gain for non-album tracks if using album gain
 		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
 		main::INFOLOG && $log->info("Using gain value of $gain : $peak for track: " .  $meta->{title} );
