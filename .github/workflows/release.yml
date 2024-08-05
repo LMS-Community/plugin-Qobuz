@@ -36,7 +36,7 @@ jobs:
           git config user.email github-actions@github.com
           git add repo/repo.xml
           git commit -m "Update repo.xml for release ${{ steps.set-version.outputs.version }}"
-          git push origin HEAD:main
+          git push origin HEAD:master
 
       - name: Create Release
         id: create_release
