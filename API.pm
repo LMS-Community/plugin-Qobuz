@@ -271,13 +271,17 @@ sub getGenres {
 sub getAlbum {
 	my ($self, $cb, $albumId) = @_;
 
-	$self->_get('album/get', sub {
+	$self->_pagingGet('album/get', sub {
 		my $album = shift;
 
 		($album) = @{_precacheAlbum([$album])} if $album;
 
 		$cb->($album);
 	},{
+		limit      => QOBUZ_USERDATA_LIMIT,
+		_extractor  => 'tracks',
+		_maxKey     => 'tracks',
+		_limitKey   => 'tracks',
 		album_id => $albumId,
 	});
 }

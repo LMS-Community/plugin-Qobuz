@@ -106,9 +106,37 @@ sub myAlbums {
 sub getAlbum {
 	my ($class, $userId, $albumId) = @_;
 
-	my $album = $class->_get('album/get', $userId, {
+	my $args = {
 		album_id => $albumId,
-	});
+		limit    => QOBUZ_LIMIT,
+	};
+
+	my $total = 0;
+	my $offset = 0;
+	my $album;
+
+	do {
+		$args->{offset} = $offset;
+
+		my $response = $class->_get('album/get', $userId, $args);
+
+		$offset = 0;
+
+		if ( $response && ref $response && $response->{tracks} && ref $response->{tracks} && $response->{tracks}->{items} && ref $response->{tracks}->{items} ) {
+			$total ||= $response->{tracks}->{total};
+
+			if ($album) {
+				push @{$album->{tracks}->{items}}, @{$response->{tracks}->{items}};
+			}
+			else {
+				$album = $response;
+			}
+
+			if (scalar @{$album->{tracks}->{items}} < $total && $response->{tracks}->{total} > QOBUZ_LIMIT && $response->{tracks}->{offset} < $response->{tracks}->{total}) {
+				$offset = $response->{tracks}->{offset} + QOBUZ_LIMIT;
+			}
+		}
+	} while $offset && $offset < QOBUZ_USERDATA_LIMIT;
 
 	($album) = @{_precacheAlbum([$album])} if $album;
 
