@@ -1803,6 +1803,7 @@ sub _trackItem {
 		$item->{playall}   = 1;
 	}
 
+	$item->{url} = $item->{play} if $item->{play};
 	$item->{tracknum} = $track->{track_number};
 	$item->{media_number} = $track->{media_number};
 	$item->{media_count} = $track->{album}->{media_count};
