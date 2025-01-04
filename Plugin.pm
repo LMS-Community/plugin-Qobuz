@@ -639,7 +639,8 @@ sub QobuzArtist {
 			# group by release type if requested
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
-					next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
+					next if !_isMainArtist($args->{artistId}, $album);
+
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = ALBUM;
 						$numAlbums++;
@@ -670,7 +671,8 @@ sub QobuzArtist {
 			my $lastReleaseType = "";
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
-				next if $args->{artistId} && $album->{artist}->{id} != $args->{artistId};
+				next if !_isMainArtist($args->{artistId}, $album);
+
 				if ($groupByReleaseType) {
 					if ($album->{release_type} eq ALBUM) {
 						push @$albums, _albumItem($client, $album);
@@ -2278,6 +2280,21 @@ sub _isReleased {  # determine if the referenced album has been released
 		my $ldate = Slim::Utils::DateTime::shortDateF($ltime, "%Y-%m-%d");
 		return ($ldate ge $album->{release_date_stream});
 	}
+}
+
+sub _isMainArtist {  # determine if an artist is a main artist on the release
+	my ($artistId, $album) = @_;
+
+	if (!$artistId || $album->{artist}->{id} == $artistId) {
+		return 1;
+	} elsif (ref $album->{artists}) {  # check the other artists
+		for my $artists ( @{$album->{artists}} ) {
+			if ($artists->{id} == $artistId && grep(/main-artist/, @{$artists->{roles}})) {
+				return 1;
+			}
+		}
+	}
+	return 0;
 }
 
 sub _localDate {  # convert input date string in format YYYY-MM-DD to localized short date format
