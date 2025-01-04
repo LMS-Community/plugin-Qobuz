@@ -235,7 +235,7 @@ PLUGIN_QOBUZ_BY_WORK
 	DE	Nach Werk gruppiert
 	EN	Browse by Work
 	FR	Grouper par œuvre
-	NL	Blader op Werk
+	NL	Blader op Compositie
 
 PLUGIN_QOBUZ_IMPORT
 	DE	Musiksammlungsintegration
@@ -295,11 +295,13 @@ PLUGIN_QOBUZ_PERFORMERS
 PLUGIN_QOBUZ_MYWEEKLYQ
 	EN	My Weekly Q
 	FR	Mon Qobuz Hebdo
+	NL	Mijn Qobuz Weekblad
 
 PLUGIN_QOBUZ_REAUTH_DESC
 	DE	Leider müssen Sie sich erneut bei Qobuz anmelden. Sie können das gleich hier erledigen, oder in den LMS Einstellungen/Erweitert/Qobuz das Konto entfernen und neu anmelden.
 	EN	Unfortunately we need to re-authenticate with Qobuz. You can enter your password here, or go to LMS/Settings/Advanced/Qobuz to remove and add again your account.
 	FR	Malheureusement, vous devez vous réauthentifier auprès de Qobuz. Vous pouvez le faire ici, ou supprimer le compte et vous reconnecter dans les réglages du plugin Qobuz.
+	NL	Helaas moet het authenticatieproces bij Qobuz opnieuw. Je kunt hier jouw wachtwoord invoeren, of naar LMS/Instellingen/Geavanceerd/Qobuz gaan om jouw account te verwijderen en opnieuw toe te voegen.
 
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
@@ -317,7 +319,7 @@ PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM
 	DE	Erscheinungsjahr mit Alben anzeigen
 	EN	Show Release Year with Albums
 	FR	Afficher l'année de sortie avec les albums
-	NL	Jaar van uitgave weergeven met albums
+	NL	Toon jaar van uitgave bij albums
 
 PLUGIN_QOBUZ_SORT_FAVORITES
 	DE	Favoriten sortieren
@@ -348,7 +350,7 @@ PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS
 	DE	Künstleralben sortieren
 	EN	Sort Artist Albums
 	FR	Trier les albums des artistes
-	NL	Sorteer artiestenalbums
+	NL	Sorteer albums van artiesten
 
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA
 	DE	Alphabetisch sortieren
@@ -442,7 +444,7 @@ PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS
 	EN	Enhanced classical music display
 	DE	Erweiterte Anzeige von Klassikwerken
 	FR	Affichage amélioré de la musique classique
-	NL	Verbeterde weergave van klassieke werken/componisten
+	NL	Verbeterde weergave van klassieke composities
 
 PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_DESC
 	EN	Choose Yes here if you want the plugin to use Qobuz data to attempt to: <br />* Show a playlist and subheadings for each composer/work within a release. <br />* Add the composer and work names to the track title in the playlist and now playing displays (the playlist cannot show subheadings).
@@ -466,13 +468,13 @@ PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT
 	EN	<br /><br />For questions/bug reporting <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Note:</b> for best results, use the "Material Skin" plugin. Otherwise, if using the default interface, do not use "large artwork" (option at bottom left of screen), the display will not be rendered well if you do.
 	DE	<br /><br />Bei Fragen oder Fehlern: <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visit the forum</a>.<br /><br /><b>Hinweis:</b> Nutze das Plugin "Material Skin" für die bestmögliche Darstellung. Bei der Web-Oberfläche "Standard" wird die Darstellung fehlerhaft, falls "Plattenhüllen anzeigen" ausgewählt wurde.
 	FR	<br /><br />En cas de question ou de dysfonctionnement, <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">visiter le forum</a>.<br /><br /><b>Remarque :</b> Pour le meilleur affichage possible, utiliser le plugin "Material Skin". Avec l'interface web "Défaut", l'affichage sera incorrect si "Afficher les pochettes" a été sélectionné.
-	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.
+	NL	<br /><br />Voor vragen/bugs <a href="https://forums.slimdevices.com/forum/user-forums/3rd-party-software/94305-qobuz-com-streaming-plugin" target="_blank">bezoek het forum</a>.<br /><br /><b>Opmerking:</b> gebruik voor de beste resultaten de plug-in "Material Skin". Als je de standaardinterface gebruikt, gebruik dan geen "grote albumhoes" (optie linksonder op het scherm), de weergave zal dan niet goed worden weergegeven.
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION
 	EN	Work playlist position
 	DE	Position für Werke-Wiedergabelisten
 	FR	Position de la liste de lecture de l'œuvre
-	NL	Werk afspeellijst positie
+	NL	Compositie afspeellijst positie
 
 PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE
 	EN	Before track list
@@ -490,7 +492,7 @@ PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_INTEGRATED
 	EN	Integrate with work headings
 	DE	Mit Werktiteln integrieren
 	FR	Intégrée aux morceaux
-	NL	Integreren met werktitels
+	NL	Integreren met composities
 
 PLUGIN_QOBUZ_ALBUM_NOT_FOUND
 	EN	Album not found in the Qobuz library
@@ -537,7 +539,7 @@ PLUGIN_QOBUZ_SHOW_DISCS_DESC
 	DE	Hat keine Auswirkung, wenn klassische Erweiterungen (siehe unten) verwendet werden und Werke identifiziert wurden
 	EN	Has no effect when classical enhancements (see below) are in use and works have been identified
 	FR	N'a aucun effet lorsque "Affichage amélioré de la musique classique" a été choisi (voir ci-dessous) et que des œuvres classiques ont été identifiées
-	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er werken zijn geïdentificeerd
+	NL	Heeft geen effect wanneer klassieke verbeteringen (zie hieronder) in gebruik zijn en er composities zijn geïdentificeerd
 	ES	No tiene efecto cuando se utilizan mejoras clásicas (ver más abajo) y se han identificado obras clásicas
 
 PLUGIN_QOBUZ_GROUP_RELEASES
@@ -572,16 +574,18 @@ PLUGIN_QOBUZ_WORK
 	EN	Work
 	DE	Werke
 	FR	Œuvre
-	NL	Werk
+	NL	Compositie
 	ES	Composición
 
 PLUGIN_QOBUZ_RELEASE_TYPE
 	EN	Qobuz Release Type
 	FR	Type de sortie Qobuz
+	NL	Qobuz Release Type
 
 PLUGIN_QOBUZ_RELEASES
 	EN	Releases
 	FR	Albums
+	NL	Releases
 
 PLUGIN_QOBUZ_IMPORT_WORKS_DESC
 	EN	Import Qobuz Work tag
