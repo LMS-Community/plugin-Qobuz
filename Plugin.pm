@@ -1436,19 +1436,22 @@ sub QobuzGetTracks {
 			}
 		}
 
-		my $artistItem;
+		my @artistList = ();
 		if (ref $album->{artists}) {  # get all main artists
-			for my $artists ( @{$album->{artists}} ) {
-				if (grep(/main-artist/, @{$artists->{roles}})) {
-					if ($artistItem = _artistItem($client, $artists, 1)) {
-						$artistItem->{label} = 'ARTIST';
-						push @$items, $artistItem;
-					}
+			for my $artist ( @{$album->{artists}} ) {
+				if (grep(/main-artist/, @{$artist->{roles}})) {
+					push @artistList, $artist;
 				}
 			}
-		} elsif ($artistItem = _artistItem($client, $album->{artist}, 1)) {
-			$artistItem->{label} = 'ARTIST';
-			push @$items, $artistItem;
+		} else {
+			push @artistList, $album->{artist};
+		}
+
+		for my $artists ( @artistList ) {
+			if (my $artistItem = _artistItem($client, $artists, 1)) {
+				$artistItem->{label} = 'ARTIST';
+				push @$items, $artistItem;
+			}
 		}
 
 		$api->getUserFavorites(sub {
