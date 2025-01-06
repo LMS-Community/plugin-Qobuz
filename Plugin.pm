@@ -493,7 +493,7 @@ sub QobuzSearch {
 		my $items = [];
 
 		push @$items, {
-			name  => cstring($client, 'ALBUMS'),
+			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASES'),
 			items => $albums,
 			image => 'html/images/albums.png',
 		} if scalar @$albums;
@@ -594,7 +594,7 @@ sub QobuzArtist {
 		my $groupByReleaseType = $prefs->get('groupReleases');
 
 		my $items = [{
-			name  => $groupByReleaseType ? cstring($client, 'PLUGIN_QOBUZ_RELEASES') : cstring($client, 'ALBUMS'),
+			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASES'),
 			# placeholder URL - please see below for albums returned in the artist query
 			url   => \&QobuzSearch,
 			image => 'html/images/albums.png',
@@ -962,7 +962,7 @@ sub QobuzUserFavorites {
 		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 
 		push @$items, {
-			name => cstring($client, 'ALBUMS'),
+			name => cstring($client, 'PLUGIN_QOBUZ_RELEASES'),
 			items => $sortFavsAlphabetically ? [ sort { Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name}) } @albums ] : \@albums,
 			image => 'html/images/albums.png',
 		} if @albums;
@@ -1436,10 +1436,20 @@ sub QobuzGetTracks {
 			}
 		}
 
-		if (my $artistItem = _artistItem($client, $album->{artist}, 1)) {
+		my $artistItem;
+		if (ref $album->{artists}) {  # get all main artists
+			for my $artists ( @{$album->{artists}} ) {
+				if (grep(/main-artist/, @{$artists->{roles}})) {
+					if ($artistItem = _artistItem($client, $artists, 1)) {
+						$artistItem->{label} = 'ARTIST';
+						push @$items, $artistItem;
+					}
+				}
+			}
+		} elsif ($artistItem = _artistItem($client, $album->{artist}, 1)) {
 			$artistItem->{label} = 'ARTIST';
 			push @$items, $artistItem;
-		};
+		}
 
 		$api->getUserFavorites(sub {
 			my $favorites = shift;
@@ -2162,7 +2172,7 @@ sub searchMenu {
 	return {
 		name => cstring($client, getDisplayName()),
 		items => [{
-			name  => cstring($client, 'ALBUMS'),
+			name  => cstring($client, 'PLUGIN_QOBUZ_RELEASES'),
 			url   => \&QobuzSearch,
 			image => 'html/images/albums.png',
 			passthrough => [{
