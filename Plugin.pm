@@ -1437,13 +1437,16 @@ sub QobuzGetTracks {
 		}
 
 		my @artistList = ();
-		if (ref $album->{artists}) {  # get all main artists
+		my $numArtists = 0;
+		if (ref $album->{artists} && scalar @{$album->{artists}} ) {  # get all main artists
 			for my $artist ( @{$album->{artists}} ) {
 				if (grep(/main-artist/, @{$artist->{roles}})) {
 					push @artistList, $artist;
+					$numArtists++;
 				}
 			}
-		} else {
+		}
+		if (!$numArtists) {  # if no main artists found, use the primary artist
 			push @artistList, $album->{artist};
 		}
 
