@@ -305,17 +305,36 @@ sub _ignorePlaylists {
 	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
+# Cache this preference
+my ($_splitList, $_gotSplitList);
+
 sub _prepareTrack {
 	my ($album, $track) = @_;
 
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
+	if (!$_gotSplitList) {
+		$_splitList = preferences('server')->get('splitList');
+		$_gotSplitList = 1;
+	}
+
 	my ($artist, $artistId);
-	if (ref $album->{artists}) {
-		($artist, $artistId) = map { $_->{name}, $_->{id} } grep {
-			$_->{roles} && grep(/main-artist/, @{$_->{roles}})
-		} @{$album->{artists}};
+	my $numArtists = 0;
+
+	my $artistList = $album->{artists};
+	if ($artistList && ref $artistList && scalar @$artistList) {
+		for my $artists ( @$artistList ) {
+			if (grep(/main-artist/, @{$artists->{roles}})) {
+				$artist .= ($numArtists ? $_splitList : '') . $artists->{name};
+				$artistId .= ($numArtists ? $_splitList : '') . $artists->{id};
+				$numArtists++;
+			}
+		}
+	}
+	if (!$numArtists && ref $album->{artist}) {
+		$artist = $album->{artist}->{name};
+		$artistId = $album->{artist}->{id};
 	}
 
 	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
@@ -323,8 +342,8 @@ sub _prepareTrack {
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => $artist || $album->{artist}->{name},
-		ARTIST_EXTID => 'qobuz:artist:' . ($artistId || $album->{artist}->{id}),
+		ARTIST       => $artist,
+		ARTIST_EXTID => 'qobuz:artist:' . $artistId,
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
