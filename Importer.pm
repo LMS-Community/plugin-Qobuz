@@ -305,8 +305,8 @@ sub _ignorePlaylists {
 	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
-# Cache this preference
-my ($_splitList, $_gotSplitList);
+# Cache the splitList preference
+my $_splitList =  preferences('server')->get('splitList');;
 
 sub _prepareTrack {
 	my ($album, $track) = @_;
@@ -314,28 +314,11 @@ sub _prepareTrack {
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
-	if (!$_gotSplitList) {
-		$_splitList = preferences('server')->get('splitList');
-		$_gotSplitList = 1;
-	}
-
 	my ($artist, $artistId);
-	my $numArtists = 0;
-
-	my $artistList = $album->{artists};
-	if ($artistList && ref $artistList && scalar @$artistList) {
-		for my $artists ( @$artistList ) {
-			if (grep(/main-artist/, @{$artists->{roles}})) {
-				$artist .= ($numArtists ? $_splitList : '') . $artists->{name};
-				$artistId .= ($numArtists ? $_splitList : '') . $artists->{id};
-				$numArtists++;
-			}
-		}
-	}
-	if (!$numArtists && ref $album->{artist}) {
-		$artist = $album->{artist}->{name};
-		$artistId = $album->{artist}->{id};
-	}
+	
+	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
+	$artist = join($_splitList, map { $_->{name} } @artistList);
+	$artistId = join($_splitList, map { $_->{id} } @artistList);
 
 	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
 
