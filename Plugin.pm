@@ -2304,6 +2304,7 @@ sub _isMainArtist {  # determine if an artist is a main artist on the release
 sub _isMainArtistByName {  # determine if an artist is a main artist on the release
 	my ($artistName, $album) = @_;
 
+	$artistName = lc($artistName);
 	if ($album->{artist} && lc($album->{artist}->{name}) eq $artistName) {
 		return 1;
 	} elsif (ref $album->{artists} && scalar @{$album->{artists}} ) {  # check the other artists
