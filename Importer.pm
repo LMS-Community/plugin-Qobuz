@@ -319,7 +319,7 @@ sub _prepareTrack {
 	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
 	$artist = join($_splitList, map { $_->{name} } @artistList);
 #	$artistId = join(',', map { $_->{id} } @artistList);
-	$artistId = artistList[0]->{id};   # Only add the primary artist id for now
+	$artistId = $artistList[0]->{id};   # Only add the primary artist id for now
 
 	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
 
