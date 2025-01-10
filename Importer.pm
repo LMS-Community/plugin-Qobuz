@@ -305,6 +305,9 @@ sub _ignorePlaylists {
 	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
+# Cache the splitList preference
+my $_splitList =  preferences('server')->get('splitList');;
+
 sub _prepareTrack {
 	my ($album, $track) = @_;
 
@@ -312,19 +315,18 @@ sub _prepareTrack {
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
 	my ($artist, $artistId);
-	if (ref $album->{artists}) {
-		($artist, $artistId) = map { $_->{name}, $_->{id} } grep {
-			$_->{roles} && grep(/main-artist/, @{$_->{roles}})
-		} @{$album->{artists}};
-	}
+	
+	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
+	$artist = join($_splitList, map { $_->{name} } @artistList);
+	$artistId = $artistList[0]->{id};   # Only add the primary artist id for now
 
 	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
 
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => $artist || $album->{artist}->{name},
-		ARTIST_EXTID => 'qobuz:artist:' . ($artistId || $album->{artist}->{id}),
+		ARTIST       => $artist,
+		ARTIST_EXTID => 'qobuz:artist:' . $artistId,
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},

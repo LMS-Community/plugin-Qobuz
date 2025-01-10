@@ -469,7 +469,7 @@ sub QobuzSearch {
 		my $albums = [];
 		for my $album ( @{$searchResult->{albums}->{items} || []} ) {
 			# XXX - unfortunately the album results don't return the artist's ID
-			next if $args->{artistId} && !($album->{artist} && lc($album->{artist}->{name}) eq $search);
+			next if $args->{artistId} && !_isMainArtistByName($search, $album);
 			push @$albums, _albumItem($client, $album);
 		}
 
@@ -639,7 +639,7 @@ sub QobuzArtist {
 			# group by release type if requested
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
-					next if !_isMainArtist($args->{artistId}, $album);
+					next if $args->{artistId} && !_isMainArtist($args->{artistId}, $album);
 
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = ALBUM;
@@ -671,7 +671,7 @@ sub QobuzArtist {
 			my $lastReleaseType = "";
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
-				next if !_isMainArtist($args->{artistId}, $album);
+				next if $args->{artistId} && !_isMainArtist($args->{artistId}, $album);
 
 				if ($groupByReleaseType) {
 					if ($album->{release_type} eq ALBUM) {
@@ -1436,16 +1436,7 @@ sub QobuzGetTracks {
 			}
 		}
 
-		my @artistList = ();
-		if (ref $album->{artists}) {  # get all main artists
-			for my $artist ( @{$album->{artists}} ) {
-				if (grep(/main-artist/, @{$artist->{roles}})) {
-					push @artistList, $artist;
-				}
-			}
-		} else {
-			push @artistList, $album->{artist};
-		}
+		my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
 
 		for my $artists ( @artistList ) {
 			if (my $artistItem = _artistItem($client, $artists, 1)) {
@@ -2298,9 +2289,9 @@ sub _isReleased {  # determine if the referenced album has been released
 sub _isMainArtist {  # determine if an artist is a main artist on the release
 	my ($artistId, $album) = @_;
 
-	if (!$artistId || $album->{artist}->{id} == $artistId) {
+	if ($album->{artist} && $album->{artist}->{id} == $artistId) {
 		return 1;
-	} elsif (ref $album->{artists}) {  # check the other artists
+	} elsif (ref $album->{artists} && scalar @{$album->{artists}} ) {  # check the other artists
 		for my $artists ( @{$album->{artists}} ) {
 			if ($artists->{id} == $artistId && grep(/main-artist/, @{$artists->{roles}})) {
 				return 1;
@@ -2310,6 +2301,21 @@ sub _isMainArtist {  # determine if an artist is a main artist on the release
 	return 0;
 }
 
+sub _isMainArtistByName {  # determine if an artist is a main artist on the release
+	my ($artistName, $album) = @_;
+
+	$artistName = lc($artistName);
+	if ($album->{artist} && lc($album->{artist}->{name}) eq $artistName) {
+		return 1;
+	} elsif (ref $album->{artists} && scalar @{$album->{artists}} ) {  # check the other artists
+		for my $artists ( @{$album->{artists}} ) {
+			if (lc($artists->{name}) eq $artistName && grep(/main-artist/, @{$artists->{roles}})) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
 sub _localDate {  # convert input date string in format YYYY-MM-DD to localized short date format
 	my $iDate = shift;
 	my @dt = split(/-/, $iDate);
