@@ -295,7 +295,7 @@ PLUGIN_QOBUZ_PERFORMERS
 PLUGIN_QOBUZ_MYWEEKLYQ
 	EN	My Weekly Q
 	FR	Mon Qobuz Hebdo
-	NL	Mijn Qobuz Weekblad
+	NL	Mijn Q Suggesties
 
 PLUGIN_QOBUZ_REAUTH_DESC
 	DE	Leider müssen Sie sich erneut bei Qobuz anmelden. Sie können das gleich hier erledigen, oder in den LMS Einstellungen/Erweitert/Qobuz das Konto entfernen und neu anmelden.
@@ -591,5 +591,5 @@ PLUGIN_QOBUZ_IMPORT_WORKS_DESC
 	EN	Import Qobuz Work tag
 	DE	Qobuz Werke importieren
 	FR	Importer le tag Qobuz Work (œuvre)
-	NL	Qobuz Work-tag importeren
+	NL	Qobuz Compositie-tag importeren
 	ES	Importar etiqueta de trabajo Qobuz
