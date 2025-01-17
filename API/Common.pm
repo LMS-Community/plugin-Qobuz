@@ -308,17 +308,20 @@ sub addVersionToTitle {
 
 sub getMainArtists {
 	my ($class, $album) = @_;
-	
+
 	my @artistList = ();
-	if (ref $album->{artists} && scalar @{$album->{artists}} ) {  # get all main artists
-		for my $artist ( @{$album->{artists}} ) {
-			if (grep(/main-artist/, @{$artist->{roles}})) {
+	my $artistName;
+
+	if (ref $album->{artist}) {
+		push @artistList, $album->{artist};  # always include the primary artist
+		$artistName = lc($album->{artist}->{name});
+	}
+	if (ref $album->{artists} && scalar @{$album->{artists}}) {
+		for my $artist ( @{$album->{artists}} ) {  # get additional main artists, if any
+			if (grep(/main-artist/, @{$artist->{roles}}) && (lc($artist->{name}) ne $artistName)) {
 				push @artistList, $artist;
 			}
 		}
-	}
-	if (!scalar @artistList) {  # no main artists found, use the primary artist
-		push @artistList, $album->{artist};
 	}
 	return @artistList;
 }
