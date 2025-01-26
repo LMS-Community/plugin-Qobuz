@@ -1,15 +1,15 @@
 <?xml version='1.0' standalone='yes'?>
 <extensions>
   <plugins>
-    <plugin maxTarget="*" minTarget="7.9" name="Qobuz" version="3.5.6">
-      <creator>Pierre Beck / Michael Herger / darrell / SamY / sveninndh</creator>
-      <link>https://github.com/LMS-Community/plugin-Qobuz</link>
-      <desc lang="EN">Stream Qobuz to your Squeezebox.</desc>
-      <title lang="EN">Qobuz</title>
-      <url>https://github.com/LMS-Community/plugin-Qobuz/releases/download/3.5.6/Qobuz.zip</url>
-      <sha>1a332b2945b234bb1da9ba420e1d3b20dbcd9778</sha>
+    <plugin name="Qobuz" version="3.5.7" minTarget="7.9" maxTarget="*">
       <icon>https://raw.githubusercontent.com/LMS-Community/plugin-Qobuz/master/HTML/EN/plugins/Qobuz/html/images/icon.png</icon>
+      <url>https://github.com/LMS-Community/plugin-Qobuz/releases/download/3.5.7/Qobuz.zip</url>
+      <creator>Pierre Beck / Michael Herger / darrell / SamY / sveninndh</creator>
       <category>musicservices</category>
+      <desc lang="EN">Stream Qobuz to your Squeezebox.</desc>
+      <link>https://github.com/LMS-Community/plugin-Qobuz</link>
+      <title lang="EN">Qobuz</title>
+      <sha>683b604984f0115cb475fbe8ef3676ac8f3da112</sha>
     </plugin>
   </plugins>
 </extensions>
