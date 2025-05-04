@@ -169,18 +169,18 @@ PLUGIN_QOBUZ_MUSIC_ADDED
 	SV	Musiken har lagts till
 
 PLUGIN_QOBUZ_ADD_FAVORITE
-	DE	Qobuz Favorit '%s' erstellen
-	EN	Add '%s' to Qobuz favorites
-	EN_GB	Add '%s' to Qobuz favourites
-	FR	Ajouter "%s" aux favoris Qobuz
-	NL	Voeg '%s' toe aan Qobuz favorieten
+	DE	Qobuz Favorit %s '%s' erstellen
+	EN	Add %s '%s' to Qobuz favorites
+	EN_GB	Add %s '%s' to Qobuz favourites
+	FR	Ajouter %s "%s" aux favoris Qobuz
+	NL	Voeg %s '%s' toe aan Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE
-	DE	Qobuz Favorit '%s' entfernen
-	EN	Remove '%s' from Qobuz favorites
-	EN_GB	Remove '%s' from Qobuz favourites
-	FR	Retirer "%s" des favoris Qobuz
-	NL	Verwijder '%s' van Qobuz favorieten
+	DE	Qobuz Favorit %s '%s' entfernen
+	EN	Remove %s '%s' from Qobuz favorites
+	EN_GB	Remove %s '%s' from Qobuz favourites
+	FR	Retirer %s "%s" des favoris Qobuz
+	NL	Verwijder %s '%s' van Qobuz favorieten
 
 PLUGIN_QOBUZ_SEARCH
 	DE	Suche %s '%s'
@@ -581,6 +581,11 @@ PLUGIN_QOBUZ_RELEASE_TYPE
 	EN	Qobuz Release Type
 	FR	Type de sortie Qobuz
 	NL	Qobuz Release Type
+
+PLUGIN_QOBUZ_RELEASE
+	EN	Release
+	FR	Album
+	NL	Release
 
 PLUGIN_QOBUZ_RELEASES
 	EN	Releases
