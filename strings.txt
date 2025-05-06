@@ -169,14 +169,14 @@ PLUGIN_QOBUZ_MUSIC_ADDED
 	SV	Musiken har lagts till
 
 PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST
-	DE	Fügen Sie den Künstler '%s' zu den Qobuz-Favoriten hinzu
+	DE	Künstler '%s' zu den Qobuz-Favoriten hinzufügen
 	EN	Add Artist '%s' to Qobuz favorites
 	EN_GB	Add Artist '%s' to Qobuz favourites
 	FR	Ajouter Artiste "%s" aux favoris Qobuz
 	NL	Voeg Artiest '%s' toe aan Qobuz favorieten
 
 PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE
-	DE	Fügen Sie die Veröffentlichung '%s' zu den Qobuz-Favoriten hinzu
+	DE	Album '%s' zu den Qobuz-Favoriten hinzufügen
 	EN	Add Release '%s' to Qobuz favorites
 	EN_GB	Add Release '%s' to Qobuz favourites
 	FR	Ajouter Album "%s" aux favoris Qobuz
@@ -190,21 +190,21 @@ PLUGIN_QOBUZ_ADD_FAVORITE_TRACK
 	NL	Voeg Nummer '%s' toe aan Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST
-	DE	Entfernen Sie den Künstler '%s' aus den Qobuz-Favoriten
+	DE	Künstler '%s' aus den Qobuz-Favoriten entfernen
 	EN	Remove Artist '%s' from Qobuz favorites
 	EN_GB	Remove Artist '%s' from Qobuz favourites
 	FR	Retirer Artiste "%s" des favoris Qobuz
 	NL	Verwijder Artiest '%s' van Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE
-	DE	Entfernen Sie die Version '%s' aus den Qobuz-Favoriten
+	DE	Album '%s' aus den Qobuz-Favoriten entfernen
 	EN	Remove Release '%s' from Qobuz favorites
 	EN_GB	Remove Release '%s' from Qobuz favourites
 	FR	Retirer Album "%s" des favoris Qobuz
 	NL	Verwijder Release '%s' van Qobuz favorieten
 
 PLUGIN_QOBUZ_REMOVE_FAVORITE_TRACK
-	DE	Entfernen Sie den Titel '%s' aus den Qobuz-Favoriten
+	DE	Titel '%s' aus den Qobuz-Favoriten entfernen
 	EN	Remove Track '%s' from Qobuz favorites
 	EN_GB	Remove Track '%s' from Qobuz favourites
 	FR	Retirer Piste "%s" des favoris Qobuz
