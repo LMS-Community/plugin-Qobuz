@@ -759,7 +759,7 @@ sub QobuzArtist {
 			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
 
 			push @$items, {
- 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist->{name}),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST' : 'PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST', $artist->{name}),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				image => 'html/images/favorites.png',
 				passthrough => [{
@@ -998,7 +998,7 @@ sub QobuzManageFavorites {
 			my $isFavorite = grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}};
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $artist),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST' : 'PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST', $artist),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
 					artist_ids => $artistId
@@ -1011,7 +1011,7 @@ sub QobuzManageFavorites {
 			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
 					album_ids => $albumId
@@ -1024,7 +1024,7 @@ sub QobuzManageFavorites {
 			my $isFavorite = grep { $_->{id} eq $trackId } @{$favorites->{tracks}->{items}};
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $title),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_TRACK' : 'PLUGIN_QOBUZ_ADD_FAVORITE_TRACK', $title),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
 					track_ids => $trackId
@@ -1450,7 +1450,7 @@ sub QobuzGetTracks {
 			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE' : 'PLUGIN_QOBUZ_ADD_FAVORITE', $album->{title}),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album->{title}),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				image => 'html/images/favorites.png',
 				passthrough => [{
