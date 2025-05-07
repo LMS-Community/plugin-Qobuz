@@ -426,13 +426,17 @@ sub deleteFavorite {
 
 sub getUserPlaylists {
 	my ($self, $cb, $user, $limit) = @_;
-
+	
+	my $sortPlaylists = $prefs->get('sortPlaylists') || 0;
+	
 	$self->_get('playlist/getUserPlaylists', sub {
 		my $playlists = shift;
 
-		$playlists->{playlists}->{items} = [ sort {
-			lc($a->{name}) cmp lc($b->{name})
-		} @{$playlists->{playlists}->{items} || []} ] if $playlists && ref $playlists && $playlists->{playlists} && ref $playlists->{playlists};
+		if ($sortPlaylists == 1) {  # sort alphabetically
+			$playlists->{playlists}->{items} = [ sort {
+				lc($a->{name}) cmp lc($b->{name})
+			} @{$playlists->{playlists}->{items} || []} ] if $playlists && ref $playlists && $playlists->{playlists} && ref $playlists->{playlists};
+		}
 
 		$cb->($playlists);
 	}, {

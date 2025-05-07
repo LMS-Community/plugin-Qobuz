@@ -52,6 +52,7 @@ $prefs->init({
 	showDiscs => 0,
 	groupReleases => 1,
 	importWorks => 1,
+	sortPlaylists => 1,
 });
 
 $prefs->migrate(1,

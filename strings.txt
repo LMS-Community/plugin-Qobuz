@@ -374,6 +374,24 @@ PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	FR	Trier par date d'ajout
 	NL	Standaard sorteervolgorde behouden
 
+PLUGIN_QOBUZ_SORT_PLAYLISTS
+	DE	Playlists sortieren
+	EN	Sort Playlists
+	FR	Trier les listes de lecture
+	NL	Sorteer Afspeellijsten
+
+PLUGIN_QOBUZ_SORT_PLAYLISTS_ALPHA
+	DE	Alphabetisch sortieren
+	EN	Sort alphabetically
+	FR	Trier par ordre alphabétique
+	NL	Sorteer alphabetisch
+
+PLUGIN_QOBUZ_SORT_PLAYLISTS_DEFAULT
+	DE	Nach Hinzufügedatum sortieren
+	EN	Sort by date added
+	FR	Trier par date d'ajout
+	NL	Standaard sorteervolgorde behouden
+
 PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS
 	DE	Künstleralben sortieren
 	EN	Sort Artist Albums
