@@ -61,6 +61,13 @@
 			</select>
 		[% END %]
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SORT_PLAYLISTS" desc="" %]
+			<select name="pref_sortPlaylists" id="sortPlaylists">
+				<option [% prefs.sortPlaylists ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_SORT_PLAYLISTS_DEFAULT" | string %]</option>
+				<option [% prefs.sortPlaylists == 1 ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_SORT_PLAYLISTS_ALPHA" | string %]</option>
+			</select>
+		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS" desc="" %]
 			<select name="pref_sortArtistAlbums" id="sortArtistAlbums">
 				<option [% prefs.sortArtistAlbums ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA" | string %]</option>
