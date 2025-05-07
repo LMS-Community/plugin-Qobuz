@@ -375,7 +375,7 @@ PLUGIN_QOBUZ_SORT_FAVORITES_DEFAULT
 	NL	Standaard sorteervolgorde behouden
 
 PLUGIN_QOBUZ_SORT_PLAYLISTS
-	DE	Playlists sortieren
+	DE	Wiedergabelisten sortieren
 	EN	Sort Playlists
 	FR	Trier les listes de lecture
 	NL	Sorteer Afspeellijsten
