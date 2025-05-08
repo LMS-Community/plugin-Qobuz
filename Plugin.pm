@@ -1950,6 +1950,16 @@ sub albumInfoMenu {
 			}
 
 			$items = _albumPerformers($client, $performers, $qobuzAlbum->{tracks_count}, $items);
+			
+			if ($qobuzAlbum->{description}) {
+				push @$items, {
+					name  => cstring($client, 'DESCRIPTION'),
+					items => [{
+						name => _stripHTML($qobuzAlbum->{description}),
+						type => 'textarea',
+					}],
+				};
+			};			
 
 			if (my $item = trackInfoMenuBooklet($client, undef, undef, $qobuzAlbum)) {
 				push @$items, $item
