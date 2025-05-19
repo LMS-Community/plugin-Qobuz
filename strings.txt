@@ -639,3 +639,7 @@ PLUGIN_QOBUZ_IMPORT_WORKS_DESC
 	FR	Importer le tag Qobuz Work (œuvre)
 	NL	Qobuz Compositie-tag importeren
 	ES	Importar etiqueta de trabajo Qobuz
+
+PLUGIN_QOBUZ_CURRENT_SELECTED_ACCOUNT
+	EN	Selected account:
+	FR	Compte sélectionné :
