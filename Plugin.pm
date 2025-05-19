@@ -357,6 +357,13 @@ sub handleFeed {
 			image => __PACKAGE__->_pluginDataFor('icon'),
 			url => \&QobuzSelectAccount,
 		};
+
+		my $currentUserId = $prefs->client($client)->get('userId');
+		my $currentUserName = $prefs->get('accounts')->{$currentUserId}->{'userdata'}->{'display_name'};
+		unshift @$items, {
+			name  => cstring($client, 'PLUGIN_QOBUZ_CURRENT_SELECTED_ACCOUNT') . ' ' . $currentUserName,
+			type  => 'textarea'
+		};
 	}
 
 	$cb->({ items => $items });
