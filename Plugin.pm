@@ -305,41 +305,6 @@ sub handleFeed {
 			type    => 'editor-picks',
 		}]
 	},{
-	# 	name => cstring($client, 'PLUGIN_QOBUZ_LATESTPLAYLISTS'),
-	# 	url  => \&QobuzPublicPlaylists,
-	# 	image => 'html/images/playlists.png',
-	# 	passthrough => [{
-	# 		type    => 'last-created',
-	# 	}]
-	# },{
-		name => cstring($client, 'PLUGIN_QOBUZ_BESTSELLERS'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			type    => 'best-sellers',
-		}]
-	},{
-		name => cstring($client, 'PLUGIN_QOBUZ_NEW_RELEASES'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			type    => 'new-releases-full',
-		}]
-	},{
-		name => cstring($client, 'PLUGIN_QOBUZ_PRESS'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			type    => 'press-awards',
-		}]
-	},{
-		name => cstring($client, 'PLUGIN_QOBUZ_EDITOR_PICKS'),
-		url  => \&QobuzFeaturedAlbums,
-		image => 'html/images/albums.png',
-		passthrough => [{
-			type    => 'editor-picks',
-		}]
-	},{
 		name  => cstring($client, 'GENRES'),
 		image => 'html/images/genres.png',
 		type => 'link',

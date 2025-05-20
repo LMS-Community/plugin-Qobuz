@@ -104,29 +104,6 @@ PLUGIN_QOBUZ_SUB_GENRES
 	FR	Sous-genres
 	NL	Subgenres
 
-PLUGIN_QOBUZ_BESTSELLERS
-	EN	Bestsellers
-	FR	Meilleures Ventes
-	NL	Meest Verkocht
-
-PLUGIN_QOBUZ_NEW_RELEASES
-	DE	Neue Veröffentlichungen
-	EN	New Releases
-	FR	Nouveautés
-	NL	Nieuwe Muziek
-
-PLUGIN_QOBUZ_PRESS
-	DE	In der Presse
-	EN	In the Press
-	FR	Vu dans la Presse
-	NL	In Het Nieuws
-
-PLUGIN_QOBUZ_EDITOR_PICKS
-	DE	Qobuz Auswahl
-	EN	Qobuz Selection
-	FR	Sélection Qobuz
-	NL	Qobuz Selectie
-
 PLUGIN_QOBUZ_USERPURCHASES
 	DE	Meine Einkäufe
 	EN	My Purchases
