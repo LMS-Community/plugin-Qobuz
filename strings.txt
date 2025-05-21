@@ -314,11 +314,17 @@ PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	FR	Afficher le compositeur avec l'interprète
 	NL	Toon Componisten met Artiest
 
-PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE
+PLUGIN_QOBUZ_SHOW_TRACK_VERSION_WITH_TITLE
 	DE	Aufnahmeversion mit Titel anzeigen
 	EN	Show recording version with track titles
-	FR	Afficher la version d'enregistrement avec le titre
+	FR	Afficher la version d'enregistrement avec le titre des morceaux
 	NL	Toon opnameversie bij de titel van nummers
+
+PLUGIN_QOBUZ_SHOW_ALBUM_VERSION_WITH_TITLE
+	DE	Aufnahmeversion mit Alben-Überschriften
+	EN	Show recording version with album titles
+	FR	Afficher la version d'enregistrement avec le titre des albums
+	NL	Toon opnameversie bij de titel van albums
 
 PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM
 	DE	Erscheinungsjahr mit Alben anzeigen

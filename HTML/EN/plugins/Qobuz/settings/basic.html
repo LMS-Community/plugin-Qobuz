@@ -81,11 +81,18 @@
 			<label for="pref_groupReleases" class="stdlabel">[% "PLUGIN_QOBUZ_GROUP_RELEASES_DESC" | string %]</label>
 		[% END %]
 
-		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_VERSION_WITH_TITLE" desc="" %]
-			<select name="pref_appendVersionToTitle" id="appendVersionToTitle">
-				<option [% prefs.appendVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
-				<option [% prefs.appendVersionToTitle ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_TRACK_VERSION_WITH_TITLE" desc="" %]
+			<select name="pref_appendTrackVersionToTitle" id="appendTrackVersionToTitle">
+				<option [% prefs.appendTrackVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.appendTrackVersionToTitle ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_ALBUM_VERSION_WITH_TITLE" desc="" %]
+		<select name="pref_appendAlbumVersionToTitle" id="appendAlbumVersionToTitle">
+			<option [% prefs.appendAlbumVersionToTitle ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+			<option [% prefs.appendAlbumVersionToTitle ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+		</select>
 		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_YEAR_WITH_ALBUM" desc="" %]

@@ -343,7 +343,7 @@ sub getMetadataFor {
 		$meta->{cover} = Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
 	}
 
-	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
+	$meta->{title} = Plugins::Qobuz::API::Common->addTrackVersionToTitle($meta);
 
 	# user pref is for enhanced classical music display, and we have a classical release (this is where playlist track titles is set up)
 	if ( $meta->{isClassique} ) {

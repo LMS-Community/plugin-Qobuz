@@ -984,7 +984,7 @@ sub QobuzManageFavorites {
 			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', 'blip'),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				passthrough => [{
 					album_ids => $albumId
@@ -1332,7 +1332,7 @@ sub QobuzGetTracks {
 
 				# insert disc item before the first of its tracks
 				splice @$items, $discs->{$disc}->{index}, 0, {
-					name => $discs->{$disc}->{title},
+					name => $discs->Plugins::Qobuz::API::Common->buildAlbumTitle($disc),
 					image => 'html/images/albums.png',
 					type => 'playlist',
 					playall => 1,
@@ -1423,7 +1423,7 @@ sub QobuzGetTracks {
 			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
 
 			push @$items, {
-				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album->{title}),
+				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', Plugins::Qobuz::API::Common->buildAlbumTitle($album)),
 				url  => $isFavorite ? \&QobuzDeleteFavorite : \&QobuzAddFavorite,
 				image => 'html/images/favorites.png',
 				passthrough => [{
@@ -1624,7 +1624,7 @@ sub _albumItem {
 	my ($client, $album) = @_;
 
 	my $artist = $album->{artist}->{name} || '';
-	my $albumName = $album->{title} || '';
+	my $albumName = Plugins::Qobuz::API::Common->buildAlbumTitle($album);
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
 	my $albumYear = $showYearWithAlbum ? $album->{year} || substr($album->{release_date_stream},0,4) || 0 : 0;
 
@@ -1665,7 +1665,7 @@ sub _albumItem {
 	$item->{url}         = \&QobuzGetTracks;
 	$item->{passthrough} = [{
 		album_id => $album->{id},
-		album_title => $album->{title},
+		album_title => Plugins::Qobuz::API::Common->buildAlbumTitle($album),
 	}];
 
 	return $item;
@@ -1709,18 +1709,19 @@ sub _playlistItem {
 sub _trackItem {
 	my ($client, $track, $isWeb) = @_;
 
-	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
+	my $title = Plugins::Qobuz::API::Common->addTrackVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
-	my $album  = $track->{album}->{title} || '';
-	if ( $track->{album}->{title} && $prefs->get('showDiscs') ) {
-		$album = Slim::Music::Info::addDiscNumberToAlbumTitle($album,$track->{media_number},$track->{album}->{media_count});
+	my $albumTitle  = Plugins::Qobuz::API::Common->buildAlbumTitle($track->{album}) || '';
+	#my $album  = $track->{album}->{title} || '';
+	if ( $albumTitle && $prefs->get('showDiscs') ) {
+		$albumTitle = Slim::Music::Info::addDiscNumberToAlbumTitle($albumTitle,$track->{media_number},$track->{album}->{media_count});
 	}
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
-		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $albumTitle),
 		line1 => $title,
-		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
+		line2 => $artist . ($artist && $albumTitle ? ' - ' : '') . $albumTitle,
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 	};
 
@@ -1758,7 +1759,7 @@ sub _trackItem {
 	}
 
 	if ( $track->{album} ) {
-		$item->{year} = $track->{album}->{year} || substr($track->{$album}->{release_date_stream},0,4) || 0;
+		$item->{year} = $track->{album}->{year} || substr($track->{$albumTitle}->{release_date_stream},0,4) || 0;
 	}
 
 	if ( $prefs->get('parentalWarning') && $track->{parental_warning} ) {
@@ -1901,7 +1902,7 @@ sub albumInfoMenu {
 
 			my $args = {};
 			$args->{albumId} = $qobuzAlbum->{id};
-			$args->{album} = $qobuzAlbum->{title};
+			$args->{album} = Plugins::Qobuz::API::Common->buildAlbumTitle($qobuzAlbum);
 			$args->{artistId} = $qobuzAlbum->{artist}->{id};
 			$args->{artist} = $qobuzAlbum->{artist}->{name};
 			push @$items, {

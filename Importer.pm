@@ -103,7 +103,7 @@ sub scanAlbums {
 			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
-				$progress->update($album->{title});
+				$progress->update(Plugins::Qobuz::API::Common->buildAlbumTitle($album));
 				$class->storeTracks([
 					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
 				], undef, $accountName);
@@ -117,7 +117,7 @@ sub scanAlbums {
 
 		while ( my ($albumId, $timestamp) = each %missingAlbums ) {
 			my $album = Plugins::Qobuz::API::Sync->getAlbum($account->[1], $albumId);
-			$progress->update($album->{title});
+			$progress->update(Plugins::Qobuz::API::Common->buildAlbumTitle($album));
 
 			$album->{favorited_at} = $timestamp;
 			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
@@ -324,10 +324,10 @@ sub _prepareTrack {
 
 	my $attributes = {
 		url          => $url,
-		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
+		TITLE        => Plugins::Qobuz::API::Common->addTrackVersionToTitle($track),
 		ARTIST       => $artist,
 		ARTIST_EXTID => 'qobuz:artist:' . $artistId,
-		ALBUM        => $album->{title},
+		ALBUM        => Plugins::Qobuz::API::Common->buildAlbumTitle($album),
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
 		GENRE        => $album->{genre},

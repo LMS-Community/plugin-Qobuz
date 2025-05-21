@@ -173,7 +173,7 @@ sub _precacheAlbum {
 		}
 
 		my $albumInfo = {
-			title  => $album->{title},
+			title  => Plugins::Qobuz::API::Common->buildAlbumTitle($album),
 			id     => $album->{id},
 			artist => $album->{artist},
 			image  => $album->{image},
@@ -247,7 +247,7 @@ sub precacheTrack {
 
 	my $meta = {
 		title    => $track->{title} || $track->{id},
-		album    => $album->{title} || '',
+		album    => Plugins::Qobuz::API::Common->buildAlbumTitle($album) || '',
 		albumId  => $album->{id},
 		artist   => $class->getArtistName($track, $album),
 		artistId => $album->{artist}->{id} || '',
@@ -296,14 +296,31 @@ sub precacheTrack {
 	return $meta;
 }
 
-sub addVersionToTitle {
+sub addTrackVersionToTitle {
 	my ($class, $track) = @_;
 
-	if ($track->{version} && $prefs->get('appendVersionToTitle')) {
+	if ($track->{version} && $prefs->get('appendTrackVersionToTitle')) {
 		$track->{title} .= " ($track->{version})";
 	}
 
 	return $track->{title};
+}
+
+sub buildAlbumTitle {
+	my ($class, $album) = @_;
+	my $albumTitle = $album->{title};
+
+	return addAlbumVersion($albumTitle, $album);
+}
+
+sub addAlbumVersion {
+	my ($albumTitle, $album) = @_;
+
+	if ($prefs->get('appendAlbumVersionToTitle') && $album->{version}) {
+		return $albumTitle . " ($album->{version})";
+	}
+
+	return $albumTitle;
 }
 
 sub getMainArtists {
