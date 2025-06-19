@@ -276,7 +276,7 @@ sub parseDirectHeaders {
 	$song->duration($duration);
 
 	if ($length && $contentType eq 'flc') {
-		$bitrate = $length*8 / ($duration - $offset) if $duration;
+		$bitrate = $length*8 / ($duration - $offset) if $duration > $offset;
 		$song->bitrate($bitrate) if $bitrate;
 	}
 

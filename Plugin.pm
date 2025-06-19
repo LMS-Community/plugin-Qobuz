@@ -946,7 +946,7 @@ sub QobuzUserFavorites {
 		for my $artist ( sort {
 			Slim::Utils::Text::ignoreCaseArticles($a->{name}) cmp Slim::Utils::Text::ignoreCaseArticles($b->{name})
 		} @{$favorites->{artists}->{items}} ) {
-			push @artists,  _artistItem($client, $artist, 'withIcon');
+			push @artists,  _artistItem($client, $artist, 'withIcon', 1 );
 		}
 
 		push @$items, {
@@ -954,13 +954,15 @@ sub QobuzUserFavorites {
 			items => \@artists,
 			image => 'html/images/artists.png',
 		} if @artists;
+		
+		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 
 		my @albums;
 		for my $album ( @{$favorites->{albums}->{items}} ) {
-			push @albums, _albumItem($client, $album);
+			my $item = _albumItem($client, $album);
+			$item->{textkey} = substr( Slim::Utils::Text::ignoreCaseArticles($item->{name}), 0, 1 ) if $sortFavsAlphabetically;
+			push @albums, $item;
 		}
-
-		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 
 		push @$items, {
 			name => cstring($client, 'PLUGIN_QOBUZ_RELEASES'),
@@ -1700,7 +1702,7 @@ sub _albumItem {
 }
 
 sub _artistItem {
-	my ($client, $artist, $withIcon) = @_;
+	my ($client, $artist, $withIcon, $sorted) = @_;
 
 	my $item = {
 		name  => $artist->{name},
@@ -1711,6 +1713,7 @@ sub _artistItem {
 	};
 
 	$item->{image} = $artist->{picture} || getAPIHandler($client)->getArtistPicture($artist->{id}) || 'html/images/artists.png' if $withIcon;
+	$item->{textkey} = substr( Slim::Utils::Text::ignoreCaseArticles($item->{name}), 0, 1 ) if $sorted;
 
 	return $item;
 }
