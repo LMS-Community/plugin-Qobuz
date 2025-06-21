@@ -482,7 +482,7 @@ sub QobuzSearch {
 		my $tracks = [];
 		for my $track ( @{$searchResult->{tracks}->{items} || []} ) {
 			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
-			push @$tracks, _trackItem($client, $track, $params->{isWeb});
+			push @$tracks, _trackItem($client, $track);
 		}
 
 		my $playlists = [];
@@ -1161,6 +1161,7 @@ sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $albumId = $args->{album_id};
 	my $albumTitle = $args->{album_title};
+	my $tags = $params->{tags};
 
 	my $api = getAPIHandler($client);
 
@@ -1248,7 +1249,7 @@ sub QobuzGetTracks {
 			}
 
 			$totalDuration += $track->{duration};
-			my $formattedTrack = _trackItem($client, $track);
+			my $formattedTrack = _trackItem($client, $track, $tags);
 			my $work = $formattedTrack->{work};
 
 			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
@@ -1305,10 +1306,10 @@ sub QobuzGetTracks {
 				# Create new work heading, except when the user has chosen integrated playlists - in that case
 				# the work-playlist headings will be spliced in later.
 				if ( ( $workId ne $lastwork ) || ( $lastComposer && $currentComposer && $lastComposer ne $currentComposer ) ) {
-#					$workHeadingPos = push @$items,{
-#						name  => $formattedTrack->{displayWork},
-#						type  => 'text'
-#					} unless $workPlaylistPos eq "integrated";
+					$workHeadingPos = push @$items,{
+						name  => $formattedTrack->{displayWork},
+						type  => 'text'
+					} unless $tags || $workPlaylistPos eq "integrated";
 
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
@@ -1349,94 +1350,93 @@ sub QobuzGetTracks {
 			$trackNumber++;
 			$lastWorksWorkId = $worksWorkId;
 
-#Slim::Utils::Log::logError("DK \$formattedTrack=" . Data::Dump::dump($formattedTrack));
 			push @$items, $formattedTrack;
 
 		}
 
 		# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
-#		if ( $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
-#			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
-#				my $discTracks = $discs->{$disc}->{tracks};
+		if ( !$tags && $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
+			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
+				my $discTracks = $discs->{$disc}->{tracks};
 
-#				# insert disc item before the first of its tracks
-#				splice @$items, $discs->{$disc}->{index}, 0, {
-#					name => $discs->{$disc}->{title},
-#					image => 'html/images/albums.png',
-#					type => 'playlist',
-#					playall => 1,
-#					url => \&QobuzWorkGetTracks,
-#					passthrough => [{
-#						tracks => $discTracks
-#					}],
-#					items => $discTracks
-#				} if scalar @$discTracks > 1;
-#			}
-#		}
+				# insert disc item before the first of its tracks
+				splice @$items, $discs->{$disc}->{index}, 0, {
+					name => $discs->{$disc}->{title},
+					image => 'html/images/albums.png',
+					type => 'playlist',
+					playall => 1,
+					url => \&QobuzWorkGetTracks,
+					passthrough => [{
+						tracks => $discTracks
+					}],
+					items => $discTracks
+				} if scalar @$discTracks > 1;
+			}
+		}
 
-#		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
-#			# create work playlists unless there is only one work containing all tracks
-#			my @workPlaylists = ();
-#			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
-#				my $workNumber = 0;
-#				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
-#					my $workTracks = $works->{$work}->{tracks};
-#					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
-#						if ( $workPlaylistPos eq "integrated" ) {
-#							# Add playlist as work heading (or just add as text if only one track in the work)
-#							my $idx = $works->{$work}->{index} + $workNumber;
-#							my $workTrackCount = @$workTracks;
-#							if ( $workTrackCount == 1 || $workTrackCount == $album->{tracks_count} ) {
-#								if ( $worksfound ) {
-#									splice @$items, $idx, 0, {
-#										name => $workComposer->{$work}->{displayWork},
-#										image => 'html/images/playlists.png',
-#									};
-#								} else {
-#									splice @$items, $idx, 0, {
-#										name => $workComposer->{$work}->{displayWork},
-#										type => 'text',
-#									}
-#								}
-#							} else {
-#								splice @$items, $idx, 0, {
-#									name => $workComposer->{$work}->{displayWork},
-#									image => 'html/images/playall.png',
-#									type => 'playlist',
-#									playall => 1,
-#									url => \&QobuzWorkGetTracks,
-#									passthrough => [{
-#										tracks => $workTracks
-#									}],
-#									items => $workTracks
-#								};
-#							}
-#							$workNumber++;
-#						} else {
-#							push @workPlaylists, {
-#								name => $works->{$work}->{title},
-#								image => 'html/images/playall.png',
-#								type => 'playlist',
-#								playall => 1,
-#								url => \&QobuzWorkGetTracks,
-#								passthrough => [{
-#									tracks => $workTracks
-#								}],
-#								items => $workTracks
-#							}
-#						}
-#					}
-#				}
-#			}
-#			if ( @workPlaylists ) {
-#				# insert work playlists according to the user preference
-#				if ( $workPlaylistPos eq "before" ) {
-#					unshift @$items, @workPlaylists;
-#				} elsif ( $workPlaylistPos eq "after" ) {
-#					push @$items, @workPlaylists;
-#				}
-#			}
-#		}
+		if ( !$tags && scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
+			# create work playlists unless there is only one work containing all tracks
+			my @workPlaylists = ();
+			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
+				my $workNumber = 0;
+				foreach my $work (sort { $works->{$a}->{index} <=> $works->{$b}->{index} } keys %$works) {
+					my $workTracks = $works->{$work}->{tracks};
+					if ( scalar @$workTracks && ( scalar @$workTracks < $album->{tracks_count} || $workPlaylistPos eq "integrated" ) ) {
+						if ( $workPlaylistPos eq "integrated" ) {
+							# Add playlist as work heading (or just add as text if only one track in the work)
+							my $idx = $works->{$work}->{index} + $workNumber;
+							my $workTrackCount = @$workTracks;
+							if ( $workTrackCount == 1 || $workTrackCount == $album->{tracks_count} ) {
+								if ( $worksfound ) {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										image => 'html/images/playlists.png',
+									};
+								} else {
+									splice @$items, $idx, 0, {
+										name => $workComposer->{$work}->{displayWork},
+										type => 'text',
+									}
+								}
+							} else {
+								splice @$items, $idx, 0, {
+									name => $workComposer->{$work}->{displayWork},
+									image => 'html/images/playall.png',
+									type => 'playlist',
+									playall => 1,
+									url => \&QobuzWorkGetTracks,
+									passthrough => [{
+										tracks => $workTracks
+									}],
+									items => $workTracks
+								};
+							}
+							$workNumber++;
+						} else {
+							push @workPlaylists, {
+								name => $works->{$work}->{title},
+								image => 'html/images/playall.png',
+								type => 'playlist',
+								playall => 1,
+								url => \&QobuzWorkGetTracks,
+								passthrough => [{
+									tracks => $workTracks
+								}],
+								items => $workTracks
+							}
+						}
+					}
+				}
+			}
+			if ( @workPlaylists ) {
+				# insert work playlists according to the user preference
+				if ( $workPlaylistPos eq "before" ) {
+					unshift @$items, @workPlaylists;
+				} elsif ( $workPlaylistPos eq "after" ) {
+					push @$items, @workPlaylists;
+				}
+			}
+		}
 
 		my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
 
@@ -1640,7 +1640,7 @@ sub QobuzPlaylistGetTracks {
 		my $tracks = [];
 
 		foreach my $track (@{$playlist->{tracks}->{items}}) {
-			push @$tracks, _trackItem($client, $track, $params->{isWeb});
+			push @$tracks, _trackItem($client, $track);
 		}
 
 		$cb->({
@@ -1651,7 +1651,6 @@ sub QobuzPlaylistGetTracks {
 
 sub _albumItem {
 	my ($client, $album) = @_;
-Slim::Utils::Log::logError("DK \$album=" . Data::Dump::dump($album));
 
 	my $artist = $album->{artist}->{name} || '';
 	my $albumName = $album->{title} || '';
@@ -1703,13 +1702,11 @@ Slim::Utils::Log::logError("DK \$album=" . Data::Dump::dump($album));
 		album_title => $album->{title},
 	}];
 
-Slim::Utils::Log::logError("DK \$item=" . Data::Dump::dump($item));
 	return $item;
 }
 
 sub _artistItem {
 	my ($client, $artist, $withIcon) = @_;
-Slim::Utils::Log::logError("DK \$artist=" . Data::Dump::dump($artist));
 
 	my $item = {
 		hasMetadata => 'artist',
@@ -1745,8 +1742,7 @@ sub _playlistItem {
 }
 
 sub _trackItem {
-	my ($client, $track, $isWeb) = @_;
-Slim::Utils::Log::logError("DK \$track=" . Data::Dump::dump($track));
+	my ($client, $track, $tags) = @_;
 
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
@@ -1757,7 +1753,7 @@ Slim::Utils::Log::logError("DK \$track=" . Data::Dump::dump($track));
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
-#		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		name  => $tags ? $title : sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
 		line1 => $title,
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
@@ -1766,7 +1762,6 @@ Slim::Utils::Log::logError("DK \$track=" . Data::Dump::dump($track));
 		artist      => $track->{performer}->{name},
 		secs        => $track->{duration},
 		duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
-		name        => $track->{title},
 		tracknum    => $track->{track_number},
 		discnum     => $track->{media_number},
 		disccount   => $track->{album}->{media_count},
