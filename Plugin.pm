@@ -482,7 +482,7 @@ sub QobuzSearch {
 		my $tracks = [];
 		for my $track ( @{$searchResult->{tracks}->{items} || []} ) {
 			next if $args->{artistId} && !($track->{performer} && $track->{performer}->{id} eq $args->{artistId});
-			push @$tracks, _trackItem($client, $track, $params->{isWeb});
+			push @$tracks, _trackItem($client, $track);
 		}
 
 		my $playlists = [];
@@ -1163,6 +1163,7 @@ sub QobuzGetTracks {
 	my ($client, $cb, $params, $args) = @_;
 	my $albumId = $args->{album_id};
 	my $albumTitle = $args->{album_title};
+	my $tags = $params->{tags};
 
 	my $api = getAPIHandler($client);
 
@@ -1250,12 +1251,12 @@ sub QobuzGetTracks {
 			}
 
 			$totalDuration += $track->{duration};
-			my $formattedTrack = _trackItem($client, $track);
-			my $work = delete $formattedTrack->{work};
+			my $formattedTrack = _trackItem($client, $track, $tags);
+			my $work = $formattedTrack->{work};
 
 			# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
 			if ( $prefs->get('showDiscs') && $formattedTrack->{media_count} > 1 && !$work ) {
-				my $discId = delete $formattedTrack->{media_number};
+				my $discId = $formattedTrack->{media_number};
 				$discs->{$discId} = {
 					index => $trackNumber,
 					title => string('DISC') . " " . $discId,
@@ -1310,7 +1311,7 @@ sub QobuzGetTracks {
 					$workHeadingPos = push @$items,{
 						name  => $formattedTrack->{displayWork},
 						type  => 'text'
-					} unless $workPlaylistPos eq "integrated";
+					} unless $tags || $workPlaylistPos eq "integrated";
 
 					$noComposer = !$track->{composer}->{name};
 					$lastwork = $workId;
@@ -1356,7 +1357,7 @@ sub QobuzGetTracks {
 		}
 
 		# create a playlist for each "disc" in a multi-disc set except if we've got works (mixing disc & work playlists would go horribly wrong or at least be confusing!)
-		if ( $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
+		if ( !$tags && $prefs->get('showDiscs') && scalar keys %$discs && !(scalar keys %$works) && _isReleased($album) ) {
 			foreach my $disc (sort { $discs->{$b}->{index} <=> $discs->{$a}->{index} } keys %$discs) {
 				my $discTracks = $discs->{$disc}->{tracks};
 
@@ -1375,7 +1376,7 @@ sub QobuzGetTracks {
 			}
 		}
 
-		if (scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
+		if ( !$tags && scalar keys %$works && _isReleased($album) ) { # don't create work playlists for unreleased albums
 			# create work playlists unless there is only one work containing all tracks
 			my @workPlaylists = ();
 			if ( $worksfound || $workPlaylistPos eq "integrated" ) {   # only proceed if a work with more than 1 contiguous track was found
@@ -1641,7 +1642,7 @@ sub QobuzPlaylistGetTracks {
 		my $tracks = [];
 
 		foreach my $track (@{$playlist->{tracks}->{items}}) {
-			push @$tracks, _trackItem($client, $track, $params->{isWeb});
+			push @$tracks, _trackItem($client, $track);
 		}
 
 		$cb->({
@@ -1664,6 +1665,11 @@ sub _albumItem {
 
 	my $item = {
 		image => $album->{image},
+		hasMetadata => 'album',
+		album       => $album->{title},
+		artist      => $album->{artist}->{name},
+		genre       => $album->{genre},
+		year        => $album->{year} || substr($album->{release_date_stream},0,4) || 0,
 	};
 
 	my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
@@ -1705,7 +1711,8 @@ sub _artistItem {
 	my ($client, $artist, $withIcon, $sorted) = @_;
 
 	my $item = {
-		name  => $artist->{name},
+		hasMetadata => 'artist',
+		name => $artist->{name},
 		url   => \&QobuzArtist,
 		passthrough => [{
 			artistId  => $artist->{id},
@@ -1738,7 +1745,7 @@ sub _playlistItem {
 }
 
 sub _trackItem {
-	my ($client, $track, $isWeb) = @_;
+	my ($client, $track, $tags) = @_;
 
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my $artist = Plugins::Qobuz::API::Common->getArtistName($track, $track->{album});
@@ -1749,10 +1756,20 @@ sub _trackItem {
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
-		name  => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		name  => $tags ? $title : sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
 		line1 => $title,
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
+		hasMetadata => 'track',
+		album       => $track->{album}->{title},
+		artist      => $track->{performer}->{name},
+		secs        => $track->{duration},
+		duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
+		tracknum    => $track->{track_number},
+		discnum     => $track->{media_number},
+		disccount   => $track->{album}->{media_count},
+		work        => $track->{work},
+		composer    => $track->{composer}->{name},
 	};
 
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
