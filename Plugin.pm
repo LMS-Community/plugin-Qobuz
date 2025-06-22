@@ -1757,17 +1757,22 @@ sub _trackItem {
 		line1 => $title,
 		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
 		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
-		hasMetadata => 'track',
-		album       => $track->{album}->{title},
-		artist      => $track->{performer}->{name},
-		secs        => $track->{duration},
-		duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
-		tracknum    => $track->{track_number},
-		discnum     => $track->{media_number},
-		disccount   => $track->{album}->{media_count},
-		work        => $track->{work},
-		composer    => $track->{composer}->{name},
 	};
+	if ( $tags ) {
+		my $itemExtras = {
+			hasMetadata => 'track',
+			album       => $track->{album}->{title},
+			artist      => $track->{performer}->{name},
+			secs        => $track->{duration},
+			duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
+			tracknum    => $track->{track_number},
+			discnum     => $track->{media_number},
+			disccount   => $track->{album}->{media_count},
+			work        => $track->{work},
+			composer    => $track->{composer}->{name},
+		};
+		$item = { %$item, %$itemExtras };
+	}
 
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
