@@ -1753,28 +1753,25 @@ sub _trackItem {
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
-		name  => $tags ? $title : sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
-		line1 => $title,
-		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
-		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
+		name        => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		line1       => $title,
+		line2       => $artist . ($artist && $album ? ' - ' : '') . $album,
+		image       => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
+		hasMetadata => 'track',
+		title       => $track->{title},
+		album       => $track->{album}->{title},
+		artist      => $track->{performer}->{name},
+		secs        => $track->{duration},
+		duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
+		tracknum    => $track->{track_number},
+		discnum     => $track->{media_number},
+		disccount   => $track->{album}->{media_count},
+		work        => $track->{work},
+		composer    => $track->{composer}->{name},
 	};
-	if ( $tags ) {
-		my $itemExtras = {
-			hasMetadata => 'track',
-			album       => $track->{album}->{title},
-			artist      => $track->{performer}->{name},
-			secs        => $track->{duration},
-			duration    => Slim::Utils::DateTime::secsToMMSS($track->{duration}),
-			tracknum    => $track->{track_number},
-			discnum     => $track->{media_number},
-			disccount   => $track->{album}->{media_count},
-			work        => $track->{work},
-			composer    => $track->{composer}->{name},
-		};
-		$item = { %$item, %$itemExtras };
-	}
 
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
+		$item->{title} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
@@ -1796,12 +1793,14 @@ sub _trackItem {
 			my @titleSplit = split /:\s*/, $track->{title};
 			my $tempTitle = @titleSplit[-1];
 			$item->{work} =~ s/:\s*\Q$tempTitle\E//;
+			$item->{title} =~ s/\Q$item->{work}\E://;
 			$item->{line1} =~ s/\Q$item->{work}\E://;
 		}
 		$item->{displayWork} = $item->{work};
 		if ( $track->{composer}->{name} ) {
 			$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work};
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
+			$item->{title} =~ s/\Q$composerSurname\E://;
 			$item->{line1} =~ s/\Q$composerSurname\E://;
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
@@ -1812,6 +1811,7 @@ sub _trackItem {
 	}
 
 	if ( $prefs->get('parentalWarning') && $track->{parental_warning} ) {
+		$item->{title} .= ' [E]';
 		$item->{name} .= ' [E]';
 		$item->{line1} .= ' [E]';
 	}
@@ -1821,10 +1821,12 @@ sub _trackItem {
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{title}     = '* ' . $item->{name};
 		$item->{name}      = '* ' . $item->{name};
 		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
+		$item->{title}     = '* ' . $item->{title} if !$track->{streamable};
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
 		$item->{line1}     = '* ' . $item->{line1} if !$track->{streamable};
 		$item->{play}      = Plugins::Qobuz::API::Common->getUrl($client, $track);
