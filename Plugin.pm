@@ -1703,7 +1703,6 @@ sub _albumItem {
 		album_id => $album->{id},
 		album_title => $album->{title},
 	}];
-$item->{version}= 'darrell album';
 
 	return $item;
 }
@@ -1841,7 +1840,6 @@ sub _trackItem {
 	$item->{tracknum} = $track->{track_number};
 	$item->{media_number} = $track->{media_number};
 	$item->{media_count} = $track->{album}->{media_count};
-$item->{titleFlags}= 'darrell track';
 	return $item;
 }
 
