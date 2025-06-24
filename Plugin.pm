@@ -1659,18 +1659,18 @@ sub _albumItem {
 	my $showYearWithAlbum = $prefs->get('showYearWithAlbum');
 	my $albumYear = $showYearWithAlbum ? $album->{year} || substr($album->{release_date_stream},0,4) || 0 : 0;
 
-	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
-		$albumName .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
-	}
-
 	my $item = {
-		image => $album->{image},
+		image       => $album->{image},
 		hasMetadata => 'album',
 		album       => $album->{title},
 		artist      => $album->{artist}->{name},
 		genre       => $album->{genre},
 		year        => $album->{year} || substr($album->{release_date_stream},0,4) || 0,
 	};
+
+	if ( $album->{hires_streamable} && $albumName !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($album) eq 'flac' ) {
+		$item->{version} .= '(' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ') ';
+	}
 
 	my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 	if ($sortFavsAlphabetically == 1) {
@@ -1687,11 +1687,13 @@ sub _albumItem {
 	}
 
 	if ( $prefs->get('parentalWarning') && $album->{parental_warning} ) {
+		$item->{version} .= '[E] ';
 		$item->{name} .= ' [E]';
 		$item->{line1} .= ' [E]';
 	}
 
 	if (!$album->{streamable} || !_isReleased($album) ) {
+		$item->{version} .= '* ';
 		$item->{name}  = '* ' . $item->{name};
 		$item->{line1} = '* ' . $item->{line1};
 	} else {
@@ -1756,11 +1758,12 @@ sub _trackItem {
 	my $genre = $track->{album}->{genre};
 
 	my $item = {
-		name  => $tags ? $title : sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
-		line1 => $title,
-		line2 => $artist . ($artist && $album ? ' - ' : '') . $album,
-		image => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
+		name        => sprintf('%s %s %s %s %s', $title, cstring($client, 'BY'), $artist, cstring($client, 'FROM'), $album),
+		line1       => $title,
+		line2       => $artist . ($artist && $album ? ' - ' : '') . $album,
+		image       => Plugins::Qobuz::API::Common->getImageFromImagesHash($track->{album}->{image}),
 		hasMetadata => 'track',
+		title       => $track->{title},
 		album       => $track->{album}->{title},
 		artist      => $track->{performer}->{name},
 		secs        => $track->{duration},
@@ -1773,6 +1776,7 @@ sub _trackItem {
 	};
 
 	if ( $track->{hires_streamable} && $item->{name} !~ /hi.?res|bits|khz/i && $prefs->get('labelHiResAlbums') && Plugins::Qobuz::API::Common->getStreamingFormat($track->{album}) eq 'flac' ) {
+		$item->{titleFlags} .= '(' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ') ';
 		$item->{name} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 		$item->{line1} .= ' (' . cstring($client, 'PLUGIN_QOBUZ_HIRES') . ')';
 	}
@@ -1794,12 +1798,14 @@ sub _trackItem {
 			my @titleSplit = split /:\s*/, $track->{title};
 			my $tempTitle = @titleSplit[-1];
 			$item->{work} =~ s/:\s*\Q$tempTitle\E//;
+			$item->{title} =~ s/\Q$item->{work}\E://;
 			$item->{line1} =~ s/\Q$item->{work}\E://;
 		}
 		$item->{displayWork} = $item->{work};
 		if ( $track->{composer}->{name} ) {
 			$item->{displayWork} = $track->{composer}->{name} . string('COLON') . ' ' . $item->{work};
 			my $composerSurname = (split ' ', $track->{composer}->{name})[-1];
+			$item->{title} =~ s/\Q$composerSurname\E://;
 			$item->{line1} =~ s/\Q$composerSurname\E://;
 		}
 		$item->{line2} .= " - " . $item->{work} if $item->{work};
@@ -1810,6 +1816,7 @@ sub _trackItem {
 	}
 
 	if ( $prefs->get('parentalWarning') && $track->{parental_warning} ) {
+		$item->{titleFlags} .= '[E] ';
 		$item->{name} .= ' [E]';
 		$item->{line1} .= ' [E]';
 	}
@@ -1819,10 +1826,12 @@ sub _trackItem {
 			name => cstring($client, 'PLUGIN_QOBUZ_NOT_AVAILABLE'),
 			type => 'textarea'
 		}];
+		$item->{titleFlags}= '* ' . $item->{name};
 		$item->{name}      = '* ' . $item->{name};
 		$item->{line1}     = '* ' . $item->{line1};
 	}
 	else {
+		$item->{titleFlags}= '* ' . $item->{title} if !$track->{streamable};
 		$item->{name}      = '* ' . $item->{name} if !$track->{streamable};
 		$item->{line1}     = '* ' . $item->{line1} if !$track->{streamable};
 		$item->{play}      = Plugins::Qobuz::API::Common->getUrl($client, $track);
