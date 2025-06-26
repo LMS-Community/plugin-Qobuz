@@ -1468,48 +1468,6 @@ sub QobuzGetTracks {
 			# Add a consolidated list of all artists on the album
 			$items = _albumPerformers($client, $performers, $album->{tracks_count}, $items);
 
-			push @$items,{
-				name  => $album->{genre},
-				label => 'GENRE',
-				type  => 'text'
-			},{
-				name => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
-				label => 'PLUGIN_QOBUZ_RELEASE_TYPE',
-				type => 'text'
-			},{
-				name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
-				label => 'ALBUMLENGTH',
-				type  => 'text'
-			},{
-				name => $album->{tracks_count},
-				label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
-				type => 'text'
-			};
-
-			if (defined $album->{replay_gain}) {
-				push @$items,{
-					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
-					label => 'ALBUMREPLAYGAIN',
-					type => 'text'
-				};
-			};
-
-			if ($album->{description}) {
-				push @$items, {
-					name  => cstring($client, 'DESCRIPTION'),
-					items => [{
-						name => _stripHTML($album->{description}),
-						type => 'textarea',
-					}],
-				};
-			};
-
-			my $rDate = _localDate($album->{release_date_stream});
-			push @$items, {
-				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $rDate,
-				type  => 'text'
-			};
-
 			if ($album->{label} && $album->{label}->{name}) {
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_LABEL') . cstring($client, 'COLON') . ' ' . $album->{label}->{name},
@@ -1520,6 +1478,50 @@ sub QobuzGetTracks {
 				};
 			}
 
+			my @textItems = (
+				{
+					name  => $album->{genre},
+					label => 'GENRE',
+					type  => 'text'
+				},{
+					name => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
+					label => 'PLUGIN_QOBUZ_RELEASE_TYPE',
+					type => 'text'
+				},{
+					name  => Slim::Utils::DateTime::timeFormat($album->{duration} || $totalDuration),
+					label => 'ALBUMLENGTH',
+					type  => 'text'
+				},{
+					name => $album->{tracks_count},
+					label => 'PLUGIN_QOBUZ_TRACKS_COUNT',
+					type => 'text'
+				}
+			);
+
+			if (defined $album->{replay_gain}) {
+				push @textItems,{
+					name  => sprintf( "%2.2f dB", $album->{replay_gain}),
+					label => 'ALBUMREPLAYGAIN',
+					type => 'text'
+				};
+			};
+
+			if ($album->{description}) {
+				push @textItems, {
+					name  => cstring($client, 'DESCRIPTION'),
+					items => [{
+						name => _stripHTML($album->{description}),
+						type => 'textarea',
+					}],
+				};
+			};
+
+			my $rDate = _localDate($album->{release_date_stream});
+			push @textItems, {
+				name  => cstring($client, 'PLUGIN_QOBUZ_RELEASED_AT') . cstring($client, 'COLON') . ' ' . $rDate,
+				type  => 'text'
+			};
+
 			my $awards = $album->{awards};
 			if ($awards && ref $awards && scalar @$awards) {
 				my $awItems = [ map {
@@ -1529,14 +1531,14 @@ sub QobuzGetTracks {
 					}
 				} @$awards ];
 
-				push @$items, {
+				push @textItems, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_AWARDS'),
 					items => $awItems
 				};
 			}
 
 			if ($album->{copyright}) {
-				push @$items, {
+				push @textItems, {
 					name  => 'Copyright',
 					items => [{
 						name => $album->{copyright},
@@ -1544,6 +1546,16 @@ sub QobuzGetTracks {
 					}],
 				};
 			};
+
+			if ( $tags ) {
+				push @$items, {
+					name => cstring($client, 'MOREINFO'),
+					items => \@textItems,
+				};
+			}
+			else {
+				push @$items, @textItems;
+			}
 
 			$cb->({
 				items => $items,
