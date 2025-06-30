@@ -131,7 +131,11 @@ sub username {
 sub getArtistName {
 	my ($class, $track, $album) = @_;
 	$track->{performer} ||= $album->{performer} || {};
-	return $track->{performer}->{name} || $album->{artist}->{name} || '',
+	if ($track->{performer} && $class->trackPerformerIsMainArtist($track) ) {
+		return $track->{performer}->{name};
+	} else {
+		return $album->{artist}->{name} || '';
+	}
 }
 
 sub filterPlayables {
@@ -324,6 +328,19 @@ sub getMainArtists {
 		}
 	}
 	return @artistList;
+}
+
+sub trackPerformerIsMainArtist {
+	my ($class, $track) = @_;
+	
+	if ($track->{performers}) {
+		my $pname = $track->{performer}->{name};
+		$pname =~ s/\s+$//;   # trim the trailing white space
+		return $track->{performers} =~ m/$pname([^\-]*)(Main\ ?Artist)/i;
+	}
+	else {
+		return 0;
+	}
 }
 
 sub getStreamingFormat {

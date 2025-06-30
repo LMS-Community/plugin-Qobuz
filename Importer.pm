@@ -360,7 +360,8 @@ sub _prepareTrack {
 		}
 	}
 
-	if ($track->{performer} && $track->{performer}->{name} ne $album->{artist}->{name}) {
+	if ($track->{performer} && $track->{performer}->{name} ne $album->{artist}->{name} 
+			&& Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track)) {
 		$attributes->{TRACKARTIST} = $track->{performer}->{name};
 	}
 
