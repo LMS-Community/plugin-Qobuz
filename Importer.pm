@@ -360,7 +360,7 @@ sub _prepareTrack {
 		}
 	}
 
-	if ($track->{performer} && $artist !~ m/(^|$_splitList)$track->{performer}->{name}($|$_splitList)/i
+	if ($track->{performer} && $artist !~ m/(^|\Q$_splitList\E)$track->{performer}->{name}($|\Q$_splitList\E)/i
 			&& Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track)) {
 		$attributes->{TRACKARTIST} = $track->{performer}->{name};
 	}
