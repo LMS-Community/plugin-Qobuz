@@ -315,7 +315,7 @@ sub _prepareTrack {
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
 	my ($artist, $artistId);
-	
+
 	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
 	$artist = join($_splitList, map { $_->{name} } @artistList);
 	$artistId = $artistList[0]->{id};   # Only add the primary artist id for now
@@ -360,7 +360,8 @@ sub _prepareTrack {
 		}
 	}
 
-	if ($track->{performer} && $track->{performer}->{name} ne $album->{artist}->{name}) {
+	if ($track->{performer} && $artist !~ m/(^|\Q$_splitList\E)$track->{performer}->{name}($|\Q$_splitList\E)/i
+			&& Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track)) {
 		$attributes->{TRACKARTIST} = $track->{performer}->{name};
 	}
 
