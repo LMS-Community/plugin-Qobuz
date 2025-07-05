@@ -305,28 +305,32 @@ sub _ignorePlaylists {
 	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
-# Cache the splitList preference
-my $_splitList =  preferences('server')->get('splitList');;
-
 sub _prepareTrack {
 	my ($album, $track) = @_;
 
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
-	my ($artist, $artistId);
+	my (@artists, @artistIds);
 
-	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
-	$artist = join($_splitList, map { $_->{name} } @artistList);
-	$artistId = $artistList[0]->{id};   # Only add the primary artist id for now
+	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
+		if ( uc($_->{name}) !~ /^\s*VARIOUS\s*ARTISTS\s*$/ ) {
+			push @artists, $_->{name};
+			push @artistIds, 'qobuz:artist:' . $_->{id};
+		}
+	}
+	if ( !scalar @artists && $track->{performer} && $track->{performer}->{name} ) {
+		push @artists, $track->{performer}->{name};
+		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	}
 
 	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
 
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => $artist,
-		ARTIST_EXTID => 'qobuz:artist:' . $artistId,
+		ARTIST       => \@artists,
+		ARTIST_EXTID => \@artistIds,
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
@@ -360,16 +364,51 @@ sub _prepareTrack {
 		}
 	}
 
-	if ($track->{performer} && $artist !~ m/(^|\Q$_splitList\E)$track->{performer}->{name}($|\Q$_splitList\E)/i
-			&& Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track)) {
+	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @artists) {
 		$attributes->{TRACKARTIST} = $track->{performer}->{name};
+	}
+
+	my $rolePerformer;
+	if ($track->{performers}) {
+		my @performersAndRoles = split(' - ', $track->{performers});
+		foreach (@performersAndRoles) {
+			my @roles = split(/\s*,\s*/, $_);
+			my $name = shift @roles;
+#			$name =~ s/&/and/g;
+			foreach (@roles) {
+				$_ =~ s/[\r$,\s*]//g;
+				$_ = uc($_);
+				push @{$rolePerformer->{$_}}, $name;
+			}
+		}
+		$attributes->{BAND} = \@{$rolePerformer->{ORCHESTRA}} if $rolePerformer->{ORCHESTRA};
+		$attributes->{CONDUCTOR} = \@{$rolePerformer->{CONDUCTOR}} if $rolePerformer->{CONDUCTOR};
 	}
 
 	if ($track->{audio_info}) {
 		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
 		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
-
+#	my $input = {
+#		albumArtists => [map { $_->{name} } Plugins::Qobuz::API::Common->getMainArtists($album)],
+#		trackPerformer => $track->{performer}->{name},
+#		composer => $track->{composer}->{name},
+#		performers => $rolePerformer,
+#	};
+#	my $dump = ref $track->{performer} ne 'HASH';
+#	my $dump = !$rolePerformer->{MAINARTIST};
+#	my $dump = scalar @{$attributes->{ARTIST}} != 1 || @{$attributes->{ARTIST}}[0] ne $track->{performer}->{name};
+#Slim::Utils::Log::logError("DK \$input=" . Data::Dump::dump($input)) if $dump;
+#	my $meta = {
+#		ALBUM => $attributes->{ALBUM},
+#		TITLE => $attributes->{TITLE},
+#		ARTIST => $attributes->{ARTIST},
+#		COMPOSER => $attributes->{COMPOSER},
+#		CONDUCTOR => $attributes->{CONDUCTOR},
+#		BAND => $attributes->{BAND},
+#		TRACKARTIST => $attributes->{TRACKARTIST},
+#	};
+#Slim::Utils::Log::logError("DK \$meta=" . Data::Dump::dump($meta)) if $dump;
 	return $attributes;
 }
 
