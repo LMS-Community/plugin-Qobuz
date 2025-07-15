@@ -244,6 +244,9 @@ sub precacheTrack {
 		push @artistNames, $_->{name};
 		push @artistIds, $_->{id};
 	}
+	my ($artists_ref, $artistIds_ref) = Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, \@artistNames, \@artistIds);
+	@artistNames = @$artists_ref;
+	@artistIds = @$artistIds_ref;
 	if ($track->{performer} && $class->trackPerformerIsMainArtist($track) ) {
 		push @artistNames, $track->{performer}->{name};
 		push @artistIds, $track->{performer}->{id};
@@ -317,8 +320,10 @@ sub getMainArtists {
 	my $artistName;
 
 	if (ref $album->{artist}) {
-		push @artistList, $album->{artist};  # always include the primary artist
-		$artistName = lc($album->{artist}->{name});
+		if ( $album->{artist}->{name} !~ /^\s*various\s*artists\s*$/i ) {
+			push @artistList, $album->{artist};  # always include the primary artist
+			$artistName = lc($album->{artist}->{name});
+		}
 	}
 	if (ref $album->{artists} && scalar @{$album->{artists}}) {
 		for my $artist ( @{$album->{artists}} ) {  # get additional main artists, if any
@@ -341,6 +346,19 @@ sub trackPerformerIsMainArtist {
 	else {
 		return 0;
 	}
+}
+
+sub removeArtistsIfNotOnTrack {
+	my ($class, $track, $artists, $artistIds) = @_;
+
+	for (my $i = 1; $i < @{$artists}; $i++) { # deliberately starting at the second element, to keep the primary artist in all cases.
+		if ( $track->{performers} !~ /\Q@{$artists}[$i]\E/i ) {
+			splice(@{$artists}, $i, 1);
+			splice(@{$artistIds}, $i, 1) if $artistIds;
+			$i--; # Adjust index after removal
+		}
+	}
+	return \@{$artists}, \@{$artistIds};
 }
 
 sub getStreamingFormat {

@@ -311,26 +311,9 @@ sub _prepareTrack {
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
-	my (@artists, @artistIds);
-
-	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
-		if ( uc($_->{name}) !~ /^\s*VARIOUS\s*ARTISTS\s*$/ ) {
-			push @artists, $_->{name};
-			push @artistIds, 'qobuz:artist:' . $_->{id};
-		}
-	}
-	if ( !scalar @artists && $track->{performer} && $track->{performer}->{name} ) {
-		push @artists, $track->{performer}->{name};
-		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
-	}
-
-	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
-
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => \@artists,
-		ARTIST_EXTID => \@artistIds,
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
@@ -340,7 +323,6 @@ sub _prepareTrack {
 		COVER        => $album->{image},
 		AUDIO        => 1,
 		EXTID        => $url,
-		# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
 		TIMESTAMP    => $album->{favorited_at} || $album->{purchased_at},
 		CONTENT_TYPE => $ct,
 		SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
@@ -352,63 +334,73 @@ sub _prepareTrack {
 		REPLAYGAIN_ALBUM_PEAK => $album->{replay_peak},
 	};
 
+	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
+
 	if ($album->{media_count} > 1) {
 		$attributes->{DISC} = $track->{media_number};
 		$attributes->{DISCC} = $album->{media_count};
 	}
 
-	if ($track->{composer} && $track->{composer}->{name}) {
+	if ( $track->{composer} && $track->{composer}->{name} && $track->{composer}->{name} !~ /^\s*various\s*composers\s*$/i ) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
+		$attributes->{COMPOSER_EXTID} = 'qobuz:artist:' . $track->{composer}->{id};
 		if ( $track->{work} && $prefs->get('importWorks') ) {
 			$attributes->{WORK} = $track->{work};
 		}
-	}
-
-	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @artists) {
-		$attributes->{TRACKARTIST} = $track->{performer}->{name};
-	}
-
-	my $rolePerformer;
-	if ($track->{performers}) {
-		my @performersAndRoles = split(' - ', $track->{performers});
-		foreach (@performersAndRoles) {
-			my @roles = split(/\s*,\s*/, $_);
-			my $name = shift @roles;
-#			$name =~ s/&/and/g;
-			foreach (@roles) {
-				$_ =~ s/[\r$,\s*]//g;
-				$_ = uc($_);
-				push @{$rolePerformer->{$_}}, $name;
-			}
-		}
-		$attributes->{BAND} = \@{$rolePerformer->{ORCHESTRA}} if $rolePerformer->{ORCHESTRA};
-		$attributes->{CONDUCTOR} = \@{$rolePerformer->{CONDUCTOR}} if $rolePerformer->{CONDUCTOR};
 	}
 
 	if ($track->{audio_info}) {
 		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
 		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
-#	my $input = {
-#		albumArtists => [map { $_->{name} } Plugins::Qobuz::API::Common->getMainArtists($album)],
-#		trackPerformer => $track->{performer}->{name},
-#		composer => $track->{composer}->{name},
-#		performers => $rolePerformer,
-#	};
-#	my $dump = ref $track->{performer} ne 'HASH';
-#	my $dump = !$rolePerformer->{MAINARTIST};
-#	my $dump = scalar @{$attributes->{ARTIST}} != 1 || @{$attributes->{ARTIST}}[0] ne $track->{performer}->{name};
-#Slim::Utils::Log::logError("DK \$input=" . Data::Dump::dump($input)) if $dump;
-#	my $meta = {
-#		ALBUM => $attributes->{ALBUM},
-#		TITLE => $attributes->{TITLE},
-#		ARTIST => $attributes->{ARTIST},
-#		COMPOSER => $attributes->{COMPOSER},
-#		CONDUCTOR => $attributes->{CONDUCTOR},
-#		BAND => $attributes->{BAND},
-#		TRACKARTIST => $attributes->{TRACKARTIST},
-#	};
-#Slim::Utils::Log::logError("DK \$meta=" . Data::Dump::dump($meta)) if $dump;
+
+	my (@artists, @artistIds, $albumArtist, $albumArtistId);
+
+	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
+		push @artists, $_->{name};
+		push @artistIds, 'qobuz:artist:' . $_->{id};
+	}
+	if ( !scalar @artists && $track->{performer} && $track->{performer}->{name} ) {
+		push @artists, $track->{performer}->{name};
+		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	}
+
+	my ($artists_ref, $artistIds_ref) = Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, \@artists, \@artistIds);
+	@artists = @$artists_ref;
+	@artistIds = @$artistIds_ref;
+
+	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @artists) {
+		push @artists, $track->{performer}->{name};
+		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	}
+
+	$attributes->{ARTIST} = \@artists;
+	$attributes->{ARTIST_EXTID} = \@artistIds;
+
+	if ( $album->{artist}->{name} !~ /^\s*various\s*artists\s*$/i && ( scalar(@artists) > 1 || $albumArtist ne $artists[0] ) ) {
+		$attributes->{ALBUMARTIST} = $album->{artist}->{name};
+		$attributes->{ALBUMARTIST_EXTID} = 'qobuz:artist:' . $album->{artist}->{id};
+	}
+
+	my $rolePerformer;
+	if ($track->{performers}) {
+		my %seen;
+		my @performersAndRoles = split(' - ', $track->{performers});
+		foreach (@performersAndRoles) {
+			my %roleSeen = undef;
+			my @roles = split(/\s*,\s*/, $_);
+			my $name = shift @roles;
+			foreach (@roles) {
+				$_ =~ s/[\r$|\s*]//g;
+				$_ = uc($_);
+				push @{$rolePerformer->{$_}}, $name if !$roleSeen{$_};
+				$roleSeen{$_} = 1;
+			}
+		}
+		$attributes->{BAND} = \@{$rolePerformer->{ORCHESTRA}} if $rolePerformer->{ORCHESTRA};
+		$attributes->{CONDUCTOR} = \@{$rolePerformer->{CONDUCTOR}} if $rolePerformer->{CONDUCTOR};
+	}
+
 	return $attributes;
 }
 
