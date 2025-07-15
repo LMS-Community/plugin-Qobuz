@@ -1742,7 +1742,8 @@ sub _trackItem {
 
 	my $title = Plugins::Qobuz::API::Common->addVersionToTitle($track);
 	my @artistNames = map { $_->{name} } Plugins::Qobuz::API::Common->getMainArtists($track->{album});
-	@artistNames = grep { !/^\s*VARIOUS\s*ARTISTS\s*$/i } @artistNames;
+	my ($artists_ref) = Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, \@artistNames);
+	@artistNames = @$artists_ref;
 	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) ) {
 		push @artistNames, $track->{performer}->{name};
 	}
