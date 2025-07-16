@@ -397,8 +397,8 @@ sub _prepareTrack {
 				$roleSeen{$_} = 1;
 			}
 		}
-		$attributes->{BAND} = \@{$rolePerformer->{ORCHESTRA}} if $rolePerformer->{ORCHESTRA};
-		$attributes->{CONDUCTOR} = \@{$rolePerformer->{CONDUCTOR}} if $rolePerformer->{CONDUCTOR};
+		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
+		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 	}
 
 	return $attributes;
