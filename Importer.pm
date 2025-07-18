@@ -379,7 +379,7 @@ sub _prepareTrack {
 
 	$attributes->{ARTIST} = \@{$artists};
 	$attributes->{ARTIST_EXTID} = \@{$artistIds};
-	$allArtists{join(',', @{$artistIds})} = { names => \@{$artists}, ids => \@{$artistIds} };
+	$allArtists{join(',', sort(@{$artistIds}))} = { names => \@{$artists}, ids => \@{$artistIds} };
 
 	my $rolePerformer;
 	if ($track->{performers}) {
