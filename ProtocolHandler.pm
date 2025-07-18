@@ -315,6 +315,10 @@ sub getMetadataFor {
 	}
 
 	$meta ||= {};
+	if ($meta->{composer} =~ /^\s*various\s*composers\s*$/i) {
+		delete $meta->{composer};
+		delete $meta->{work};
+	}
 	if ($meta->{mime_type} && $meta->{mime_type} =~ /(fla?c|mp)/) {
 		$meta->{type} = $meta->{mime_type} =~ /fla?c/ ? 'flc' : 'mp3';
 	}
