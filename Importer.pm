@@ -28,6 +28,8 @@ my $log = logger('plugin.qobuz');
 my $cache = Plugins::Qobuz::API::Common->getCache();
 my $someUserId = Plugins::Qobuz::API::Common->getSomeUserId();
 
+my %allArtists = ();
+
 sub initPlugin {
 	my $class = shift;
 
@@ -104,9 +106,11 @@ sub scanAlbums {
 
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
-				$class->storeTracks([
-					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
-				], undef, $accountName);
+
+				%allArtists = ();
+				my $attributes = [map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }];
+				_addAlbumArtists($attributes);
+				$class->storeTracks($attributes, undef, $accountName);
 
 				main::SCANNER && Slim::Schema->forceCommit;
 			}
@@ -122,9 +126,10 @@ sub scanAlbums {
 			$album->{favorited_at} = $timestamp;
 			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
 
-			$class->storeTracks([
-				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
-			], undef, $accountName);
+			%allArtists = ();
+			my $attributes = [map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }];
+			_addAlbumArtists($attributes);
+			$class->storeTracks($attributes, undef, $accountName);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
@@ -354,33 +359,27 @@ sub _prepareTrack {
 		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
 
-	my (@artists, @artistIds, $albumArtist, $albumArtistId);
+	my ($artists, $artistIds);
 
 	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
-		push @artists, $_->{name};
-		push @artistIds, 'qobuz:artist:' . $_->{id};
+		push @{$artists}, $_->{name};
+		push @{$artistIds}, 'qobuz:artist:' . $_->{id};
 	}
-	if ( !scalar @artists && $track->{performer} && $track->{performer}->{name} ) {
-		push @artists, $track->{performer}->{name};
-		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
-	}
-
-	my ($artists_ref, $artistIds_ref) = Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, \@artists, \@artistIds);
-	@artists = @$artists_ref;
-	@artistIds = @$artistIds_ref;
-
-	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @artists) {
-		push @artists, $track->{performer}->{name};
-		push @artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	if ( !$artists && $track->{performer} && $track->{performer}->{name} ) {
+		push @{$artists}, $track->{performer}->{name};
+		push @{$artistIds}, 'qobuz:artist:' . $track->{performer}->{id};
 	}
 
-	$attributes->{ARTIST} = \@artists;
-	$attributes->{ARTIST_EXTID} = \@artistIds;
+	Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, $artists, $artistIds);
 
-	if ( $album->{artist}->{name} !~ /^\s*various\s*artists\s*$/i && ( scalar(@artists) > 1 || $albumArtist ne $artists[0] ) ) {
-		$attributes->{ALBUMARTIST} = $album->{artist}->{name};
-		$attributes->{ALBUMARTIST_EXTID} = 'qobuz:artist:' . $album->{artist}->{id};
+	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @{$artists}) {
+		push @{$artists}, $track->{performer}->{name};
+		push @{$artistIds}, 'qobuz:artist:' . $track->{performer}->{id};
 	}
+
+	$attributes->{ARTIST} = \@{$artists};
+	$attributes->{ARTIST_EXTID} = \@{$artistIds};
+	$allArtists{join(',', @{$artistIds})} = { names => \@{$artists}, ids => \@{$artistIds} };
 
 	my $rolePerformer;
 	if ($track->{performers}) {
@@ -402,6 +401,30 @@ sub _prepareTrack {
 	}
 
 	return $attributes;
+}
+
+sub _addAlbumArtists {
+	my ($attributes) = @_;
+
+	if (scalar keys %allArtists > 1) {
+		my @allArtists = map { @{$_->{names}} } values %allArtists;
+		my @allArtistExtIds = map { @{$_->{ids}} } values %allArtists;
+
+		my (%nameCount, %idCount);
+		$nameCount{$_}++ for (@allArtists);
+		$idCount{$_}++ for (@allArtistExtIds);
+
+		my @albumArtist = grep { $nameCount{$_} == scalar keys %allArtists } keys %nameCount;
+		my @albumArtistExtId = grep { $idCount{$_} == scalar keys %allArtists } keys %idCount;
+
+		if (scalar @albumArtist) {
+			foreach (@$attributes) {
+				$_->{ALBUMARTIST} = \@albumArtist;
+				$_->{ALBUMARTIST_EXTID} = \@albumArtistExtId;
+			}
+		}
+	}
+	return;
 }
 
 1;
