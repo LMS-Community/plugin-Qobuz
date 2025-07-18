@@ -239,25 +239,23 @@ sub precacheTrack {
 
 	my $album = $track->{album} || {};
 	$track->{composer} ||= $album->{composer} || {};
-	my (@artistNames, @artistIds);
+	my ($artistNames, $artistIds);
 	foreach ( $class->getMainArtists($album) ) {
-		push @artistNames, $_->{name};
-		push @artistIds, $_->{id};
+		push @{$artistNames}, $_->{name};
+		push @{$artistIds}, $_->{id};
 	}
-	my ($artists_ref, $artistIds_ref) = Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, \@artistNames, \@artistIds);
-	@artistNames = @$artists_ref;
-	@artistIds = @$artistIds_ref;
+	Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, $artistNames, $artistIds);
 	if ($track->{performer} && $class->trackPerformerIsMainArtist($track) ) {
-		push @artistNames, $track->{performer}->{name};
-		push @artistIds, $track->{performer}->{id};
+		push @{$artistNames}, $track->{performer}->{name};
+		push @{$artistIds}, $track->{performer}->{id};
 	}
 
 	my $meta = {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
 		albumId  => $album->{id},
-		artist   => @artistNames[0],
-		artistId => @artistIds[0],
+		artist   => $artistNames->[0],
+		artistId => $artistIds->[0],
 		composer => $track->{composer}->{name} || '',
 		composerId => $track->{composer}->{id} || '',
 		performers => $track->{performers} || '',
@@ -351,14 +349,24 @@ sub trackPerformerIsMainArtist {
 sub removeArtistsIfNotOnTrack {
 	my ($class, $track, $artists, $artistIds) = @_;
 
-	for (my $i = 1; $i < @{$artists}; $i++) { # deliberately starting at the second element, to keep the primary artist in all cases.
-		if ( $track->{performers} !~ /\Q@{$artists}[$i]\E/i ) {
-			splice(@{$artists}, $i, 1);
-			splice(@{$artistIds}, $i, 1) if $artistIds;
-			$i--; # Adjust index after removal
+	if ($artists && scalar @$artists) {
+		my ($mainArtist, $mainArtistId);
+	        my $mainArtist = $artists->[0];
+	        my $mainArtistId = $artistIds->[0] if $artistIds;
+		for (my $i = 0; $i < @{$artists}; $i++) {
+			if ( $track->{performers} !~ /\Q@{$artists}[$i]\E/i ) {
+				splice(@{$artists}, $i, 1);
+				splice(@{$artistIds}, $i, 1) if $artistIds;
+				$i--; # Adjust index after removal
+			}
+		}
+		# if all artists were removed, put back the main artist
+		if (!scalar @$artists) {
+			$artists->[0] = $mainArtist;
+			$artistIds->[0] = $mainArtistId if $mainArtistId;
 		}
 	}
-	return \@{$artists}, \@{$artistIds};
+	return;
 }
 
 sub getStreamingFormat {
