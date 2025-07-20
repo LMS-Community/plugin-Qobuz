@@ -241,13 +241,13 @@ sub precacheTrack {
 	$track->{composer} ||= $album->{composer} || {};
 	my ($artistNames, $artistIds);
 	foreach ( $class->getMainArtists($album) ) {
-		push @{$artistNames}, $_->{name};
-		push @{$artistIds}, $_->{id};
+		push @$artistNames, $_->{name};
+		push @$artistIds, $_->{id};
 	}
 	Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, $artistNames, $artistIds);
 	if ($track->{performer} && $class->trackPerformerIsMainArtist($track) ) {
-		push @{$artistNames}, $track->{performer}->{name};
-		push @{$artistIds}, $track->{performer}->{id};
+		push @$artistNames, $track->{performer}->{name};
+		push @$artistIds, $track->{performer}->{id};
 	}
 
 	my $meta = {
@@ -351,12 +351,13 @@ sub removeArtistsIfNotOnTrack {
 
 	if ($artists && scalar @$artists) {
 		my ($mainArtist, $mainArtistId);
-	        my $mainArtist = $artists->[0];
-	        my $mainArtistId = $artistIds->[0] if $artistIds;
-		for (my $i = 0; $i < @{$artists}; $i++) {
-			if ( $track->{performers} !~ /\Q@{$artists}[$i]\E/i ) {
-				splice(@{$artists}, $i, 1);
-				splice(@{$artistIds}, $i, 1) if $artistIds;
+		my $mainArtist = $artists->[0];
+		my $mainArtistId = $artistIds->[0] if $artistIds;
+		for (my $i = 0; $i < @$artists; $i++) {
+			my $artist = $artists->[$i];
+			if ( $track->{performers} !~ /\Q$artist\E/i ) {
+				splice(@$artists, $i, 1);
+				splice(@$artistIds, $i, 1) if $artistIds;
 				$i--; # Adjust index after removal
 			}
 		}
