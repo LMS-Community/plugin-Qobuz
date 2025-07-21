@@ -1676,7 +1676,8 @@ sub _albumItem {
 
 	if ($albumName) {
 		$item->{line1} = $albumName;
-		$item->{line2} = join(', ', map { $_->{name} } Plugins::Qobuz::API::Common->getMainArtists($album)) . ($albumYear ? ' (' . $albumYear . ')' : '');
+		$item->{line2} = ( join(', ', map { $_->{name} } Plugins::Qobuz::API::Common->getMainArtists($album)) || $artist )
+				. ($albumYear ? ' (' . $albumYear . ')' : '');
 		$item->{name} .= $albumYear ? "\n(" . $albumYear . ')' : '';
 	}
 
