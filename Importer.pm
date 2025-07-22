@@ -111,7 +111,7 @@ sub scanAlbums {
 					names    => undef,
 				};
 				my $attributes = [map { _prepareTrack($albumDetails, $_, $albumArtists) } @{ $albumDetails->{tracks}->{items} }];
-				_addAlbumArtists($attributes, $albumArtists);
+				_checkAlbumArtists($attributes, $albumArtists);
 				$class->storeTracks($attributes, undef, $accountName);
 
 				main::SCANNER && Slim::Schema->forceCommit;
@@ -134,7 +134,7 @@ sub scanAlbums {
 				names    => undef,
 			};
 			my $attributes = [map { _prepareTrack($album, $_, $albumArtists) } @{ $album->{tracks}->{items} }];
-			_addAlbumArtists($attributes, $albumArtists);
+			_checkAlbumArtists($attributes, $albumArtists);
 			$class->storeTracks($attributes, undef, $accountName);
 
 			main::SCANNER && Slim::Schema->forceCommit;
@@ -383,38 +383,6 @@ sub _prepareTrack {
 		push @$artistIds, 'qobuz:artist:' . $track->{performer}->{id};
 	}
 
-	$attributes->{ARTIST} = \@$artists;
-	$attributes->{ARTIST_EXTID} = \@$artistIds;
-
-	# create a map of artist id -> artist name tuples for the current item
-	my %trackArtists;
-	for (my $i = 0; $i < scalar @{$attributes->{ARTIST}}; $i++) {
-		$trackArtists{$attributes->{ARTIST}->[$i]} = $attributes->{ARTIST_EXTID}->[$i];
-	}
-
-	# if this is the first track, all track artists are potential album artists
-	if (!$albumArtists->{names}) {
-		$albumArtists->{names} = [ keys %trackArtists ];
-		$albumArtists->{ids} = [ values %trackArtists ];
-	}
-	# not the first track
-	else {
-	if ( !$albumArtists->{required} && join('', sort(@{$albumArtists->{names}})) ne join('', sort(@$artists)) ) {
-		$albumArtists->{required} = 1;
-	}
-	# we are only interested in the artists we have seen before - anything else is not considered an album artist
-	for (my $i = 0; $i < scalar @{$albumArtists->{names}}; $i++) {
-		if (!$trackArtists{$albumArtists->{names}->[$i]}) {
-			$albumArtists->{names}->[$i] = undef;
-			$albumArtists->{ids}->[$i] = undef;
-		}
-	}
-
-	# instead of fiddling with the index above I decided to wipe the value - now we have to remove empty values
-	$albumArtists->{names} = [ grep { $_ } @{$albumArtists->{names}} ];
-	$albumArtists->{ids} = [ grep { $_ } @{$albumArtists->{ids}} ];
-   }
-
 	my $rolePerformer;
 	if ($track->{performers}) {
 		my %seen;
@@ -434,16 +402,51 @@ sub _prepareTrack {
 		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 	}
 
+	$attributes->{ARTIST} = \@$artists;
+	$attributes->{ARTIST_EXTID} = \@$artistIds;
+
+	# create a map of artist id -> artist name tuples for the current item
+	my %trackArtists;
+	for (my $i = 0; $i < scalar @{$attributes->{ARTIST}}; $i++) {
+		$trackArtists{$attributes->{ARTIST}->[$i]} = $attributes->{ARTIST_EXTID}->[$i];
+	}
+
+	# if this is the first track, all track artists are potential album artists
+	if (!$albumArtists->{names}) {
+		$albumArtists->{names} = [ keys %trackArtists ];
+		$albumArtists->{ids} = [ values %trackArtists ];
+	}
+	# not the first track
+	else {
+		if ( !$albumArtists->{required} && join(',', sort(@{$albumArtists->{names}})) ne join(',', sort(@$artists)) ) {
+			$albumArtists->{required} = 1;
+		}
+		# we are only interested in the artists we have seen before - anything else is not considered an album artist
+		for (my $i = 0; $i < scalar @{$albumArtists->{names}}; $i++) {
+			if (!$trackArtists{$albumArtists->{names}->[$i]}) {
+				$albumArtists->{names}->[$i] = undef;
+				$albumArtists->{ids}->[$i] = undef;
+			}
+		}
+
+		# instead of fiddling with the index above I decided to wipe the value - now we have to remove empty values
+		@{$albumArtists->{names}} = grep { $_ } @{$albumArtists->{names}};
+		@{$albumArtists->{ids}} = grep { $_ } @{$albumArtists->{ids}};
+	}
+
+		$attributes->{ALBUMARTIST} = $albumArtists->{names};
+		$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
+
 	return $attributes;
 }
 
-sub _addAlbumArtists {
+sub _checkAlbumArtists {
 	my ($attributes, $albumArtists) = @_;
 
-	if ( $albumArtists->{required} && scalar @{$albumArtists->{names}} ) {
+	if ( !$albumArtists->{required} || !scalar @{$albumArtists->{names}} ) {
 		foreach (@$attributes) {
-			$_->{ALBUMARTIST} = \@{$albumArtists->{names}};
-			$_->{ALBUMARTIST_EXTID} = \@{$albumArtists->{ids}};
+			delete $_->{ALBUMARTIST};
+			delete $_->{ALBUMARTIST_EXTID};
 		}
 	}
 	return;
