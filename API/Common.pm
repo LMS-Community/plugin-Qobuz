@@ -349,7 +349,7 @@ sub trackPerformerIsMainArtist {
 sub removeArtistsIfNotOnTrack {
 	my ($class, $track, $artists, $artistIds) = @_;
 
-	if ($artists && scalar @$artists) {
+	if ( ( !$track->{album}->{genres_list} || grep(/Classique/,@{$track->{album}->{genres_list}}) ) && $artists && scalar @$artists ) {
 		my ($mainArtist, $mainArtistId);
 		$mainArtist = $artists->[0];
 		$mainArtistId = $artistIds->[0] if $artistIds;
