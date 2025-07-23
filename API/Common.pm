@@ -351,8 +351,8 @@ sub removeArtistsIfNotOnTrack {
 
 	if ($artists && scalar @$artists) {
 		my ($mainArtist, $mainArtistId);
-		my $mainArtist = $artists->[0];
-		my $mainArtistId = $artistIds->[0] if $artistIds;
+		$mainArtist = $artists->[0];
+		$mainArtistId = $artistIds->[0] if $artistIds;
 		for (my $i = 0; $i < @$artists; $i++) {
 			my $artist = $artists->[$i];
 			if ( $track->{performers} !~ /\Q$artist\E/i ) {

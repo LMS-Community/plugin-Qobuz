@@ -434,8 +434,8 @@ sub _prepareTrack {
 		@{$albumArtists->{ids}} = grep { $_ } @{$albumArtists->{ids}};
 	}
 
-		$attributes->{ALBUMARTIST} = $albumArtists->{names};
-		$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
+	$attributes->{ALBUMARTIST} = $albumArtists->{names};
+	$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
 
 	return $attributes;
 }
