@@ -721,7 +721,12 @@ sub _get {
 	}
 
 	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
-		main::DEBUGLOG && $log->is_debug && $log->debug("found cached response: " . Data::Dump::dump($cached));
+		if ( main::DEBUGLOG && $log->is_debug ) {
+			$log->debug("found cached response: " . Data::Dump::dump($cached));
+		}
+		elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get\?/ ) {
+			$log->info("found cached response: " . Data::Dump::dump($cached));
+		}
 		$cb->($cached);
 		return;
 	}
@@ -740,7 +745,12 @@ sub _get {
 			my $result = eval { from_json($response->content) };
 
 			$@ && $log->error($@);
-			main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i && $log->debug(Data::Dump::dump($result));
+			if ( main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i ) {
+				$log->debug(Data::Dump::dump($result));
+			}
+			elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get\?/ ) {
+				$log->info(Data::Dump::dump($result));
+			}
 
 			if ($result && !$params->{_nocache}) {
 				if ( !($params->{album_id}) || ( $result->{release_date_stream} && $result->{release_date_stream} lt Slim::Utils::DateTime::shortDateF(time, "%Y-%m-%d") ) ) {
