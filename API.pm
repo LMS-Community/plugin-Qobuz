@@ -724,7 +724,7 @@ sub _get {
 		if ( main::DEBUGLOG && $log->is_debug ) {
 			$log->debug("found cached response: " . Data::Dump::dump($cached));
 		}
-		elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get/ ) {
+		elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get\?/ ) {
 			$log->info("found cached response: " . Data::Dump::dump($cached));
 		}
 		$cb->($cached);
@@ -748,7 +748,7 @@ sub _get {
 			if ( main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i ) {
 				$log->debug(Data::Dump::dump($result));
 			}
-			elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get/ ) {
+			elsif ( main::INFOLOG && $log->is_info && $url =~ /album\/get\?/ ) {
 				$log->info(Data::Dump::dump($result));
 			}
 

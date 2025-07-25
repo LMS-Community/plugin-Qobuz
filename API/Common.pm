@@ -350,9 +350,8 @@ sub removeArtistsIfNotOnTrack {
 	my ($class, $track, $artists, $artistIds) = @_;
 
 	if ( ( !$track->{album}->{genres_list} || grep(/Classique/,@{$track->{album}->{genres_list}}) ) && $artists && scalar @$artists ) {
-		my ($mainArtist, $mainArtistId);
-		$mainArtist = $artists->[0];
-		$mainArtistId = $artistIds->[0] if $artistIds;
+		my $mainArtist = $artists->[0];
+		my $mainArtistId = $artistIds->[0] if $artistIds;
 		for (my $i = 0; $i < @$artists; $i++) {
 			my $artist = $artists->[$i];
 			if ( $track->{performers} !~ /\Q$artist\E/i ) {
