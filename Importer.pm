@@ -104,9 +104,15 @@ sub scanAlbums {
 
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
-				$class->storeTracks([
-					map { _prepareTrack($albumDetails, $_) } @{ $albumDetails->{tracks}->{items} }
-				], undef, $accountName);
+
+				my $albumArtists = {
+					required => 0,
+					ids      => undef,
+					names    => undef,
+				};
+				my $attributes = [map { _prepareTrack($albumDetails, $_, $albumArtists) } @{ $albumDetails->{tracks}->{items} }];
+				_checkAlbumArtists($attributes, $albumArtists);
+				$class->storeTracks($attributes, undef, $accountName);
 
 				main::SCANNER && Slim::Schema->forceCommit;
 			}
@@ -122,9 +128,14 @@ sub scanAlbums {
 			$album->{favorited_at} = $timestamp;
 			$cache->set('album_with_tracks_' . $albumId, $album, time() + 86400 * 90);
 
-			$class->storeTracks([
-				map { _prepareTrack($album, $_) } @{ $album->{tracks}->{items} }
-			], undef, $accountName);
+			my $albumArtists = {
+				required => 0,
+				ids      => undef,
+				names    => undef,
+			};
+			my $attributes = [map { _prepareTrack($album, $_, $albumArtists) } @{ $album->{tracks}->{items} }];
+			_checkAlbumArtists($attributes, $albumArtists);
+			$class->storeTracks($attributes, undef, $accountName);
 
 			main::SCANNER && Slim::Schema->forceCommit;
 		}
@@ -305,28 +316,15 @@ sub _ignorePlaylists {
 	return $class->can('ignorePlaylists') && $class->ignorePlaylists;
 }
 
-# Cache the splitList preference
-my $_splitList =  preferences('server')->get('splitList');;
-
 sub _prepareTrack {
-	my ($album, $track) = @_;
+	my ($album, $track, $albumArtists) = @_;
 
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 
-	my ($artist, $artistId);
-
-	my @artistList = Plugins::Qobuz::API::Common->getMainArtists($album);
-	$artist = join($_splitList, map { $_->{name} } @artistList);
-	$artistId = $artistList[0]->{id};   # Only add the primary artist id for now
-
-	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
-
 	my $attributes = {
 		url          => $url,
 		TITLE        => Plugins::Qobuz::API::Common->addVersionToTitle($track),
-		ARTIST       => $artist,
-		ARTIST_EXTID => 'qobuz:artist:' . $artistId,
 		ALBUM        => $album->{title},
 		ALBUM_EXTID  => 'qobuz:album:' . $album->{id},
 		TRACKNUM     => $track->{track_number},
@@ -336,7 +334,6 @@ sub _prepareTrack {
 		COVER        => $album->{image},
 		AUDIO        => 1,
 		EXTID        => $url,
-		# COMPILATION  => $track->{album}->{album_type} eq 'compilation',
 		TIMESTAMP    => $album->{favorited_at} || $album->{purchased_at},
 		CONTENT_TYPE => $ct,
 		SAMPLERATE   => $track->{maximum_sampling_rate} * 1000,
@@ -348,21 +345,19 @@ sub _prepareTrack {
 		REPLAYGAIN_ALBUM_PEAK => $album->{replay_peak},
 	};
 
+	$album->{release_type} = 'EP' if lc($album->{release_type} || '') eq 'epmini';
+
 	if ($album->{media_count} > 1) {
 		$attributes->{DISC} = $track->{media_number};
 		$attributes->{DISCC} = $album->{media_count};
 	}
 
-	if ($track->{composer} && $track->{composer}->{name}) {
+	if ( $track->{composer} && $track->{composer}->{name} && $track->{composer}->{name} !~ /^\s*various\s*composers\s*$/i ) {
 		$attributes->{COMPOSER} = $track->{composer}->{name};
+		$attributes->{COMPOSER_EXTID} = 'qobuz:artist:' . $track->{composer}->{id};
 		if ( $track->{work} && $prefs->get('importWorks') ) {
 			$attributes->{WORK} = $track->{work};
 		}
-	}
-
-	if ($track->{performer} && $artist !~ m/(^|\Q$_splitList\E)$track->{performer}->{name}($|\Q$_splitList\E)/i
-			&& Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track)) {
-		$attributes->{TRACKARTIST} = $track->{performer}->{name};
 	}
 
 	if ($track->{audio_info}) {
@@ -370,7 +365,91 @@ sub _prepareTrack {
 		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
 
+	my ($artists, $artistIds);
+
+	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
+		push @$artists, $_->{name};
+		push @$artistIds, 'qobuz:artist:' . $_->{id};
+	}
+	if ( !$artists && $track->{performer} && $track->{performer}->{name} ) {
+		push @$artists, $track->{performer}->{name};
+		push @$artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	}
+
+	Plugins::Qobuz::API::Common->removeArtistsIfNotOnTrack($track, $artists, $artistIds);
+
+	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) && !grep $_ eq $track->{performer}->{name}, @{$artists}) {
+		push @$artists, $track->{performer}->{name};
+		push @$artistIds, 'qobuz:artist:' . $track->{performer}->{id};
+	}
+
+	my $rolePerformer;
+	if ($track->{performers}) {
+		my %seen;
+		my @performersAndRoles = split(' - ', $track->{performers});
+		foreach my $performerAndRoles (@performersAndRoles) {
+			my %roleSeen = undef;
+			my @roles = split(/\s*,\s*/, $performerAndRoles);
+			my $name = shift @roles;
+			foreach my $role (@roles) {
+				$role =~ s/\s*//gs;
+				$role = uc($role);
+				push @{$rolePerformer->{$role}}, $name if !$roleSeen{$role};
+				$roleSeen{$role} = 1;
+			}
+		}
+		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
+		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
+	}
+
+	$attributes->{ARTIST} = \@$artists;
+	$attributes->{ARTIST_EXTID} = \@$artistIds;
+
+	# create a map of artist id -> artist name tuples for the current item
+	my %trackArtists;
+	for (my $i = 0; $i < scalar @{$attributes->{ARTIST}}; $i++) {
+		$trackArtists{$attributes->{ARTIST}->[$i]} = $attributes->{ARTIST_EXTID}->[$i];
+	}
+
+	# if this is the first track, all track artists are potential album artists
+	if (!$albumArtists->{names}) {
+		$albumArtists->{names} = [ keys %trackArtists ];
+		$albumArtists->{ids} = [ values %trackArtists ];
+	}
+	# not the first track
+	else {
+		if ( !$albumArtists->{required} && join(',', sort(@{$albumArtists->{names}})) ne join(',', sort(@$artists)) ) {
+			$albumArtists->{required} = 1;
+		}
+		# we are only interested in the artists we have seen before - anything else is not considered an album artist
+		for (my $i = 0; $i < scalar @{$albumArtists->{names}}; $i++) {
+			if (!$trackArtists{$albumArtists->{names}->[$i]}) {
+				$albumArtists->{names}->[$i] = undef;
+				$albumArtists->{ids}->[$i] = undef;
+			}
+		}
+
+		# instead of fiddling with the index above I decided to wipe the value - now we have to remove empty values
+		@{$albumArtists->{names}} = grep { $_ } @{$albumArtists->{names}};
+		@{$albumArtists->{ids}} = grep { $_ } @{$albumArtists->{ids}};
+	}
+
+	$attributes->{ALBUMARTIST} = $albumArtists->{names};
+	$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
+
 	return $attributes;
+}
+
+sub _checkAlbumArtists {
+	my ($attributes, $albumArtists) = @_;
+
+	if ( !$albumArtists->{required} || !scalar @{$albumArtists->{names}} ) {
+		foreach (@$attributes) {
+			delete $_->{ALBUMARTIST};
+			delete $_->{ALBUMARTIST_EXTID};
+		}
+	}
+	return;
 }
 
 1;
