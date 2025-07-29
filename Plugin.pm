@@ -1747,7 +1747,8 @@ sub _trackItem {
 	if ($track->{performer} && Plugins::Qobuz::API::Common->trackPerformerIsMainArtist($track) ) {
 		push @$artistNames, $track->{performer}->{name};
 	}
-	my $artist = join(', ', Slim::Utils::Misc::uniq(@$artistNames));
+	my %seen;
+	my $artist = join(', ', grep { !$seen{$_}++ } @$artistNames);
 	my $album  = $track->{album}->{title} || '';
 	if ( $track->{album}->{title} && $prefs->get('showDiscs') ) {
 		$album = Slim::Music::Info::addDiscNumberToAlbumTitle($album,$track->{media_number},$track->{album}->{media_count});
