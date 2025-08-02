@@ -339,7 +339,7 @@ sub trackPerformerIsMainArtist {
 	if ($track->{performers}) {
 		my $pname = $track->{performer}->{name};
 		$pname =~ s/\s+$//;   # trim the trailing white space
-		return $track->{performers} =~ m/$pname([^\-]*)(Main\ ?Artist)/i;
+		return $track->{performers} =~ m/\Q$pname([^\-]*)(Main\ ?Artist)\E/i;
 	}
 	else {
 		return 0;
