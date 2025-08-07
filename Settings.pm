@@ -65,7 +65,7 @@ sub handler {
 
 		if ($params->{'username'} && $params->{'password'}) {
 			my $username = $params->{'username'};
-			my $password = md5_hex($params->{'password'});
+			my $password = md5_hex(Encode::encode("UTF-8", $params->{'password'}));
 
 			Plugins::Qobuz::API->login($username, $password, sub {
 				my $token = shift;
