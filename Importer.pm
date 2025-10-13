@@ -400,6 +400,13 @@ sub _prepareTrack {
 		}
 		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
 		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
+
+		if (!$track->{work}) { # works only allow one composer
+			$attributes->{COMPOSER} = $rolePerformer->{COMPOSER} if $rolePerformer->{COMPOSER};
+			if (!$attributes->{COMPOSER}) {  # if no track composers, use track writers
+				$attributes->{COMPOSER} = $rolePerformer->{WRITER} if $rolePerformer->{WRITER};
+			}
+		}
 	}
 
 	$attributes->{ARTIST} = \@$artists;
