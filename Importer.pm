@@ -352,21 +352,13 @@ sub _prepareTrack {
 		$attributes->{DISCC} = $album->{media_count};
 	}
 
-	if ( $track->{composer} && $track->{composer}->{name} && $track->{composer}->{name} !~ /^\s*various\s*composers\s*$/i ) {
-		$attributes->{COMPOSER} = $track->{composer}->{name};
-		$attributes->{COMPOSER_EXTID} = 'qobuz:artist:' . $track->{composer}->{id};
-		if ( $track->{work} && $prefs->get('importWorks') ) {
-			$attributes->{WORK} = $track->{work};
-		}
-	}
-
 	if ($track->{audio_info}) {
 		$attributes->{REPLAYGAIN_TRACK_GAIN} = $track->{audio_info}->{replaygain_track_gain};
 		$attributes->{REPLAYGAIN_TRACK_PEAK} = $track->{audio_info}->{replaygain_track_peak};
 	}
 
+	# Populate the track artists
 	my ($artists, $artistIds);
-
 	foreach ( Plugins::Qobuz::API::Common->getMainArtists($album) ) {
 		push @$artists, $_->{name};
 		push @$artistIds, 'qobuz:artist:' . $_->{id};
@@ -383,9 +375,22 @@ sub _prepareTrack {
 		push @$artistIds, 'qobuz:artist:' . $track->{performer}->{id};
 	}
 
-	my $rolePerformer;
+	$attributes->{ARTIST} = \@$artists;
+	$attributes->{ARTIST_EXTID} = \@$artistIds;
+
+	# Populate the track composers
+	my ($composers, $composerIds, %seen);
+	if ( $track->{composer} && $track->{composer}->{name} && $track->{composer}->{name} !~ /^\s*various\s*composers\s*$/i ) {
+		push @$composers, $track->{composer}->{name};
+		$seen{$track->{composer}->{name}} = 1;
+		push @$composerIds, 'qobuz:artist:' . $track->{composer}->{id};
+		if ( $track->{work} && $prefs->get('importWorks') ) {
+			$attributes->{WORK} = $track->{work};
+		}
+	}
+
 	if ($track->{performers}) {
-		my %seen;
+		my $rolePerformer;
 		my @performersAndRoles = split(' - ', $track->{performers});
 		foreach my $performerAndRoles (@performersAndRoles) {
 			my %roleSeen = undef;
@@ -402,15 +407,17 @@ sub _prepareTrack {
 		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 
 		if (!$track->{work}) { # works only allow one composer
-			$attributes->{COMPOSER} = $rolePerformer->{COMPOSER} if $rolePerformer->{COMPOSER};
-			if (!$attributes->{COMPOSER}) {  # if no track composers, use track writers
-				$attributes->{COMPOSER} = $rolePerformer->{WRITER} if $rolePerformer->{WRITER};
+			if ($rolePerformer->{COMPOSER}) {
+				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{COMPOSER}};
+			}
+			elsif ($rolePerformer->{WRITER}) {  # if no track composers, use track writers
+				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{WRITER}};
 			}
 		}
 	}
 
-	$attributes->{ARTIST} = \@$artists;
-	$attributes->{ARTIST_EXTID} = \@$artistIds;
+	$attributes->{COMPOSER} = \@$composers;
+	$attributes->{COMPOSER_EXTID} = \@$composerIds;
 
 	# create a map of artist id -> artist name tuples for the current item
 	my %trackArtists;
