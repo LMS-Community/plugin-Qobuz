@@ -375,14 +375,16 @@ sub _prepareTrack {
 		push @$artistIds, 'qobuz:artist:' . $track->{performer}->{id};
 	}
 
-	$attributes->{ARTIST} = \@$artists;
-	$attributes->{ARTIST_EXTID} = \@$artistIds;
+	$attributes->{ARTIST} = $artists;
+	$attributes->{ARTIST_EXTID} = $artistIds;
 
-	# Populate the track composers
+	# Populate the primary track composer
 	my ($composers, $composerIds, %seen);
 	if ( $track->{composer} && $track->{composer}->{name} && $track->{composer}->{name} !~ /^\s*various\s*composers\s*$/i ) {
-		push @$composers, $track->{composer}->{name};
-		$seen{$track->{composer}->{name}} = 1;
+		my $name = $track->{composer}->{name};
+		$name =~ s/[\s\x{A0}]+/ /g;  # convert white space to a single space
+		push @$composers, $name;
+		$seen{$name} = 1;  # add it to the seen composers hash table
 		push @$composerIds, 'qobuz:artist:' . $track->{composer}->{id};
 		if ( $track->{work} && $prefs->get('importWorks') ) {
 			$attributes->{WORK} = $track->{work};
@@ -390,12 +392,14 @@ sub _prepareTrack {
 	}
 
 	if ($track->{performers}) {
+		# Gather performers and their roles from the track credits
 		my $rolePerformer;
 		my @performersAndRoles = split(' - ', $track->{performers});
 		foreach my $performerAndRoles (@performersAndRoles) {
 			my %roleSeen = undef;
 			my @roles = split(/\s*,\s*/, $performerAndRoles);
 			my $name = shift @roles;
+			$name =~ s/[\s\x{A0}]+/ /g;  # convert white space to a single space
 			foreach my $role (@roles) {
 				$role =~ s/\s*//gs;
 				$role = uc($role);
@@ -403,9 +407,8 @@ sub _prepareTrack {
 				$roleSeen{$role} = 1;
 			}
 		}
-		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
-		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 
+		# Populate secondary composers if any
 		if (!$track->{work}) { # works only allow one composer
 			if ($rolePerformer->{COMPOSER}) {
 				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{COMPOSER}};
@@ -414,10 +417,13 @@ sub _prepareTrack {
 				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{WRITER}};
 			}
 		}
+
+		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
+		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 	}
 
-	$attributes->{COMPOSER} = \@$composers;
-	$attributes->{COMPOSER_EXTID} = \@$composerIds;
+	$attributes->{COMPOSER} = $composers;
+	$attributes->{COMPOSER_EXTID} = $composerIds;
 
 	# create a map of artist id -> artist name tuples for the current item
 	my %trackArtists;
