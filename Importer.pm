@@ -384,7 +384,7 @@ sub _prepareTrack {
 		my $name = $track->{composer}->{name};
 		$name =~ s/[\s\x{A0}]+/ /g;  # convert white space to a single space
 		push @$composers, $name;
-		$seen{$name} = 1;  # add it to the seen composers hash table
+		$seen{uc($name)} = 1;  # add it to the seen composers hash table
 		push @$composerIds, 'qobuz:artist:' . $track->{composer}->{id};
 		if ( $track->{work} && $prefs->get('importWorks') ) {
 			$attributes->{WORK} = $track->{work};
@@ -411,10 +411,10 @@ sub _prepareTrack {
 		# Populate secondary composers if any
 		if (!$track->{work}) { # works only allow one composer
 			if ($rolePerformer->{COMPOSER}) {
-				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{COMPOSER}};
+				push @$composers, grep { !$seen{uc($_)}++ } @{$rolePerformer->{COMPOSER}};
 			}
 			elsif ($rolePerformer->{WRITER}) {  # if no track composers, use track writers
-				push @$composers, grep { !$seen{$_}++ } @{$rolePerformer->{WRITER}};
+				push @$composers, grep { !$seen{uc($_)}++ } @{$rolePerformer->{WRITER}};
 			}
 		}
 
