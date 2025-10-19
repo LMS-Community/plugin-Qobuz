@@ -214,7 +214,7 @@ sub _precacheAlbum {
 sub _precacheTracks {
 	my ($tracks) = @_;
 
-	return unless $tracks && ref $tracks eq 'ARRAY';
+	return [] unless $tracks && ref $tracks eq 'ARRAY' && @$tracks;
 
 	$tracks = __PACKAGE__->filterPlayables($tracks);
 
