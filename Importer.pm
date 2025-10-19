@@ -427,7 +427,6 @@ sub _prepareTrack {
 	$attributes->{COMPOSER} = $composers;
 	$attributes->{COMPOSER_EXTID} = $composerIds;
 
-Slim::Utils::Log::logError("DK \$ref=" . Data::Dump::dump(ref $attributes->{ARTIST}));
 	if ( ref $attributes->{ARTIST} eq 'ARRAY' ) {
 		# create a map of artist id -> artist name tuples for the current item
 		my %trackArtists;
