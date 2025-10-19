@@ -420,43 +420,46 @@ sub _prepareTrack {
 
 		$attributes->{BAND} = $rolePerformer->{ORCHESTRA} if $rolePerformer->{ORCHESTRA};
 		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
+
+		$attributes->{ARTIST} ||= $rolePerformer->{MAINARTIST}; # if no artist identified so far
 	}
 
 	$attributes->{COMPOSER} = $composers;
 	$attributes->{COMPOSER_EXTID} = $composerIds;
 
-	# create a map of artist id -> artist name tuples for the current item
-	my %trackArtists;
-	for (my $i = 0; $i < scalar @{$attributes->{ARTIST}}; $i++) {
-		$trackArtists{$attributes->{ARTIST}->[$i]} = $attributes->{ARTIST_EXTID}->[$i];
-	}
-
-	# if this is the first track, all track artists are potential album artists
-	if (!$albumArtists->{names}) {
-		$albumArtists->{names} = [ keys %trackArtists ];
-		$albumArtists->{ids} = [ values %trackArtists ];
-	}
-	# not the first track
-	else {
-		if ( !$albumArtists->{required} && join(',', sort(@{$albumArtists->{names}})) ne join(',', sort(@$artists)) ) {
-			$albumArtists->{required} = 1;
+	if ( ref $attributes->{ARTIST} eq 'ARRAY' ) {
+		# create a map of artist id -> artist name tuples for the current item
+		my %trackArtists;
+		for (my $i = 0; $i < scalar @{$attributes->{ARTIST}}; $i++) {
+			$trackArtists{$attributes->{ARTIST}->[$i]} = $attributes->{ARTIST_EXTID}->[$i];
 		}
-		# we are only interested in the artists we have seen before - anything else is not considered an album artist
-		for (my $i = 0; $i < scalar @{$albumArtists->{names}}; $i++) {
-			if (!$trackArtists{$albumArtists->{names}->[$i]}) {
-				$albumArtists->{names}->[$i] = undef;
-				$albumArtists->{ids}->[$i] = undef;
+
+		# if this is the first track, all track artists are potential album artists
+		if (!$albumArtists->{names}) {
+			$albumArtists->{names} = [ keys %trackArtists ];
+			$albumArtists->{ids} = [ values %trackArtists ];
+		}
+		# not the first track
+		else {
+			if ( !$albumArtists->{required} && join(',', sort(@{$albumArtists->{names}})) ne join(',', sort(@$artists)) ) {
+				$albumArtists->{required} = 1;
 			}
+			# we are only interested in the artists we have seen before - anything else is not considered an album artist
+			for (my $i = 0; $i < scalar @{$albumArtists->{names}}; $i++) {
+				if (!$trackArtists{$albumArtists->{names}->[$i]}) {
+					$albumArtists->{names}->[$i] = undef;
+					$albumArtists->{ids}->[$i] = undef;
+				}
+			}
+
+			# instead of fiddling with the index above I decided to wipe the value - now we have to remove empty values
+			@{$albumArtists->{names}} = grep { $_ } @{$albumArtists->{names}};
+			@{$albumArtists->{ids}} = grep { $_ } @{$albumArtists->{ids}};
 		}
 
-		# instead of fiddling with the index above I decided to wipe the value - now we have to remove empty values
-		@{$albumArtists->{names}} = grep { $_ } @{$albumArtists->{names}};
-		@{$albumArtists->{ids}} = grep { $_ } @{$albumArtists->{ids}};
+		$attributes->{ALBUMARTIST} = $albumArtists->{names};
+		$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
 	}
-
-	$attributes->{ALBUMARTIST} = $albumArtists->{names};
-	$attributes->{ALBUMARTIST_EXTID} = $albumArtists->{ids};
-
 	return $attributes;
 }
 
