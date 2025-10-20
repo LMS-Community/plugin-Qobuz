@@ -130,7 +130,7 @@ sub explodePlaylist {
 
 			my $uris = [];
 
-			if ($response && ref $response && $response->{tracks}) {
+			if ($response && ref $response eq 'HASH' && $response->{tracks} && ref $response->{tracks} eq 'HASH') {
 				$uris = {
 					items => [
 						map {
