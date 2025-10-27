@@ -422,6 +422,7 @@ sub _prepareTrack {
 		$attributes->{CONDUCTOR} = $rolePerformer->{CONDUCTOR} if $rolePerformer->{CONDUCTOR};
 
 		$attributes->{ARTIST} ||= $rolePerformer->{MAINARTIST}; # if no artist identified so far
+		$artists ||= $rolePerformer->{MAINARTIST};
 	}
 
 	$attributes->{COMPOSER} = $composers;
