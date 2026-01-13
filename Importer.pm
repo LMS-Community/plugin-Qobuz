@@ -386,8 +386,26 @@ sub _prepareTrack {
 		push @$composers, $name;
 		$seen{uc($name)} = 1;  # add it to the seen composers hash table
 		push @$composerIds, 'qobuz:artist:' . $track->{composer}->{id};
-		if ( $track->{work} && $prefs->get('importWorks') ) {
-			$attributes->{WORK} = $track->{work};
+
+		if ( $prefs->get('importWorks') ) {
+
+			# if work is blank, try to derive from title
+			if ( $track->{album}->{isClassique} && $track->{title} && !$track->{work} ) {
+				# Try to set work to the title, but without composer if it's in there
+				my @titleSplit = split /:\s*/, $track->{title};
+				$track->{work} = $track->{title};
+				if ( index($track->{composer}->{name}, $titleSplit[0]) != -1 ) {
+					$track->{work} =~ s/\Q$titleSplit[0]\E:\s*//;
+				}
+				# try to remove the title (ie track, movement) from the work
+				@titleSplit = split /:\s*/, $track->{title};
+				my $tempTitle = @titleSplit[-1];
+				$track->{work} =~ s/:\s*\Q$tempTitle\E//;
+			}
+
+			if ( $track->{work} ) {
+				$attributes->{WORK} = $track->{work};
+			}
 		}
 	}
 
