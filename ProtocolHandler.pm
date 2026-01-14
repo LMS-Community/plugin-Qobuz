@@ -350,7 +350,7 @@ sub getMetadataFor {
 	$meta->{title} = Plugins::Qobuz::API::Common->addVersionToTitle($meta);
 
 	# user pref is for enhanced classical music display, and we have a classical release (this is where playlist track titles is set up)
-	if ( $meta->{isClassique} ) {
+	if ( isClassique($meta) ) {
 		# if the title doesn't already contain the work text
 		if ( $meta->{work} && index($meta->{title},$meta->{work}) == -1 ) {
 			# remove composer name from track title

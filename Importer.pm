@@ -390,7 +390,7 @@ sub _prepareTrack {
 		if ( $prefs->get('importWorks') ) {
 
 			# if work is blank, try to derive from title
-			if ( $track->{album}->{isClassique} && $track->{title} && !$track->{work} ) {
+			if ( isClassique($track->{album}) && $track->{title} && !$track->{work} ) {
 				# Try to set work to the title, but without composer if it's in there
 				my @titleSplit = split /:\s*/, $track->{title};
 				$track->{work} = $track->{title};
