@@ -1768,7 +1768,7 @@ sub _trackItem {
 	}
 
 	# Enhancements to work/composer display for classical music (tags returned from Qobuz are all over the place)
-	if ( $track->{album}->{isClassique} ) {
+	if ( isClassique($track->{album}) && $prefs->get('useClassicalEnhancements') ) {
 		if ( $track->{work} ) {
 			$item->{work} = $track->{work};
 		} else {
