@@ -6,7 +6,7 @@ use Exporter::Lite;
 our @EXPORT = qw(
 	QOBUZ_BASE_URL QOBUZ_DEFAULT_EXPIRY QOBUZ_USER_DATA_EXPIRY QOBUZ_EDITORIAL_EXPIRY QOBUZ_DEFAULT_LIMIT QOBUZ_LIMIT QOBUZ_USERDATA_LIMIT
 	QOBUZ_STREAMING_MP3 QOBUZ_STREAMING_FLAC QOBUZ_STREAMING_FLAC_HIRES QOBUZ_STREAMING_FLAC_HIRES2
-	_precacheAlbum _precacheTracks precacheTrack
+	_precacheAlbum _precacheTracks precacheTrack isClassique
 );
 
 use Slim::Utils::Cache;
@@ -31,7 +31,6 @@ use constant QOBUZ_STREAMING_FLAC_HIRES2 => 27;
 my $cache;
 my $prefs = preferences('plugin.qobuz');
 my $log = logger('plugin.qobuz');
-my $isClassique;
 my %genreList;
 
 initGenreMap();
@@ -158,14 +157,6 @@ sub _precacheAlbum {
 		$album->{genre} = $album->{genre}->{name};
 		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
 
-		# If the user pref is for classical music enhancements to the display, is this a classical release or has the user added the genre to their custom classical list?
-		$isClassique = 0;
-		if ( $prefs->get('useClassicalEnhancements') ) {
-			if ( ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) ) || $genreList{$album->{genre}} ) {
-				$isClassique = 1;
-			}
-		}
-
 		my $albumInfo = {
 			title  => $album->{title},
 			id     => $album->{id},
@@ -176,7 +167,6 @@ sub _precacheAlbum {
 			goodies=> $album->{goodies},
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
-			isClassique => $isClassique,
 			parental_warning => $album->{parental_warning},
 			media_count => $album->{media_count},
 			duration => 0,
@@ -267,7 +257,6 @@ sub precacheTrack {
 		work     => $track->{work},
 		genre    => $album->{genre},
 		genres_list => $album->{genres_list},
-		isClassique => $isClassique,
 		parental_warning => $track->{parental_warning},
 		track_number => $track->{track_number},
 		media_number => $track->{media_number},
@@ -417,6 +406,13 @@ sub getPlaylistImage {
 	$image =~ s/([a-z\d]{13}_)[\d]+(\.jpg)/${1}600$2/;
 
 	return $image;
+}
+
+sub isClassique {
+	my $album = shift;
+
+	# Is this a classical release or has the user added the genre to their custom classical list?
+	return ( $album->{genres_list} && grep(/Classique/,@{$album->{genres_list}}) ) || $genreList{$album->{genre}};
 }
 
 1;
