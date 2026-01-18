@@ -152,7 +152,7 @@ sub explodePlaylist {
 sub trackGain {
 	my ( $class, $client, $url ) = @_;
 
-	main::DEBUGLOG && $log->is_debug && $log->debug("Url: $url");
+	main::INFOLOG && $log->info("Url: $url");
 
  	my $rgmode = preferences('server')->client($client)->get('replayGainMode');
 
@@ -164,47 +164,49 @@ sub trackGain {
 	my $peak = 0;
 	my $netGain = 0;
 	my $album;
-	my $randomPlay = exists $INC{'Slim/Plugin/RandomPlay/Plugin.pm'};
-	my $mode = '';
 
 	my ($id) = $class->crackUrl($url);
-	main::DEBUGLOG && $log->is_debug && $log->debug("Id: $id");
+	main::INFOLOG && $log->info("Id: $id");
 
 	my $meta = $cache->get('trackInfo_' . $id);
 	main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($meta));
 
-	if ($randomPlay) {
-		$mode = Slim::Plugin::RandomPlay::Plugin::active($client);
-		main::INFOLOG && $log->info("Random play type: /" . $mode . "/");
-	}
-
 	if (!$meta) {
 		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
-	} elsif (
-		$rgmode == 1   # track gain in use
-		|| (   # or Random Play is in effect (but not in 'album' or 'work' mode)
-			$randomPlay && $mode     # plugin is installed and active...
-				&& $mode ne 'album'  #...but not in 'album' (release) mode
-				&& $mode ne 'work'   #...or 'work' mode
-			)
-		|| (   # OR not in the cached favorites...
-			!($album = $cache->get('album_with_tracks_' . $meta->{albumId}))
-			&& (   # ...AND (not in cached albums
-				!($album = $cache->get('albumInfo_' . $meta->{albumId}))
-					|| ref $meta->{genre} ne ""
+	} else {
+		my $rgType = "default";
+		if ($rgmode == 1   # track gain
+			|| (  # ...OR not in the cached favorites
+				!($album = $cache->get('album_with_tracks_' . $meta->{albumId}))
+				&& (  # ...AND not in cached albums
+					!($album = $cache->get('albumInfo_' . $meta->{albumId})))
 				)
-			)
-		# ...OR the track info was not populated from an album OR album gain not specified)
-		|| !ref $album || !defined $album->{replay_gain}
-	) {
-		$gain = ($rgmode == 2) ? 0 : $meta->{replay_gain};  # zero replay gain for non-album tracks if using album gain
-		$peak = ($rgmode == 2) ? 0 : $meta->{replay_peak};  # ... otherwise, use the track gain
-		main::INFOLOG && $log->info("Using gain value of $gain : $peak for track: " .  $meta->{title} );
-	} else {  # album or smart gain
-		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
-		$gain = $album->{replay_gain} || 0;
-		$peak = $album->{replay_peak} || 0;
-		main::INFOLOG && $log->info("Using album gain value of $gain : $peak for track: " . $meta->{title} );
+			|| !ref $album  # ...OR the track info was not populated from an album
+			|| !defined $album->{replay_gain} ) {  #...OR album gain not specified
+			if ($rgmode != 2) {
+				$gain = $meta->{replay_gain} || 0;  # default (0) replay gain if using album gain
+				$peak = $meta->{replay_peak} || 0;  # ... otherwise, use the track gain
+				$rgType = "track";
+			}
+		} elsif ($rgmode == 2) {  # album gain
+			$gain = $album->{replay_gain} || 0;
+			$peak = $album->{replay_peak} || 0;
+			$rgType = "album";
+		} elsif  # use smart gain
+			(Slim::Player::ReplayGain->trackAlbumMatch($client, -1)
+				|| Slim::Player::ReplayGain->trackAlbumMatch($client, 1)  #smart gain says use album gain
+				|| $meta->{track_number} == 1) {  # this is a way of making album smart gain work for the first
+												  # ... track of an album when the second one isn't in the cache.
+			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
+			$gain = $album->{replay_gain} || 0;
+			$peak = $album->{replay_peak} || 0;
+			$rgType = "album (smart)";
+		} else {  # smart gain says track gain
+			$gain = $meta->{replay_gain} || 0;
+			$peak = $meta->{replay_peak} || 0;
+			$rgType = "track (smart)";
+		}
+		main::INFOLOG && $log->info("Using $rgType gain value of $gain : $peak for track: " . $meta->{title} );
 	}
 
 	$netGain = Slim::Player::ReplayGain::preventClipping($gain, $peak);
@@ -313,6 +315,8 @@ sub getMetadataFor {
 			$client->master->pluginData( fetchingMeta => 0 ) if $client;
 		}, $id);
 	}
+
+	return unless defined wantarray;  # caller only wants to refresh the cache (if needed)
 
 	$meta ||= {};
 	if ($meta->{composer} =~ /^\s*various\s*composers\s*$/i) {
