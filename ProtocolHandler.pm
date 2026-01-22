@@ -175,8 +175,6 @@ sub trackGain {
 		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
 	} else {
 		my $rgType = "default";
-		my $rc1;
-		my $rc2;
 		if ($rgmode == 1   # track gain
 			|| (  # ...OR not in the cached favorites
 				!($album = $cache->get('album_with_tracks_' . $meta->{albumId}))
@@ -195,8 +193,9 @@ sub trackGain {
 			$peak = $album->{replay_peak} || 0;
 			$rgType = "album";
 		} else {  # use smart gain
-			if (   ( $rc1 = Slim::Player::ReplayGain->trackAlbumMatch($client, -1) )
-				|| ( $rc2 = Slim::Player::ReplayGain->trackAlbumMatch($client, 1) )  # smart gain says use album gain
+			my $rc1 = Slim::Player::ReplayGain->trackAlbumMatch($client, -1);
+			my $rc2 = Slim::Player::ReplayGain->trackAlbumMatch($client, 1) if !$rc1;
+			if ( ($rc1 || $rc2)  # smart gain says use album gain
 				|| ( ( !defined $rc2 ) # next track is not available - can't be sure if it's the same album
 					&& $meta->{track_number} == 1) ) {  # ...so use album gain for first album track to be safe
 				main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
