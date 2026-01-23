@@ -192,19 +192,22 @@ sub trackGain {
 			$gain = $album->{replay_gain} || 0;
 			$peak = $album->{replay_peak} || 0;
 			$rgType = "album";
-		} elsif  # use smart gain
-			(Slim::Player::ReplayGain->trackAlbumMatch($client, -1)
-				|| Slim::Player::ReplayGain->trackAlbumMatch($client, 1)  #smart gain says use album gain
-				|| $meta->{track_number} == 1) {  # this is a way of making album smart gain work for the first
-												  # ... track of an album when the second one isn't in the cache.
-			main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
-			$gain = $album->{replay_gain} || 0;
-			$peak = $album->{replay_peak} || 0;
-			$rgType = "album (smart)";
-		} else {  # smart gain says track gain
-			$gain = $meta->{replay_gain} || 0;
-			$peak = $meta->{replay_peak} || 0;
-			$rgType = "track (smart)";
+		} else {  # use smart gain
+			my $rc1 = Slim::Player::ReplayGain->trackAlbumMatch($client, -1);
+			my $rc2 = Slim::Player::ReplayGain->trackAlbumMatch($client, 1) if !$rc1;
+			if ( ($rc1 || $rc2)  # smart gain says use album gain
+				|| ( ( !defined $rc2 ) # next track is not available - can't be sure if it's the same album
+					&& $meta->{track_number} == 1) ) {  # ...so use album gain for first album track to be safe
+				main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
+				$gain = $album->{replay_gain} || 0;
+				$peak = $album->{replay_peak} || 0;
+				$rgType = "album (smart)";
+			} else {  # smart gain says track gain
+				$gain = $meta->{replay_gain} || 0;
+				$peak = $meta->{replay_peak} || 0;
+				$rgType = "track (smart)";
+			}
+			main::INFOLOG && $log->info("rc1=$rc1 : rc2=$rc2");
 		}
 		main::INFOLOG && $log->info("Using $rgType gain value of $gain : $peak for track: " . $meta->{title} );
 	}
