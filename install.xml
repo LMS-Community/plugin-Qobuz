@@ -7,21 +7,21 @@
 	<onlineLibrary>true</onlineLibrary>
 	<category>musicservices</category>
 
-	<version>3.6.7</version>
+	<version>30.6.7</version>
 	<description>PLUGIN_QOBUZ_DESC</description>
-	<creator>Pierre Beck / Michael Herger / darrell / SamY / sveninndh</creator>
-	<email>slim@herger.net</email>
+	<creator>Pierre Beck / Michael Herger / darrell / SamY / SvenInNdh</creator>
+	<email>sveninndh@gmail.com</email>
 	<defaultState>enabled</defaultState>
 	<icon>plugins/Qobuz/html/images/qobuz.png</icon>
 	<optionsURL>plugins/Qobuz/settings/basic.html</optionsURL>
 
-	<homepageURL>http://forums.slimdevices.com/showthread.php?97146-Qobuz-com-streaming-plugin</homepageURL>
+	<homepageURL>https://forums.lyrion.org/forum/user-forums/3rd-party-software/1665938-announce-qobuz-plugin-sven-s-version</homepageURL>
 	<aid>3934323835323536373736313733306433663935653461663039616336336239613337636363393661393530303936393633</aid>
 	<type>2</type><!-- type=extension -->
 
 	<targetApplication>
 		<id>SqueezeCenter</id>
-		<minVersion>7.9</minVersion>
+		<minVersion>8.0</minVersion>
 		<maxVersion>*</maxVersion>
 	</targetApplication>
 
