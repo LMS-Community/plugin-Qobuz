@@ -1,9 +1,14 @@
 package Plugins::Qobuz::ProtocolHandler;
 
+#Sven 2026-01-29 Version 30.6.7
+#Sven 2022-05-06 support of https
+#Sven 2022-05-17 correction for playing Qobuz album favorites from LMS favorites
+#Sven 2022-05-16 needed since 2.5.1 because of subscribe/unsubscribe playlists
+#Sven 2023-10-28 for URL handlers to get the track icon without having a client.
 # Handler for qobuz:// URLs
 
 use strict;
-use base qw(Slim::Player::Protocols::HTTPS);
+use base qw(Slim::Player::Protocols::HTTPS); 
 use Scalar::Util qw(blessed);
 use Text::Unidecode;
 
@@ -19,8 +24,9 @@ use Plugins::Qobuz::Reporting;
 use constant MP3_BITRATE => 320_000;
 use constant CAN_FLAC_SEEK => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0 && UNIVERSAL::can('Slim::Utils::Scanner::Remote', 'parseFlacHeader'));
 
-use constant PAGE_URL_REGEXP => qr{(?:open|play)\.qobuz\.com/(.+)/([a-z0-9]+)};
-Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__) if Slim::Player::ProtocolHandlers->can('registerURLHandler');
+use constant PAGE_URL_REGEXP => qr{^qobuz:(album:|//playlist:|//)([a-z0-9]+)};  # Sven
+#use constant PAGE_URL_REGEXP => qr{(?:open|play)\.qobuz\.com/(.+)/([a-z0-9]+)}; # Original
+Slim::Player::ProtocolHandlers->registerURLHandler(PAGE_URL_REGEXP, __PACKAGE__); # if Slim::Player::ProtocolHandlers->can('registerURLHandler');
 
 my $cache = Plugins::Qobuz::API::Common->getCache();
 my $log   = logger('plugin.qobuz');
@@ -104,6 +110,7 @@ sub getFormatForURL {
 	return Plugins::Qobuz::API::Common->getStreamingFormat();
 }
 
+#Sven 2022-05-27 correction for playing Qobuz album favorites from LMS favorites
 sub explodePlaylist {
 	my ( $class, $client, $url, $cb ) = @_;
 
@@ -114,30 +121,28 @@ sub explodePlaylist {
 		if ($type eq 'track') {
 			$url = "qobuz://$id." . Plugins::Qobuz::API::Common->getStreamingFormat($url);
 		}
-		else {
+		elsif ($type eq 'playlist') { #Sven 2022-05-27
 			$url = "qobuz://$type:$id.qbz";
 		}
 	}
 
-	if ( $url =~ m{^qobuz://(playlist|album)?:?([0-9a-z]+)\.qbz}i ) {
-		my $type = $1;
-		my $id = $2;
+	if ( $url =~ m{^qobuz:(?://)?(playlist|album)?:?([0-9a-z]+)(?:\.qbz)?$}i ) { #Sven 2022-05-27 - ( $url =~ m{^qobuz://(playlist|album)?:?([0-9a-z]+)\.qbz}i )
+		$type = $1;
+		$id   = $2;
 
 		my $getter = $type eq 'album' ? 'getAlbum' : 'getPlaylistTracks';
 
 		Plugins::Qobuz::Plugin::getAPIHandler($client)->$getter(sub {
 			my $response = shift || [];
 
-			my $uris = [];
+			my $uris = { type => 'opml', title => '' }; #Sven 2022-05-27
 
 			if ($response && ref $response eq 'HASH' && $response->{tracks} && ref $response->{tracks} eq 'HASH') {
-				$uris = {
-					items => [
-						map {
-							Plugins::Qobuz::Plugin::_trackItem($client, $_);
-						} @{$response->{tracks}->{items}}
-					]
-				};
+				$uris->{items} = [
+					map {
+						Plugins::Qobuz::Plugin::_trackItem($client, $_);
+					} @{$response->{tracks}->{items}}
+				];
 			}
 
 			$cb->($uris);
@@ -306,18 +311,20 @@ sub getMetadataFor {
 
 	my $meta;
 
-	# grab metadata from backend if needed, otherwise use cached values
-	if ($id && $client && $client->master->pluginData('fetchingMeta')) {
-		Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
-		$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
+	# grab metadata from backend if needed, otherwise use cached values 
+	if ($id && $client) { #Sven 2026-01-18 Fix - Vermeidet Fehler wenn $id oder $client leer sind, was ab und zu passiert.
+		if ($client->master->pluginData('fetchingMeta')) { # Der Cache wird gerade geschrieben
+			Slim::Control::Request::notifyFromArray( $client, [ 'newmetadata' ] );
+			$meta = Plugins::Qobuz::API->getCachedFileInfo($id);
+		}
+		else {
+			$client->master->pluginData( fetchingMeta => 1 ); # Anzeigen, dass der Cache jetzt geschrieben wird
+			$meta = Plugins::Qobuz::Plugin::getAPIHandler($client)->getTrackInfo(sub { $client->master->pluginData( fetchingMeta => 0 ); }, $id);
+			# Holt eigentlich die Metadaten des Tracks immer aus dem Cache. Sollte der Cache leer sein so ist auch $meta leer.
+			# gleichzeitig wird der Cache aber über eine asynchrone API-Abfrage gefüllt, sodaß die Metadaten des Tracks beim nächsten Aufruf dann zur Verfügung stehen.
+		}
 	}
-	elsif ($id) {
-		$client->master->pluginData( fetchingMeta => 1 ) if $client;
-
-		$meta = Plugins::Qobuz::Plugin::getAPIHandler($client)->getTrackInfo(sub {
-			$client->master->pluginData( fetchingMeta => 0 ) if $client;
-		}, $id);
-	}
+	else { $log->error($url); $log->error(Data::Dump::dump($id)); _logCallStack(); }
 
 	return unless defined wantarray;  # caller only wants to refresh the cache (if needed)
 
@@ -402,6 +409,7 @@ sub getMetadataFor {
 	}
 
 	$meta->{tracknum} = $meta->{track_number};
+
 	return $meta;
 }
 
@@ -446,7 +454,7 @@ sub getNextTrack {
 				if (CAN_FLAC_SEEK && $format =~ /fla?c/i) {
 					main::INFOLOG && $log->is_info && $log->info("Getting flac header information for: " . $song->streamUrl);
 					my $http = Slim::Networking::Async::HTTP->new;
-					$http->send_request( {
+					my $args = {
 						request     => HTTP::Request->new( GET => $song->streamUrl ),
 						onStream    => \&Slim::Utils::Scanner::Remote::parseFlacHeader,
 						onError     => sub {
@@ -455,7 +463,8 @@ sub getNextTrack {
 							$successCb->();
 						},
 						passthrough => [ $song->track, { cb => $successCb }, $song->streamUrl ],
-					} );
+					};
+					$http->send_request($args);
 				} else {
 					$successCb->();
 				}
@@ -485,5 +494,38 @@ sub audioScrobblerSource {
 	# Scrobble as 'chosen by user' content
 	return 'P';
 }
+
+=head #Sven 2023-10-28 for URL handlers to get the track icon without having a client.
+#Meine alte Version, vor Löschung erst testen ob die neue Version gleich gut oder besser ist. 
+sub getIcon {
+	my ( $class, $url ) = @_;
+
+	my ($id) = $class->crackUrl($url);
+
+	$id ||= $url;
+	unless ($id =~ /^qobuz:album/) {
+		my $meta = Plugins::Qobuz::API->getTrackInfo(sub {}, $id);
+		
+		if ($meta->{cover} && ref $meta->{cover}) {
+			$meta->{cover} = Plugins::Qobuz::API::Common->getImageFromImagesHash($meta->{cover});
+		}
+		return $meta->{cover};
+	}
+	return '';
+}
+=cut
+
+#Sven
+sub _logCallStack {
+	my ($i, $count) = @_;
+	$i ||= 1;
+	$count ||= 1;
+	my $caller = "\n";
+	while ( (my @call_details = (caller($i))) && $count>=$i++ ){
+		$caller .= " Function " . $call_details[3] . " is called from: " . $call_details[0] . " at line " . $call_details[2] . "\n";
+	};
+	$log->error($caller);
+}
+
 
 1;

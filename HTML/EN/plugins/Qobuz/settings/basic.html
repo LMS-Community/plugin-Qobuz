@@ -6,6 +6,7 @@
 			[% IF accounts.0 %]
 				<tr>
 					<th>[% "PLUGIN_QOBUZ_ACCOUNT" | string %][% "COLON" | string %]</th>
+					<th>[% "PLUGIN_QOBUZ_USER_ID" | string %][% "COLON" | string %]</th>
 					[% IF canImporter %]
 					<th>[% "PLUGIN_QOBUZ_IMPORT_LIBRARY"| string %][% "COLON" | string %]</th>
 					[% END %]
@@ -14,6 +15,7 @@
 				[% FOREACH account = accounts %]
 				<tr>
 					<td style="vertical-align: middle; padding-right: 10px">[% account.0 | html %]</td>
+					<td><input type="text" class="stdedit" name="pref_lmsuser_[% account.1 %]" id="pref_lmsuser_[% account.1 %]" value="[% account.3 %]" size="20" /></td>
 					[% IF canImporter %]
 					<td style="vertical-align: middle; padding-right: 10px">
 						<select class="stdedit" name="pref_dontimport_[% account.1 %]">
@@ -46,6 +48,21 @@
 
 		<hr class="sub-sep"/>
 
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_USERPURCHASES" desc="" %]
+			<select name="pref_showUserPurchases" id="showUserPurchases">
+				<option [% prefs.showUserPurchases ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
+				<option [% prefs.showUserPurchases ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
+			</select>
+		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_ALBUM_VIEW_TYPE" desc="" %]
+			<select name="pref_albumViewType" id="albumViewType">
+				<option [% prefs.albumViewType ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_AV_ALBUM_INFO" | string %]</option>
+				<option [% prefs.albumViewType == 1 ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_AV_TRACKS_INFO" | string %]</option>
+				<option [% prefs.albumViewType == 2 ? "selected" : "" %] value="2" >[% "PLUGIN_QOBUZ_AV_TRACKS_INFOMENU" | string %]</option>
+			</select>
+		[% END %]
+		
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST" desc="" %]
 			<select name="pref_showComposerWithArtist" id="showComposerWithArtist">
 				<option [% prefs.showComposerWithArtist ? "selected" : "" %] value="1" >[% "YES" | string %]</option>
@@ -59,6 +76,8 @@
 				<option [% prefs.sortFavsAlphabetically == 1 ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_SORT_FAVORITES_ALPHA" | string %]</option>
 				<option [% prefs.sortFavsAlphabetically == 2 ? "selected" : "" %] value="2" >[% "PLUGIN_QOBUZ_SORT_FAVORITE_ALBUMS_ALPHA" | string %]</option>
 			</select>
+			<input type="checkbox" [% IF prefs.pref_sortArtistsAlpha %]checked [% END %] class="stdedit" name="pref_sortArtistsAlpha" id="pref_sortArtistsAlpha" value="1" />
+			<label for="pref_sortArtistsAlpha" class="stdlabel">[% "PLUGIN_QOBUZ_SORT_FAVORITES_ARTISTS" | string %]</label>
 		[% END %]
 
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_SORT_PLAYLISTS" desc="" %]
@@ -73,6 +92,7 @@
 				<option [% prefs.sortArtistAlbums ? "" : "selected" %] value="0" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_ALPHA" | string %]</option>
 				<option [% prefs.sortArtistAlbums == 1 ? "selected" : "" %] value="1" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_NEW" | string %]</option>
 				<option [% prefs.sortArtistAlbums == 2 ? "selected" : "" %] value="2" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_BY_DATE_OLD" | string %]</option>
+				<option [% prefs.sortArtistAlbums == 3 ? "selected" : "" %] value="3" >[% "PLUGIN_QOBUZ_SORT_ARTIST_ALBUMS_UNSORTED" | string %]</option>
 			</select>
 		[% END %]
 
@@ -107,6 +127,7 @@
 				<option [% prefs.useClassicalEnhancements ? "" : "selected" %] value="0" >[% "NO" | string %]</option>
 			</select>
 		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION" desc="" %]
 			<select name="pref_workPlaylistPosition" id="workPlaylistPosition">
 				<option [% prefs.workPlaylistPosition == "before" ? "selected" : "" %] value="before" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_BEFORE" | string %]</option>
@@ -114,6 +135,7 @@
 				<option [% prefs.workPlaylistPosition == "integrated" ? "selected" : "" %] value="integrated" >[% "PLUGIN_QOBUZ_WORK_PLAYLIST_POSITION_INTEGRATED" | string %]</option>
 			</select>
 		[% END %]
+
 		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_CLASSICAL_GENRES" desc="PLUGIN_QOBUZ_CLASSICAL_GENRES_DESC" %]
 			<input type="text" class="stdedit" name="pref_classicalGenres" id="classicalGenres" value="[% prefs.classicalGenres %]" size="80">
 		[% "PLUGIN_QOBUZ_USE_CLASSICAL_ENHANCEMENTS_TEXT" | string %]
