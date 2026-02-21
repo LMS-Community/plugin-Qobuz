@@ -1183,7 +1183,7 @@ sub QobuzGetTracks {
 
 				if ($isFavorite) {  # if it's an orphaned favorite, let the user delete it
 					push @$items, {
-						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE', $albumTitle),
+						name => cstring($client, 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE', $albumTitle),
 						url  => \&QobuzDeleteFavorite,
 						image => 'html/images/favorites.png',
 						passthrough => [{
