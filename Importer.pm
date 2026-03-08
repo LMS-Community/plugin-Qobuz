@@ -96,10 +96,12 @@ sub scanAlbums {
 		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS', $accountName));
 
 		# TODO make dontImportPurchases per account
-		my $albums = Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'));
-		$progress->total(scalar @$albums);
 
-		foreach my $album (@$albums) {
+		# Get favorite albums, filtering out those that are not streamable
+		my @albums = grep { $_->{streamable} } @{Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'))};
+		$progress->total(scalar @albums);
+
+		foreach my $album (@albums) {
 			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
@@ -206,8 +208,8 @@ sub scanPlaylists {
 		$progress->total(scalar @$playlists);
 
 		$progress->update(string('PLUGIN_QOBUZ_PROGRESS_READ_TRACKS', $account->[0]));
-		my %tracks;
-		my $c = my $latestPlaylistUpdate = 0;
+
+		my $latestPlaylistUpdate = 0;
 
 		main::INFOLOG && $log->is_info && $log->info("Getting playlist tracks... " . $account->[0]);
 
@@ -238,7 +240,10 @@ sub scanPlaylists {
 				},
 			});
 
-			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id})};
+			# get playlist tracks, filtering out those that are not streamable
+			my @tracks = grep { $_->{streamable} } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id})};
+			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @tracks;
+
 			$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
 
 			$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
