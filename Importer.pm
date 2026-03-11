@@ -98,10 +98,11 @@ sub scanAlbums {
 		# TODO make dontImportPurchases per account
 
 		# Get favorite albums, filtering out those that are not streamable
-		my @albums = grep { $_->{streamable} } @{Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'))};
-		$progress->total(scalar @albums);
+		my $albums = Plugins::Qobuz::API::Sync->myAlbums($account->[1], $prefs->get('dontImportPurchases'));
+		$albums = _filterStreamables($albums);
+		$progress->total(scalar @$albums);
 
-		foreach my $album (@albums) {
+		foreach my $album (@$albums) {
 			my $albumDetails = $cache->get('album_with_tracks_' . $album->{id});
 
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
@@ -241,8 +242,9 @@ sub scanPlaylists {
 			});
 
 			# get playlist tracks, filtering out those that are not streamable
-			my @tracks = grep { $_->{streamable} } @{Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id})};
-			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @tracks;
+			my $tracks = Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id});
+			$tracks = _filterStreamables($tracks);
+			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @$tracks;
 
 			$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
 
@@ -315,6 +317,13 @@ sub needsUpdate { if (!main::SCANNER) {
 		$cb->();
 	}
 } }
+
+sub _filterStreamables {
+	my $items = shift;
+	return [ grep {
+		$_->{streamable}; 
+	} @$items ];
+}
 
 sub _ignorePlaylists {
 	my $class = shift;
