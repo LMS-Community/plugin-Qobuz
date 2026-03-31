@@ -754,10 +754,8 @@ sub QobuzArtist {
 			}],
 		};
 
-		$api->getUserFavoriteIds(sub {
-			my $favorites = shift;
-			my $artistId = $artist->{id};
-			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_ eq $artistId } @{$favorites->{artists}} : 0;
+		$api->getUserFavoriteStatus(sub {
+			my $isFavorite = shift->{status};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST' : 'PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST', $artist->{name}),
@@ -772,6 +770,9 @@ sub QobuzArtist {
 			$cb->({
 				items => $items
 			});
+		}, {
+			type => 'artist',
+			item_id => $artist->{id},
 		});
 	}, $args->{artistId});
 }
@@ -1172,9 +1173,8 @@ sub QobuzGetTracks {
 
 		if (!$album) {  # the album does not exist in the Qobuz library
 			$log->warn("Get album ($albumId) failed");
-			$api->getUserFavoriteIds(sub {
-				my $favorites = shift;
-				my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_ eq $albumId } @{$favorites->{albums}} : 0;
+			$api->getUserFavoriteStatus(sub {
+				my $isFavorite = shift->{status};
 
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_ALBUM_NOT_FOUND'),
@@ -1196,7 +1196,10 @@ sub QobuzGetTracks {
 				$cb->({
 					items => $items,
 				}, @_ );
-			});
+		}, {
+			type => 'album',
+			item_id => $albumId,
+		});
 			return;
 
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
@@ -1448,9 +1451,8 @@ sub QobuzGetTracks {
 			}
 		}
 
-		$api->getUserFavoriteIds(sub {
-			my $favorites = shift;
-			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_ eq $albumId } @{$favorites->{albums}} : 0;
+		$api->getUserFavoriteStatus(sub {
+			my $isFavorite = shift->{status};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album->{title}),
@@ -1549,6 +1551,9 @@ sub QobuzGetTracks {
 			$cb->({
 				items => $items,
 			}, @_ );
+		}, {
+			type => 'album',
+			item_id => $albumId,
 		});
 	}, $albumId);
 }

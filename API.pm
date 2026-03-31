@@ -411,7 +411,23 @@ sub getUserFavoriteIds {
 		_ttl     => QOBUZ_USER_DATA_EXPIRY,
 		_user_cache => 1,
 		_use_token => 1,
+		_wipecache => $force,
 	});
+}
+
+sub getUserFavoriteStatus {
+	my ($self, $cb, $args, $force) = @_;
+
+	$args->{_ttl} = QOBUZ_USER_DATA_EXPIRY;
+	$args->{_user_cache} = 1;
+	$args->{_use_token} = 1;
+	$args->{_wipecache} => $force;
+
+	$self->_get('favorite/status', sub {
+		my ($favoriteStatus) = @_;
+
+		$cb->($favoriteStatus);
+	}, $args);
 }
 
 sub createFavorite {
@@ -422,7 +438,11 @@ sub createFavorite {
 
 	$self->_get('favorite/create', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh')
+		$self->getUserFavorites(sub{}, 'refresh');
+		$self->getUserFavoriteIds(sub{}, 'refresh');
+		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'refresh') if $args->{album_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'refresh') if $args->{artist_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'refresh') if $args->{track_ids};
 	}, $args);
 }
 
@@ -434,7 +454,11 @@ sub deleteFavorite {
 
 	$self->_get('favorite/delete', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh')
+		$self->getUserFavorites(sub{}, 'refresh');
+		$self->getUserFavoriteIds(sub{}, 'refresh');
+		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'refresh') if $args->{album_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'refresh') if $args->{artist_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'refresh') if $args->{track_ids};
 	}, $args);
 }
 
