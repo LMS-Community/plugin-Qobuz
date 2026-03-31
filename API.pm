@@ -400,6 +400,20 @@ sub getUserFavorites {
 	});
 }
 
+sub getUserFavoriteIds {
+	my ($self, $cb, $force) = @_;
+
+	$self->_get('favorite/getUserFavoriteIds', sub {
+		my ($favoriteIds) = @_;
+
+		$cb->($favoriteIds);
+	},{
+		_ttl     => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
+		_use_token => 1,
+	});
+}
+
 sub createFavorite {
 	my ($self, $cb, $args) = @_;
 
