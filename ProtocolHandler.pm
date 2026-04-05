@@ -175,6 +175,8 @@ sub trackGain {
 		main::INFOLOG && $log->info("Get track info failed for url $url - id($id)");
 	} else {
 		my $rgType = "default";
+		my $serverPrefs = preferences('server');
+
 		if ($rgmode == 1   # track gain
 			|| (  # ...OR not in the cached favorites
 				!($album = $cache->get('album_with_tracks_' . $meta->{albumId}))
@@ -183,9 +185,9 @@ sub trackGain {
 				)
 			|| !ref $album  # ...OR the track info was not populated from an album
 			|| !defined $album->{replay_gain} ) {  #...OR album gain not specified
-			if ($rgmode != 2) {
-				$gain = $meta->{replay_gain} || 0;  # default (0) replay gain if using album gain
-				$peak = $meta->{replay_peak} || 0;  # ... otherwise, use the track gain
+			if ($rgmode != 2) {  # default to 0 gain if using album gain, otherwise use the track gain
+				$gain = $meta->{replay_gain} // $serverPrefs->client($client)->get('remoteReplayGain');
+				$peak = $meta->{replay_peak} || 0;
 				$rgType = "track";
 			}
 		} elsif ($rgmode == 2) {  # album gain
@@ -193,21 +195,19 @@ sub trackGain {
 			$peak = $album->{replay_peak} || 0;
 			$rgType = "album";
 		} else {  # use smart gain
-			my $rc1 = Slim::Player::ReplayGain->trackAlbumMatch($client, -1);
-			my $rc2 = Slim::Player::ReplayGain->trackAlbumMatch($client, 1) if !$rc1;
-			if ( ($rc1 || $rc2)  # smart gain says use album gain
-				|| ( ( !defined $rc2 ) # next track is not available - can't be sure if it's the same album
-					&& $meta->{track_number} == 1) ) {  # ...so use album gain for first album track to be safe
+			my $prevMatch = Slim::Player::ReplayGain->trackAlbumMatch($client, -1);
+			my $nextMatch = Slim::Player::ReplayGain->trackAlbumMatch($client, 1) if !$prevMatch;
+			if ( ($prevMatch || $nextMatch) ) {  # smart gain says use album gain
 				main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($album));
 				$gain = $album->{replay_gain} || 0;
 				$peak = $album->{replay_peak} || 0;
 				$rgType = "album (smart)";
 			} else {  # smart gain says track gain
-				$gain = $meta->{replay_gain} || 0;
+				$gain = $meta->{replay_gain} // $serverPrefs->client($client)->get('remoteReplayGain');
 				$peak = $meta->{replay_peak} || 0;
 				$rgType = "track (smart)";
 			}
-			main::INFOLOG && $log->info("rc1=$rc1 : rc2=$rc2");
+			main::INFOLOG && $log->info("previous track match=$prevMatch : next track match=$nextMatch");
 		}
 		main::INFOLOG && $log->info("Using $rgType gain value of $gain : $peak for track: " . $meta->{title} );
 	}
