@@ -438,11 +438,11 @@ sub createFavorite {
 
 	$self->_get('favorite/create', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh');
-		$self->getUserFavoriteIds(sub{}, 'refresh');
-		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'refresh') if $args->{album_ids};
-		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'refresh') if $args->{artist_ids};
-		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'refresh') if $args->{track_ids};
+		$self->getUserFavorites(sub{}, 'delete_cache_no_refresh');
+		$self->getUserFavoriteIds(sub{}, 'delete_cache_no_refresh');
+		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'delete_cache_no_refresh') if $args->{album_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'delete_cache_no_refresh') if $args->{artist_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'delete_cache_no_refresh') if $args->{track_ids};
 	}, $args);
 }
 
@@ -454,11 +454,11 @@ sub deleteFavorite {
 
 	$self->_get('favorite/delete', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh');
-		$self->getUserFavoriteIds(sub{}, 'refresh');
-		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'refresh') if $args->{album_ids};
-		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'refresh') if $args->{artist_ids};
-		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'refresh') if $args->{track_ids};
+		$self->getUserFavorites(sub{}, 'delete_cache_no_refresh');
+		$self->getUserFavoriteIds(sub{}, 'delete_cache_no_refresh');
+		$self->getUserFavoriteStatus(sub{}, { type => 'album', item_id => $args->{album_ids} }, 'delete_cache_no_refresh') if $args->{album_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'artist', item_id => $args->{artist_ids} }, 'delete_cache_no_refresh') if $args->{artist_ids};
+		$self->getUserFavoriteStatus(sub{}, { type => 'track', item_id => $args->{track_ids} }, 'delete_cache_no_refresh') if $args->{track_ids};
 	}, $args);
 }
 
@@ -756,7 +756,12 @@ sub _get {
 
 	if ($params->{_wipecache}) {
 		$cache->remove($cacheKey);
+		if ( $params->{_wipecache} eq 'delete_cache_no_refresh' ) {
+			$cb->();
+			return;
+		}
 	}
+
 
 	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
 		if ( main::DEBUGLOG && $log->is_debug ) {
