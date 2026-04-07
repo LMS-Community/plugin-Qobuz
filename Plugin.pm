@@ -1040,7 +1040,7 @@ sub QobuzManageFavorites {
 		$cb->( {
 			items => $items
 		} );
-	}, 'refresh');
+	}, { _cacheAction => QOBUZ_REFRESH_CACHE } );
 }
 
 sub QobuzAddFavorite {
