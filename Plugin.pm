@@ -754,10 +754,8 @@ sub QobuzArtist {
 			}],
 		};
 
-		$api->getUserFavorites(sub {
-			my $favorites = shift;
-			my $artistId = $artist->{id};
-			my $isFavorite = ($favorites && $favorites->{artists}) ? grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}} : 0;
+		$api->getUserFavoriteStatus(sub {
+			my $isFavorite = shift->{status};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST' : 'PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST', $artist->{name}),
@@ -772,6 +770,9 @@ sub QobuzArtist {
 			$cb->({
 				items => $items
 			});
+		}, {
+			type => 'artist',
+			item_id => $artist->{id},
 		});
 	}, $args->{artistId});
 }
@@ -992,13 +993,13 @@ sub QobuzUserFavorites {
 sub QobuzManageFavorites {
 	my ($client, $cb, $params, $args) = @_;
 
-	getAPIHandler($client)->getUserFavorites(sub {
+	getAPIHandler($client)->getUserFavoriteIds(sub {
 		my $favorites = shift;
 
 		my $items = [];
 
 		if ( (my $artist = $args->{artist}) && (my $artistId = $args->{artistId}) ) {
-			my $isFavorite = grep { $_->{id} eq $artistId } @{$favorites->{artists}->{items}};
+			my $isFavorite = grep { $_ eq $artistId } @{$favorites->{artists}};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_ARTIST' : 'PLUGIN_QOBUZ_ADD_FAVORITE_ARTIST', $artist),
@@ -1011,7 +1012,7 @@ sub QobuzManageFavorites {
 		}
 
 		if ( (my $album = $args->{album}) && (my $albumId = $args->{albumId}) ) {
-			my $isFavorite = grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}};
+			my $isFavorite = grep { $_ eq $albumId } @{$favorites->{albums}};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album),
@@ -1024,7 +1025,7 @@ sub QobuzManageFavorites {
 		}
 
 		if ( (my $title = $args->{title}) && (my $trackId = $args->{trackId}) ) {
-			my $isFavorite = grep { $_->{id} eq $trackId } @{$favorites->{tracks}->{items}};
+			my $isFavorite = grep { $_ eq $trackId } @{$favorites->{tracks}};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_TRACK' : 'PLUGIN_QOBUZ_ADD_FAVORITE_TRACK', $title),
@@ -1039,7 +1040,7 @@ sub QobuzManageFavorites {
 		$cb->( {
 			items => $items
 		} );
-	}, 'refresh');
+	}, { _cacheAction => QOBUZ_REFRESH_CACHE } );
 }
 
 sub QobuzAddFavorite {
@@ -1172,9 +1173,8 @@ sub QobuzGetTracks {
 
 		if (!$album) {  # the album does not exist in the Qobuz library
 			$log->warn("Get album ($albumId) failed");
-			$api->getUserFavorites(sub {
-				my $favorites = shift;
-				my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
+			$api->getUserFavoriteStatus(sub {
+				my $isFavorite = shift->{status};
 
 				push @$items, {
 					name  => cstring($client, 'PLUGIN_QOBUZ_ALBUM_NOT_FOUND'),
@@ -1196,7 +1196,10 @@ sub QobuzGetTracks {
 				$cb->({
 					items => $items,
 				}, @_ );
-			});
+		}, {
+			type => 'album',
+			item_id => $albumId,
+		});
 			return;
 
 		} elsif (!$album->{streamable} && !$prefs->get('playSamples')) {  # the album is not streamable
@@ -1448,9 +1451,8 @@ sub QobuzGetTracks {
 			}
 		}
 
-		$api->getUserFavorites(sub {
-			my $favorites = shift;
-			my $isFavorite = ($favorites && $favorites->{albums}) ? grep { $_->{id} eq $albumId } @{$favorites->{albums}->{items}} : 0;
+		$api->getUserFavoriteStatus(sub {
+			my $isFavorite = shift->{status};
 
 			push @$items, {
 				name => cstring($client, $isFavorite ? 'PLUGIN_QOBUZ_REMOVE_FAVORITE_RELEASE' : 'PLUGIN_QOBUZ_ADD_FAVORITE_RELEASE', $album->{title}),
@@ -1549,6 +1551,9 @@ sub QobuzGetTracks {
 			$cb->({
 				items => $items,
 			}, @_ );
+		}, {
+			type => 'album',
+			item_id => $albumId,
 		});
 	}, $albumId);
 }

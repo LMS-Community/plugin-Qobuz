@@ -359,16 +359,9 @@ sub checkPurchase {
 }
 
 sub getUserFavorites {
-	my ($self, $cb, $force) = @_;
+	my ($self, $cb, $args) = @_;
 
-	$self->_pagingGet('favorite/getUserFavorites', sub {
-		my ($favorites) = @_;
-
-		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
-		$favorites->{tracks}->{items} = _precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
-
-		$cb->($favorites);
-	},{
+	my $params = {
 		limit      => QOBUZ_USERDATA_LIMIT,
 		_extractor => sub {
 			my ($favorites) = @_;
@@ -396,32 +389,99 @@ sub getUserFavorites {
 		},
 		_ttl       => QOBUZ_USER_DATA_EXPIRY,
 		_use_token => 1,
-		_wipecache => $force,
-	});
+	};
+	foreach (keys %$args) {
+		$params->{$_} = $args->{$_};
+	}
+
+	$self->_pagingGet('favorite/getUserFavorites', sub {
+		my ($favorites) = @_;
+
+		$favorites->{albums}->{items} = _precacheAlbum($favorites->{albums}->{items}) if $favorites->{albums};
+		$favorites->{tracks}->{items} = _precacheTracks($favorites->{tracks}->{items}) if $favorites->{tracks};
+
+		$cb->($favorites);
+	}, $params);
+}
+
+sub getUserFavoriteIds {
+	my ($self, $cb, $args) = @_;
+
+	my $params = {
+		_ttl => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
+		_use_token => 1,
+	};
+	foreach (keys %$args) {
+		$params->{$_} = $args->{$_};
+	}
+
+	$self->_get('favorite/getUserFavoriteIds', sub {
+		my ($favoriteIds) = @_;
+
+		$cb->($favoriteIds);
+	}, $params);
+}
+
+sub getUserFavoriteStatus {
+	my ($self, $cb, $args) = @_;
+
+	my $params = {
+		_ttl => QOBUZ_USER_DATA_EXPIRY,
+		_user_cache => 1,
+		_use_token => 1,
+	};
+	foreach (keys %$args) {
+		$params->{$_} = $args->{$_};
+	}
+
+	$self->_get('favorite/status', sub {
+		my ($favoriteStatus) = @_;
+
+		$cb->($favoriteStatus);
+	}, $params);
 }
 
 sub createFavorite {
 	my ($self, $cb, $args) = @_;
 
-	$args->{_use_token} = 1;
-	$args->{_nocache}   = 1;
+	my $params = {
+		_user_cache => 1,
+		_nocache => 1,
+	};
+	foreach (keys %$args) {
+		$params->{$_} = $args->{$_};
+	}
 
 	$self->_get('favorite/create', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh')
-	}, $args);
+		$self->getUserFavorites( sub{}, { _cacheAction => QOBUZ_DELETE_CACHE } );
+		$self->getUserFavoriteIds( sub{}, { _cacheAction => QOBUZ_DELETE_CACHE } );
+		$self->getUserFavoriteStatus( sub{}, { type => 'album', item_id => $args->{album_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{album_ids};
+		$self->getUserFavoriteStatus( sub{}, { type => 'artist', item_id => $args->{artist_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{artist_ids};
+		$self->getUserFavoriteStatus( sub{}, { type => 'track', item_id => $args->{track_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{track_ids};
+	}, $params);
 }
 
 sub deleteFavorite {
 	my ($self, $cb, $args) = @_;
 
-	$args->{_use_token} = 1;
-	$args->{_nocache}   = 1;
+	my $params = {
+		_user_cache => 1,
+		_nocache => 1,
+	};
+	foreach (keys %$args) {
+		$params->{$_} = $args->{$_};
+	}
 
 	$self->_get('favorite/delete', sub {
 		$cb->(shift);
-		$self->getUserFavorites(sub{}, 'refresh')
-	}, $args);
+		$self->getUserFavorites( sub{}, { _cacheAction => QOBUZ_DELETE_CACHE } );
+		$self->getUserFavoriteIds( sub{}, { _cacheAction => QOBUZ_DELETE_CACHE } );
+		$self->getUserFavoriteStatus( sub{}, { type => 'album', item_id => $args->{album_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{album_ids};
+		$self->getUserFavoriteStatus( sub{}, { type => 'artist', item_id => $args->{artist_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{artist_ids};
+		$self->getUserFavoriteStatus( sub{}, { type => 'track', item_id => $args->{track_ids}, _cacheAction => QOBUZ_DELETE_CACHE } ) if $args->{track_ids};
+	}, $params);
 }
 
 sub getUserPlaylists {
@@ -716,9 +776,14 @@ sub _get {
 
 	my $cacheKey = $url . ($params->{_user_cache} ? $self->userId : '');
 
-	if ($params->{_wipecache}) {
+	if ($params->{_cacheAction}) {
 		$cache->remove($cacheKey);
+		if ( $params->{_cacheAction} != QOBUZ_REFRESH_CACHE ) {
+			$cb->();
+			return;
+		}
 	}
+
 
 	if (!$params->{_nocache} && (my $cached = $cache->get($cacheKey))) {
 		if ( main::DEBUGLOG && $log->is_debug ) {
