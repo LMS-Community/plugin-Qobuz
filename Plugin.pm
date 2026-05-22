@@ -169,6 +169,13 @@ sub initPlugin {
 sub postinitPlugin {
 	my $class = shift;
 
+	if ( Slim::Utils::PluginManager->isEnabled('Plugins::MaterialSkin::Plugin') && Plugins::MaterialSkin::Plugin->can('registerHomeExtra') ) {
+		eval {
+			require Plugins::Qobuz::HomeExtras;
+		};
+		$log->error("Could not load Qobuz Home Extras: $@") if $@;
+	}
+
 	if ( Slim::Utils::PluginManager->isEnabled('Plugins::LastMix::Plugin') ) {
 		eval {
 			require Plugins::LastMix::Services;
@@ -231,6 +238,20 @@ sub handleFeed {
 				type => 'textarea',
 			}]
 		});
+	}
+
+	if ($args->{params} && (my $menu = $args->{params}->{menu})) {
+		if ($menu eq 'home_heroes_home') {
+			return getHome( $client, $cb );
+		}
+		elsif ($menu =~ /^home_heroes_(best-sellers|press-awards|editor-picks|new-releases-full)$/) {
+			return QobuzFeaturedAlbums( $client, $cb, undef, {
+				type => $1,
+			} );
+		}
+		elsif ($menu eq 'home_heroes_weeklyq') {
+			return QobuzMyWeeklyQ( $client, $cb );
+		}
 	}
 
 	my $params = $args->{params};
@@ -955,7 +976,7 @@ sub QobuzUserFavorites {
 			items => \@artists,
 			image => 'html/images/artists.png',
 		} if @artists;
-		
+
 		my $sortFavsAlphabetically = $prefs->get('sortFavsAlphabetically') || 0;
 
 		my @albums;
@@ -1965,7 +1986,7 @@ sub albumInfoMenu {
 			}
 
 			$items = _albumPerformers($client, $performers, $qobuzAlbum->{tracks_count}, $items);
-			
+
 			if ($qobuzAlbum->{description}) {
 				push @$items, {
 					name  => cstring($client, 'DESCRIPTION'),
@@ -1974,7 +1995,7 @@ sub albumInfoMenu {
 						type => 'textarea',
 					}],
 				};
-			};			
+			};
 
 			if (my $item = trackInfoMenuBooklet($client, undef, undef, $qobuzAlbum)) {
 				push @$items, $item
