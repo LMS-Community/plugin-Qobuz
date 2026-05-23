@@ -12,7 +12,7 @@ Plugins::Qobuz::HomeExtraBestsellers->initPlugin();
 Plugins::Qobuz::HomeExtraPress->initPlugin();
 Plugins::Qobuz::HomeExtraPicks->initPlugin();
 Plugins::Qobuz::HomeExtraNewReleases->initPlugin();
-Plugins::Qobuz::HomeExtraWeeklyQ->initPlugin();
+# Plugins::Qobuz::HomeExtraWeeklyQ->initPlugin();
 
 main::INFOLOG && $log->is_info && $log->info("Registered Home Extras for Qobuz");
 
@@ -140,17 +140,17 @@ sub initPlugin {
 
 1;
 
-package Plugins::Qobuz::HomeExtraWeeklyQ;
+# package Plugins::Qobuz::HomeExtraWeeklyQ;
 
-use base qw(Plugins::Qobuz::HomeExtraBase);
+# use base qw(Plugins::Qobuz::HomeExtraBase);
 
-sub initPlugin {
-	my ($class, %args) = @_;
+# sub initPlugin {
+# 	my ($class, %args) = @_;
 
-	$class->SUPER::initPlugin(
-		title => 'PLUGIN_QOBUZ_MYWEEKLYQ',
-		tag => 'weeklyq',
-	);
-}
+# 	$class->SUPER::initPlugin(
+# 		title => 'PLUGIN_QOBUZ_MYWEEKLYQ',
+# 		tag => 'weeklyq',
+# 	);
+# }
 
-1;
+# 1;
