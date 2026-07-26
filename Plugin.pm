@@ -3,7 +3,7 @@ package Plugins::Qobuz::Plugin;
 use strict;
 use base qw(Slim::Plugin::OPMLBased);
 
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json encode_json);
 use Tie::RegexpHash;
 use POSIX qw(strftime);
 
@@ -2145,7 +2145,7 @@ sub trackInfoMenuBooklet {
 						items => {
 							command  => [ 'qobuz', 'goodies' ],
 							fixedParams => {
-								goodies => to_json($goodies),
+								goodies => encode_json($goodies),
 							}
 						},
 					},
@@ -2181,7 +2181,7 @@ sub _getGoodiesCLI {
 
 	my $goodies = [ eval { grep {
 		$_->{url} =~ $GOODIE_URL_PARSER_RE;
-	} @{from_json($request->getParam('goodies'))} } ] || '[]';
+	} @{decode_json($request->getParam('goodies'))} } ] || '[]';
 
 	my $i = 0;
 

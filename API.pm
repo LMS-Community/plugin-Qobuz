@@ -6,7 +6,7 @@ use base qw(Slim::Utils::Accessor);
 use File::Spec::Functions qw(catdir);
 use FindBin qw($Bin);
 
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use List::Util qw(min max);
 use URI::Escape qw(uri_escape_utf8);
 use Digest::MD5 qw(md5_hex);
@@ -486,9 +486,9 @@ sub deleteFavorite {
 
 sub getUserPlaylists {
 	my ($self, $cb, $user, $limit) = @_;
-	
+
 	my $sortPlaylists = $prefs->get('sortPlaylists') || 0;
-	
+
 	$self->_get('playlist/getUserPlaylists', sub {
 		my $playlists = shift;
 
@@ -560,7 +560,7 @@ sub getTags {
 			$tags = [ grep {
 				$_->{id} && $_->{name};
 			} map {
-				my $name = eval { from_json($_->{name_json}) };
+				my $name = eval { decode_json($_->{name_json}) };
 				{
 					featured_tag_id => $_->{featured_tag_id},
 					id => $_->{slug},
@@ -807,7 +807,7 @@ sub _get {
 		sub {
 			my $response = shift;
 
-			my $result = eval { from_json($response->content) };
+			my $result = eval { decode_json($response->content) };
 
 			$@ && $log->error($@);
 			if ( main::DEBUGLOG && $log->is_debug && $url !~ /getFileUrl/i ) {

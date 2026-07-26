@@ -3,7 +3,7 @@ package Plugins::Qobuz::API::Sync;
 use strict;
 
 use Digest::MD5 qw(md5_hex);
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json);
 use List::Util qw(max);
 use URI::Escape qw(uri_escape_utf8);
 
@@ -253,7 +253,7 @@ sub _get {
 	my $response = Slim::Networking::SimpleSyncHTTP->new({ timeout => 15 })->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
 
 	if ($response->code == 200) {
-		my $result = eval { from_json($response->content) };
+		my $result = eval { decode_json($response->content) };
 
 		$@ && $log->error($@);
 		main::DEBUGLOG && $log->is_debug && $log->debug(Data::Dump::dump($result));

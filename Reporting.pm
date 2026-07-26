@@ -1,7 +1,7 @@
 package Plugins::Qobuz::Reporting;
 
 use strict;
-use JSON::XS::VersionOneAndTwo;
+use JSON::XS qw(decode_json encode_json);
 use List::Util qw(max);
 use Tie::Cache::LRU::Expires;
 
@@ -141,15 +141,15 @@ sub _post {
 	my ( $url, $client, $cb, $event ) = @_;
 
 	$url = sprintf("%s%s?app_id=%s", Plugins::Qobuz::API::QOBUZ_BASE_URL(), $url, $aid ||= Plugins::Qobuz::API->aid() );
-	my $body = sprintf("events=[%s]&user_auth_token=%s", to_json($event), Plugins::Qobuz::API::Common->getToken($client));
+	my $body = sprintf("events=[%s]&user_auth_token=%s", encode_json($event), Plugins::Qobuz::API::Common->getToken($client));
 
-	main::INFOLOG && $log->is_info && $log->info("$url: " . to_json($event));
+	main::INFOLOG && $log->is_info && $log->info("$url: " . encode_json($event));
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
 			my $response = shift;
 
-			my $result = eval { from_json($response->content) };
+			my $result = eval { decode_json($response->content) };
 
 			$@ && $log->error($@);
 			main::DEBUGLOG && $log->is_debug && $log->debug("got $url: " . Data::Dump::dump($result));
