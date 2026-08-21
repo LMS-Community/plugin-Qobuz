@@ -335,6 +335,7 @@ sub _prepareTrack {
 
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
+	my $bitrate = Slim::Player::Song::guessBitrateFromFormat($ct, undef, $track->{maximum_bit_depth}, $track->{maximum_sampling_rate} * 1000);
 
 	my $attributes = {
 		url          => $url,
@@ -354,6 +355,7 @@ sub _prepareTrack {
 		SAMPLESIZE   => $track->{maximum_bit_depth},
 		CHANNELS     => $track->{maximum_channel_count},
 		LOSSLESS     => $ct eq 'flc',
+		BITRATE      => $bitrate,
 		RELEASETYPE  => $album->{release_type} =~ /^[a-z]+$/ ? ucfirst($album->{release_type}) : $album->{release_type},
 		REPLAYGAIN_ALBUM_GAIN => $album->{replay_gain},
 		REPLAYGAIN_ALBUM_PEAK => $album->{replay_peak},
