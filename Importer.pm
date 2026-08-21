@@ -335,7 +335,7 @@ sub _prepareTrack {
 
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
-	my $bitrate = Slim::Player::Song::guessBitrateFromFormat($ct, undef, $track->{maximum_bit_depth}, $track->{maximum_sampling_rate} * 1000);
+	my $bitrate = ($ct eq 'mp3' ? 320 : $track->{maximum_bit_depth} * $track->{maximum_sampling_rate}) * 1000;
 
 	my $attributes = {
 		url          => $url,
