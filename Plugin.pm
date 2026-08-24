@@ -365,11 +365,11 @@ sub handleFeed {
 		image => 'html/images/genres.png',
 		type => 'link',
 		url  => \&QobuzGenres
-	},{
-		name => cstring($client, 'PLUGIN_QOBUZ_MYWEEKLYQ'),
-		type  => 'playlist',
-		url  => \&QobuzMyWeeklyQ,
-		image => 'html/images/playlists.png'
+#	},{
+#		name => cstring($client, 'PLUGIN_QOBUZ_MYWEEKLYQ'),
+#		type  => 'playlist',
+#		url  => \&QobuzMyWeeklyQ,
+#		image => 'html/images/playlists.png'
 	}];
 
 	if ($client && scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
