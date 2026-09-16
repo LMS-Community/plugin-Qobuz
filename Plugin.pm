@@ -19,6 +19,7 @@ use Plugins::Qobuz::API::Common;
 use Plugins::Qobuz::ProtocolHandler;
 
 use constant CAN_IMPORTER => (Slim::Utils::Versions->compareVersions($::VERSION, '8.0.0') >= 0);
+use constant CAN_LMS_CAN_WEBLINK => (Slim::Utils::Versions->compareVersions($::VERSION, '9.0.0') >= 0 && Slim::Utils::Misc->can('canFollowWeblinks') ? 1 : 0);
 use constant CLICOMMAND => 'qobuzquery';
 use constant MAX_RECENT => 30;
 
@@ -28,7 +29,7 @@ use constant SINGLE => '3';
 
 # Keep in sync with Music & Artist Information plugin
 my $WEBLINK_SUPPORTED_UA_RE = qr/\b(?:iPeng|SqueezePad|OrangeSqueeze|OpenSqueeze|Squeezer|Squeeze-Control)\b/i;
-my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari)\b/i;
+my $WEBBROWSER_UA_RE = qr/\b(?:FireFox|Chrome|Safari|Mozilla.*AppleWebKit)\b/i;
 
 my $GOODIE_URL_PARSER_RE = qr/\.(?:pdf|png|gif|jpg)$/i;
 
@@ -2284,13 +2285,15 @@ sub cliQobuzPlayAlbum {
 }
 
 sub _canWeblink {
-	my ($client) = @_;
-	return $client && $client->controllerUA && ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE);
+	my $client = shift || return;
+	return 1 if $client->controllerUA && ($client->controllerUA =~ $WEBLINK_SUPPORTED_UA_RE || $client->controllerUA =~ $WEBBROWSER_UA_RE);
+	return CAN_LMS_CAN_WEBLINK && Slim::Utils::Misc::canFollowWeblinks($client);
 }
 
 sub _isBrowser {
-	my ($client) = @_;
-	return ( $client && $client->controllerUA && $client->controllerUA =~ $WEBBROWSER_UA_RE );
+	my $client = shift || return;
+	return 1 if $client->controllerUA && $client->controllerUA =~ $WEBBROWSER_UA_RE;
+	return CAN_LMS_CAN_WEBLINK && Slim::Utils::Misc::isWebBrowser($client);
 }
 
 sub _stripHTML {
