@@ -244,12 +244,80 @@ sub scanPlaylists {
 			# get playlist tracks, filtering out those that are not streamable
 			my $tracks = Plugins::Qobuz::API::Sync->getPlaylistTracks($account->[1], $playlist->{id});
 			$tracks = _filterStreamables($tracks);
-			my @trackIDs = map { Plugins::Qobuz::API::Common->getUrl(undef, $_) } @$tracks;
 
-			$cache->set('playlist_tracks' . $playlist->{id}, \@trackIDs, time() + 86400 * 360);
+			my @trackIDs = map {
+				Plugins::Qobuz::API::Common->getUrl(undef, $_)
+			} @$tracks;
 
-			$playlistObj->setTracks(\@trackIDs) if $playlistObj && scalar @trackIDs;
+			$cache->set(
+				'playlist_tracks' . $playlist->{id},
+				\@trackIDs,
+				time() + 86400 * 360
+			);
+
+			$playlistObj->setTracks(\@trackIDs)
+				if $playlistObj && scalar @trackIDs;
+
+			# Import individual tracks from playlists owned by the current user.
+			#
+			# Editorial/dynamic playlists remain represented only by their .qbz
+			# playlist entry. User-owned playlists are additionally imported as
+			# individual Qobuz tracks so they remain available in the LMS library
+			# (and in online_tracks) while they are part of the playlist.
+			my $isUserPlaylist =
+				$playlist->{owner}
+				&& ref $playlist->{owner} eq 'HASH'
+				&& defined $playlist->{owner}->{id}
+				&& defined $account->[1]
+				&& $playlist->{owner}->{id} == $account->[1];
+
+			if ($isUserPlaylist && @$tracks) {
+				my $albumArtists = {
+					required => 0,
+					ids      => undef,
+					names    => undef,
+				};
+
+				my @attributes;
+
+				foreach my $track (@$tracks) {
+					my $album = $track->{album};
+
+					next unless $album && ref $album eq 'HASH';
+
+					# playlist/get may return album images as an image hash,
+					# whereas _prepareTrack() expects the final image URL.
+					if ($album->{image} && ref $album->{image} eq 'HASH') {
+						$album->{image} =
+							Plugins::Qobuz::API::Common->getImageFromImagesHash(
+								$album->{image}
+							);
+					}
+
+					my $attributes = _prepareTrack(
+						$album,
+						$track,
+						$albumArtists
+					);
+
+					push @attributes, $attributes if $attributes;
+				}
+
+				_checkAlbumArtists(\@attributes, $albumArtists);
+
+				if (@attributes) {
+					$class->storeTracks(
+						\@attributes,
+						undef,
+						$account->[0]
+					);
+
+					main::SCANNER && Slim::Schema->forceCommit;
+				}
+			}
 			$insertTrackInTempTable_sth && $insertTrackInTempTable_sth->execute($url);
+
+
 		}
 
 		main::INFOLOG && $log->is_info && $log->info("Done, finally! " . $account->[0]);
