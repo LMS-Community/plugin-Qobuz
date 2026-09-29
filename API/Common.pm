@@ -170,6 +170,7 @@ sub _precacheAlbum {
 			genre  => $album->{genre},
 			genres_list => $album->{genres_list},
 			parental_warning => $album->{parental_warning},
+			ai_generated => $album->{ai_generated},
 			media_count => $album->{media_count},
 			duration => 0,
 			release_type => $album->{release_type},

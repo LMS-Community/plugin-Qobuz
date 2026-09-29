@@ -154,6 +154,11 @@
 			<input type="checkbox" [% IF prefs.pref_parentalWarning %]checked [% END %] class="stdedit" name="pref_parentalWarning" id="pref_parentalWarning" value="1" />
 			<label for="pref_parentalWarning" class="stdlabel">[% "PLUGIN_QOBUZ_PARENTAL_WARNING_DESC" | string %]</label>
 		[% END %]
+
+		[% WRAPPER settingGroup title="PLUGIN_QOBUZ_HIDE_AI" desc="" %]
+			<input type="checkbox" [% IF prefs.pref_hideAI %]checked [% END %] class="stdedit" name="pref_hideAI" id="pref_hideAI" value="1" />
+			<label for="pref_hideAI" class="stdlabel">[% "PLUGIN_QOBUZ_HIDE_AI_DESC" | string %]</label>
+		[% END %]
 	[% END %]
 
 [% PROCESS settings/footer.html %]
