@@ -54,6 +54,7 @@ $prefs->init({
 	groupReleases => 1,
 	importWorks => 1,
 	sortPlaylists => 1,
+	hideAI => 0,
 });
 
 $prefs->migrate(1,
@@ -493,6 +494,7 @@ sub QobuzSearch {
 		for my $album ( @{$searchResult->{albums}->{items} || []} ) {
 			# XXX - unfortunately the album results don't return the artist's ID
 			next if $args->{artistId} && !_isMainArtistByName($search, $album);
+			next if $prefs->get('hideAI') && $album->{ai_generated};
 			push @$albums, _albumItem($client, $album);
 		}
 
@@ -695,6 +697,7 @@ sub QobuzArtist {
 
 			for my $album ( @{$artist->{albums}->{items}} ) {
 				next if $args->{artistId} && !_isMainArtist($args->{artistId}, $album);
+				next if $prefs->get('hideAI') && $album->{ai_generated};
 
 				if ($groupByReleaseType) {
 					if ($album->{release_type} eq ALBUM) {
@@ -1711,6 +1714,11 @@ sub _albumItem {
 	if ( $prefs->get('parentalWarning') && $album->{parental_warning} ) {
 		$item->{name} .= ' [E]';
 		$item->{line1} .= ' [E]';
+	}
+
+	if ($album->{ai_generated}) {
+		$item->{name} .= ' [AI]';
+		$item->{line1} .= ' [AI]';
 	}
 
 	if (!$album->{streamable} || !_isReleased($album) ) {
