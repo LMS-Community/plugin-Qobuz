@@ -577,14 +577,14 @@ PLUGIN_QOBUZ_PARENTAL_WARNING_DESC
 PLUGIN_QOBUZ_HIDE_AI
 	DE	KI-generierte Veröffentlichungen ausblenden
 	EN	Hide AI-generated releases
-	FR	Masquer les publications générées par l'IA
+	FR	Masquer les albums générées par l'IA
 	NL	Verberg door AI gegenereerde releases
 	ES	Ocultar lanzamientos generados por IA
 
 PLUGIN_QOBUZ_HIDE_AI_DESC
 	DE	Blende Alben, die als KI-generiert markiert sind, aus den Suchergebnissen und Künstlerveröffentlichungen aus.
 	EN	Hide albums that are tagged as AI-generated from search results and artist releases
-	FR	Masquer les albums étiquetés comme générés par IA dans les résultats de recherche et les sorties des artistes.
+	FR	Masquer les albums étiquetés comme générés par IA dans les résultats de recherche et la discographie des artistes.
 	NL	Verberg albums die zijn gemarkeerd als door AI gegenereerd in zoekresultaten en releases van artiesten.
 	ES	Ocultar de los resultados de búsqueda y de los lanzamientos de artistas los álbumes etiquetados como generados por IA.
 
