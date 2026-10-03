@@ -103,6 +103,69 @@ sub myAlbums {
 	return $albums;
 }
 
+sub myFavoriteTracks {
+    my ($class, $userId) = @_;
+
+    my $offset = 0;
+    my $tracks = [];
+
+    my $args = {
+        type        => 'tracks',
+        limit       => QOBUZ_LIMIT,
+        _ttl        => QOBUZ_USER_DATA_EXPIRY,
+        _user_cache => 1,
+        _use_token  => 1,
+    };
+
+    do {
+        $args->{offset} = $offset;
+
+        my $response = $class->_get(
+            'favorite/getUserFavorites',
+            $userId,
+            $args
+        );
+
+        $offset = 0;
+
+        if (
+            $response &&
+            ref $response &&
+            $response->{tracks} &&
+            ref $response->{tracks} &&
+            $response->{tracks}->{items} &&
+            ref $response->{tracks}->{items}
+        ) {
+            my $items = $response->{tracks}->{items};
+
+            # Les tracks retournés par favorite/getUserFavorites
+            # contiennent leur album sous forme brute.
+            # On le précache dans le même format que myAlbums().
+            foreach my $track (@$items) {
+                next unless $track && ref $track;
+                next unless $track->{album} && ref $track->{album};
+
+                my ($album) = @{ _precacheAlbum([ $track->{album} ]) };
+
+                $track->{album} = $album if $album;
+            }
+
+            push @$tracks, @{ _precacheTracks($items) };
+
+            if (
+                $response->{tracks}->{total} > QOBUZ_LIMIT &&
+                $response->{tracks}->{offset} < $response->{tracks}->{total}
+            ) {
+                $offset = $response->{tracks}->{offset} + QOBUZ_LIMIT;
+            }
+        }
+
+    } while $offset && $offset < QOBUZ_USERDATA_LIMIT;
+
+    return $tracks;
+}
+
+
 sub getAlbum {
 	my ($class, $userId, $albumId) = @_;
 

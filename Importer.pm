@@ -58,6 +58,7 @@ sub startScan { if (main::SCANNER) {
 
 		if (!$playlistsOnly) {
 			$class->scanAlbums($accounts);
+			$class->scanFavoriteTracks($accounts);
 			$class->scanArtists($accounts);
 		}
 
@@ -147,6 +148,113 @@ sub scanAlbums {
 	$progress->final();
 	main::SCANNER && Slim::Schema->forceCommit;
 }
+
+sub scanFavoriteTracks {
+    my ($class, $accounts) = @_;
+
+    my $progress = Slim::Utils::Progress->new({
+        'type'  => 'importer',
+        'name'  => 'plugin_qobuz_favorite_tracks',
+        'total' => 1,
+        'every' => 1,
+    });
+
+    foreach my $account (@$accounts) {
+
+        my $accountName = $account->[0] || '';
+        my $userId      = $account->[1];
+
+        $log->warn(
+            "Reading favorite tracks... account=$accountName userId=$userId"
+        );
+
+        $progress->update(
+            string('PLUGIN_QOBUZ_PROGRESS_READ_ALBUMS', $accountName)
+        );
+
+        my $tracks = Plugins::Qobuz::API::Sync->myFavoriteTracks($userId);
+        $tracks ||= [];
+
+        $tracks = _filterStreamables($tracks);
+
+        $progress->total(scalar @$tracks);
+
+        $log->warn(
+            "Qobuz favorite tracks: " .
+            scalar(@$tracks) .
+            " streamable tracks found for $accountName"
+        );
+
+        # Regrouper les tracks par album.
+        my %albums;
+
+        foreach my $track (@$tracks) {
+            next unless $track && ref $track;
+            next unless $track->{album} && ref $track->{album};
+            next unless $track->{album}->{id};
+
+            push @{$albums{$track->{album}->{id}}}, $track;
+        }
+
+        # Traiter chaque album, comme dans scanAlbums().
+        foreach my $albumId (keys %albums) {
+
+            my $albumTracks = $albums{$albumId};
+            next unless $albumTracks && @$albumTracks;
+
+            my $album = $albumTracks->[0]->{album};
+            next unless $album && ref $album;
+
+            my $albumArtists = {
+                required => 0,
+                ids      => undef,
+                names    => undef,
+            };
+
+            my @attributes;
+
+            foreach my $track (@$albumTracks) {
+
+                $progress->update(
+                    $track->{title} || $track->{id} || ''
+                );
+
+                my $attribute = _prepareTrack(
+                    $album,
+                    $track,
+                    $albumArtists
+                );
+
+                next unless $attribute;
+
+                # Pour un titre favori individuel, le timestamp est celui
+                # du track et non celui de l'album.
+                $attribute->{TIMESTAMP} = $track->{favorited_at}
+                    if $track->{favorited_at};
+
+                push @attributes, $attribute;
+            }
+
+            next unless @attributes;
+
+            _checkAlbumArtists(\@attributes, $albumArtists);
+
+            $class->storeTracks(
+                \@attributes,
+                undef,
+                $accountName
+            );
+
+            main::SCANNER && Slim::Schema->forceCommit;
+        }
+    }
+
+    $progress->final();
+
+    main::SCANNER && Slim::Schema->forceCommit;
+}
+
+
 
 sub scanArtists {
 	my ($class, $accounts) = @_;
