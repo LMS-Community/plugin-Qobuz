@@ -108,6 +108,7 @@ sub scanAlbums {
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
 
+				$albumDetails->{title} = $album->{title};  # get album version in case not defined in cache
 				my $albumArtists = {
 					required => 0,
 					ids      => undef,

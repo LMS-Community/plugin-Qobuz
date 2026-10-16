@@ -158,6 +158,9 @@ sub _precacheAlbum {
 
 		$album->{genre} = $album->{genre}->{name};
 		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
+		if ($album->{version}) {
+			$album->{title} .= " ($album->{version})";
+		}
 
 		my $albumInfo = {
 			title  => $album->{title},

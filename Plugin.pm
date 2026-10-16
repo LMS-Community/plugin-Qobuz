@@ -665,6 +665,7 @@ sub QobuzArtist {
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
 					next if $args->{artistId} && !_isMainArtist($args->{artistId}, $album);
+					next if $prefs->get('hideAI') && $album->{ai_generated};
 
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = ALBUM;
