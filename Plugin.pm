@@ -1497,6 +1497,14 @@ sub QobuzGetTracks {
 			# Add a consolidated list of all artists on the album
 			$items = _albumPerformers($client, $performers, $album->{tracks_count}, $items);
 
+			if (defined $album->{version}) {
+				push @$items,{
+					name  => $album->{version},
+					label => 'INFORMATION_VERSION',
+					type  => 'text'
+				};
+			};
+
 			push @$items,{
 				name  => $album->{genre},
 				label => 'GENRE',
