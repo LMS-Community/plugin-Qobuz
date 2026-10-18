@@ -179,6 +179,7 @@ sub _precacheAlbum {
 			release_type => $album->{release_type},
 			label => $album->{label}->{name},
 			labelId => $album->{label}->{id},
+			version => $album->{version},
 		};
 
 		_precacheTracks([ map {
@@ -299,7 +300,7 @@ sub precacheTrack {
 sub addVersionToTitle {
 	my ($class, $track) = @_;
 
-	if ($track->{version} && $prefs->get('appendVersionToTitle')) {
+	if ($track->{version} && $prefs->get('appendVersionToTitle') && $track->{version} ne $track->{album}->{version}) {
 		$track->{title} .= " ($track->{version})";
 	}
 

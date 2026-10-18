@@ -108,7 +108,8 @@ sub scanAlbums {
 			if ($albumDetails && ref $albumDetails && $albumDetails->{tracks} && ref $albumDetails->{tracks} && $albumDetails->{tracks}->{items}) {
 				$progress->update($album->{title});
 
-				$albumDetails->{title} = $album->{title};  # get album version in case not defined in cache
+				$albumDetails->{title} = $album->{title};  # get album version in case it's not in cache
+				$albumDetails->{version} = $album->{version};
 				my $albumArtists = {
 					required => 0,
 					ids      => undef,
@@ -337,6 +338,7 @@ sub _prepareTrack {
 	my $url = Plugins::Qobuz::API::Common->getUrl(undef, $track) || return;
 	my $ct  = Slim::Music::Info::typeFromPath($url);
 	my $bitrate = ($ct eq 'mp3' ? 320 : $track->{maximum_bit_depth} * $track->{maximum_sampling_rate}) * 1000;
+	$track->{album} = $album;  # allow access to album from track in addVersionToTitle()
 
 	my $attributes = {
 		url          => $url,
