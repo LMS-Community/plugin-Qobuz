@@ -48,7 +48,7 @@ sub initGenreMap {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 5);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 6);
 }
 
 sub getAccountList {
@@ -158,6 +158,9 @@ sub _precacheAlbum {
 
 		$album->{genre} = $album->{genre}->{name};
 		$album->{image} = __PACKAGE__->getImageFromImagesHash($album->{image}) || '';
+		if ($album->{version}) {
+			$album->{title} .= " ($album->{version})";
+		}
 
 		my $albumInfo = {
 			title  => $album->{title},
@@ -176,6 +179,7 @@ sub _precacheAlbum {
 			release_type => $album->{release_type},
 			label => $album->{label}->{name},
 			labelId => $album->{label}->{id},
+			version => $album->{version},
 		};
 
 		_precacheTracks([ map {
@@ -247,6 +251,7 @@ sub precacheTrack {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
 		albumId  => $album->{id},
+		albumVersion => $album->{version},
 		artist   => $artistNames->[0],
 		artistId => $artistIds->[0],
 		composer => $track->{composer}->{name} || '',
@@ -296,7 +301,7 @@ sub precacheTrack {
 sub addVersionToTitle {
 	my ($class, $track) = @_;
 
-	if ($track->{version} && $prefs->get('appendVersionToTitle')) {
+	if ($track->{version} && $prefs->get('appendVersionToTitle') && (!ref $track->{album} || $track->{version} ne $track->{album}->{version})) {
 		$track->{title} .= " ($track->{version})";
 	}
 

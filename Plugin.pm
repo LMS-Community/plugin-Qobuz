@@ -665,6 +665,7 @@ sub QobuzArtist {
 			if ($groupByReleaseType) {
 				for my $album ( @{$artist->{albums}->{items}} ) {
 					next if $args->{artistId} && !_isMainArtist($args->{artistId}, $album);
+					next if $prefs->get('hideAI') && $album->{ai_generated};
 
 					if ($album->{duration} >= 1800 || $album->{tracks_count} > 6) {
 						$album->{release_type} = ALBUM;
@@ -1495,6 +1496,14 @@ sub QobuzGetTracks {
 
 			# Add a consolidated list of all artists on the album
 			$items = _albumPerformers($client, $performers, $album->{tracks_count}, $items);
+
+			if (defined $album->{version}) {
+				push @$items,{
+					name  => $album->{version},
+					label => 'INFORMATION_VERSION',
+					type  => 'text'
+				};
+			};
 
 			push @$items,{
 				name  => $album->{genre},
