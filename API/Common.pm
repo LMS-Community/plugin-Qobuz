@@ -48,7 +48,7 @@ sub initGenreMap {
 }
 
 sub getCache {
-	return $cache ||= Slim::Utils::Cache->new('qobuz', 5);
+	return $cache ||= Slim::Utils::Cache->new('qobuz', 6);
 }
 
 sub getAccountList {
@@ -251,6 +251,7 @@ sub precacheTrack {
 		title    => $track->{title} || $track->{id},
 		album    => $album->{title} || '',
 		albumId  => $album->{id},
+		albumVersion => $album->{version},
 		artist   => $artistNames->[0],
 		artistId => $artistIds->[0],
 		composer => $track->{composer}->{name} || '',
@@ -300,7 +301,7 @@ sub precacheTrack {
 sub addVersionToTitle {
 	my ($class, $track) = @_;
 
-	if ($track->{version} && $prefs->get('appendVersionToTitle') && $track->{version} ne $track->{album}->{version}) {
+	if ($track->{version} && $prefs->get('appendVersionToTitle') && (!ref $track->{album} || $track->{version} ne $track->{album}->{version})) {
 		$track->{title} .= " ($track->{version})";
 	}
 
