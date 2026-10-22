@@ -377,6 +377,11 @@ sub getStreamingFormat {
 	if ($track && !ref $track && $track =~ /fmt=(\d+)/) {
 		return $1 >= QOBUZ_STREAMING_FLAC ? 'flac' : 'mp3';
 	}
+	
+	# track is not available in flac
+	if (!($track && ref $track eq 'HASH' && $track->{streamable})) {
+		return 'mp3';
+	}
 
 	return 'flac';
 }
