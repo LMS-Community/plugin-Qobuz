@@ -320,11 +320,6 @@ PLUGIN_QOBUZ_PERFORMERS
 	NL	Credits
 	ES	Créditos
 
-PLUGIN_QOBUZ_MYWEEKLYQ
-	EN	My Weekly Q
-	FR	Mon Qobuz Hebdo
-	NL	Mijn Q Suggesties
-
 PLUGIN_QOBUZ_SHOW_COMPOSER_WITH_ARTIST
 	DE	Komponisten mit Interpret anzeigen
 	EN	Show Composer with Artist

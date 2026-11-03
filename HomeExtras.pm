@@ -140,17 +140,3 @@ sub initPlugin {
 
 1;
 
-# package Plugins::Qobuz::HomeExtraWeeklyQ;
-
-# use base qw(Plugins::Qobuz::HomeExtraBase);
-
-# sub initPlugin {
-# 	my ($class, %args) = @_;
-
-# 	$class->SUPER::initPlugin(
-# 		title => 'PLUGIN_QOBUZ_MYWEEKLYQ',
-# 		tag => 'weeklyq',
-# 	);
-# }
-
-# 1;
