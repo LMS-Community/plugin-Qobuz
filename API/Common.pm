@@ -40,7 +40,7 @@ initGenreMap();
 $prefs->setChange(\&initGenreMap, 'classicalGenres');
 
 sub init {
-	return pack('H*', $_[2]) =~ /^(\d{9})([a-f0-9]{32})(\d{9})/i
+	return pack('H*', $_[2]) =~ /^(\d{9})(.*)/
 }
 
 sub initGenreMap {
@@ -91,13 +91,6 @@ sub getToken {
 
 	my $account = $class->getAccountData($clientOrUserId) || return;
 	return $account->{token};
-}
-
-sub getWebToken {
-	my ($class, $clientOrUserId) = @_;
-
-	my $account = $class->getAccountData($clientOrUserId) || return;
-	return $account->{webToken};
 }
 
 sub getUserdata {

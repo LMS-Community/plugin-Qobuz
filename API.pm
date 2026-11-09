@@ -19,7 +19,6 @@ use Slim::Utils::Prefs;
 use Plugins::Qobuz::API::Common;
 
 use constant URL_EXPIRY => 60 * 10;       # Streaming URLs are short lived
-use constant BROWSER_UA => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15';
 
 # bump the second parameter if you decide to change the schema of cached data
 my $cache = Plugins::Qobuz::API::Common->getCache();
@@ -59,27 +58,19 @@ sub new {
 	return $self;
 }
 
-my ($aid, $as, $cid);
+my ($aid, $as);
 
 sub init {
-	($aid, $as, $cid) = Plugins::Qobuz::API::Common->init(@_);
+	($aid, $as) = Plugins::Qobuz::API::Common->init(@_);
 }
 
 sub login {
-	my ($class, $username, $password, $cb, $args) = @_;
+	my ($class, $username, $password, $cb) = @_;
 
 	if ( !($username && $password) ) {
 		$cb->() if $cb;
 		return;
 	}
-
-	my $params = {
-		username => $username,
-		password => $password,
-		device_manufacturer_id => preferences('server')->get('server_uuid'),
-		_nocache => 1,
-		_cid     => $args->{cid} ? 1 : 0,
-	};
 
 	$class->_get('user/login', sub {
 		my $result = shift;
@@ -95,24 +86,20 @@ sub login {
 
 		my $accounts = $prefs->get('accounts') || {};
 
-		if (!$args || !$args->{cid}) {
-			$accounts->{$user_id}->{token} = $token;
-			$accounts->{$user_id}->{userdata} = $result->{user};
-
-			$class->login($username, $password, sub {
-				$cb->(@_) if $cb;
-			}, {
-				cid => 1,
-				token => $token,
-			});
-		}
-		else {
-			$accounts->{$user_id}->{webToken} = $token;
-			$cb->($args->{token}) if $cb;
-		}
+			$accounts->{$user_id} = {
+			token => $token,
+			userdata => $result->{user},
+		};
 
 		$prefs->set('accounts', $accounts);
-	}, $params);
+
+		$cb->($token) if $cb;
+	},{
+		username => $username,
+		password => $password,
+		device_manufacturer_id => preferences('server')->get('server_uuid'),
+		_nocache => 1,
+	});
 }
 
 sub updateUserdata {
@@ -136,25 +123,6 @@ sub updateUserdata {
 		user_id => $self->userId,
 		_nocache => 1,
 	})
-}
-
-sub getMyWeekly {
-	my ($self, $cb) = @_;
-
-	$self->_get('dynamic-tracks/get', sub {
-		my $myWeekly = shift;
-
-		$myWeekly->{tracks}->{items} = _precacheTracks($myWeekly->{tracks}->{items} || []) if $myWeekly->{tracks};
-
-		$cb->($myWeekly);
-	}, {
-		type        => 'weekly',
-		limit       => 50,
-		offset      => 0,
-		_ttl        => 60 * 60 * 12,
-		_use_token  => 1,
-		_cid        => 1,
-	});
 }
 
 sub search {
@@ -722,9 +690,7 @@ sub _get {
 	my $token = '';
 
 	if ($url ne 'user/login' && blessed $self) {
-		$token = ($params->{_cid} || 0)
-			? Plugins::Qobuz::API::Common->getWebToken($self->userId)
-			: Plugins::Qobuz::API::Common->getToken($self->userId);
+		$token = Plugins::Qobuz::API::Common->getToken($self->userId);
 		if ( !$token ) {
 			$log->error('No or invalid user session');
 			return $cb->();
@@ -741,8 +707,7 @@ sub _get {
 		push @query, $k . '=' . uri_escape_utf8($v);
 	}
 
-	my $appId = (delete $params->{_cid} && $cid) || $aid;
-	push @query, "app_id=$appId";
+	push @query, "app_id=$aid";
 
 	# signed requests - see
 	# https://github.com/Qobuz/api-documentation#signed-requests-authentification-
@@ -770,7 +735,7 @@ sub _get {
 
 	if (main::INFOLOG && $log->is_info) {
 		my $data = $url;
-		$data =~ s/(?:$aid|$token|$cid)//g;
+		$data =~ s/(?:$aid|$token)//g;
 		$log->info($data);
 	}
 
@@ -795,13 +760,6 @@ sub _get {
 		$cb->($cached);
 		return;
 	}
-
-	my %headers = (
-		'X-User-Auth-Token' => $token,
-		'X-App-Id' => $appId,
-	);
-
-	$headers{'User-Agent'} = ($prefs->get('useragent') || BROWSER_UA) if $appId == $cid;
 
 	Slim::Networking::SimpleAsyncHTTP->new(
 		sub {
@@ -836,7 +794,7 @@ sub _get {
 		{
 			timeout => 15,
 		},
-	)->get($url, %headers);
+	)->get($url, 'X-User-Auth-Token' => $token, 'X-App-Id' => $aid);
 }
 
 sub _pagingGet {

@@ -367,11 +367,6 @@ sub handleFeed {
 		image => 'html/images/genres.png',
 		type => 'link',
 		url  => \&QobuzGenres
-#	},{
-#		name => cstring($client, 'PLUGIN_QOBUZ_MYWEEKLYQ'),
-#		type  => 'playlist',
-#		url  => \&QobuzMyWeeklyQ,
-#		image => 'html/images/playlists.png'
 	}];
 
 	if ($client && scalar @{ Plugins::Qobuz::API::Common::getAccountList() } > 1) {
@@ -407,71 +402,6 @@ sub QobuzSelectAccount {
 	} @{ Plugins::Qobuz::API::Common->getAccountList() } ];
 
 	$cb->({ items => $items });
-}
-
-sub QobuzMyWeeklyQ {
-	my ($client, $cb, $params) = @_;
-
-	if (Plugins::Qobuz::API::Common->getToken($client) && !Plugins::Qobuz::API::Common->getWebToken($client)) {
-		return QobuzGetWebToken(@_);
-	}
-
-	getAPIHandler($client)->getMyWeekly(sub {
-		my $myWeekly = shift;
-
-		if (!$myWeekly) {
-			$cb->();
-			return;
-		}
-
-		my $tracks = [];
-
-		foreach my $track ( @{$myWeekly->{tracks}->{items} || []} ) {
-			push @$tracks, _trackItem($client, $track);
-		}
-
-		return $cb->({
-			name  => $myWeekly->{title},
-			name2 => $myWeekly->{baseline},
-			items => $tracks,
-		});
-	});
-}
-
-sub QobuzGetWebToken {
-	my ($client, $cb, $params) = @_;
-
-	my $username = Plugins::Qobuz::API::Common->username($client);
-
-	return $cb->({ items => [{
-		type => 'textarea',
-		name => cstring($client, 'PLUGIN_QOBUZ_REAUTH_DESC'),
-	},{
-		name  => sprintf('%s (%s)', cstring($client, 'PLUGIN_QOBUZ_PREFS_PASSWORD'), $username),
-		type  => 'search',
-		url  => sub {
-			my ($client, $cb, $params) = @_;
-
-			getAPIHandler($client)->login($username, $params->{search}, sub {
-				my $success = shift;
-
-				$cb->({ items => [ $success
-					? {
-						name => cstring($client, 'SETUP_CHANGES_SAVED'),
-						nextWindow => 'home',
-					}
-					: {
-						name => cstring($client, 'PLUGIN_QOBUZ_AUTH_FAILED'),
-						nextWindow => 'parent',
-					}
-				] });
-			},{
-				cid => 1,
-				token => 'success',
-			});
-		},
-		passthrough => [ { type => 'search' } ],
-	}] });
 }
 
 sub QobuzSearch {
