@@ -1,0 +1,112 @@
+
+name: Check upstream Qobuz updates
+
+on:
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upstream-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream and target branch
+        run: |
+          git remote add upstream https://github.com/LMS-Community/plugin-Qobuz.git
+          git fetch upstream +refs/heads/master:refs/remotes/upstream/master
+          git fetch origin +refs/heads/qobuz-patches:refs/remotes/origin/qobuz-patches
+
+      - name: Prepare synchronization branch
+        run: |
+          git switch --force-create upstream-sync origin/qobuz-patches
+
+      - name: Merge upstream changes
+        id: merge
+        shell: bash
+        run: |
+          set -e
+
+          # Preserve the repository metadata belonging to our fork.
+          git show origin/qobuz-patches:repo/repo.xml > "$RUNNER_TEMP/repo.xml"
+
+          # Skip if upstream is already integrated.
+          if git merge-base --is-ancestor upstream/master HEAD; then
+            echo "Upstream is already integrated."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Attempt the merge without committing immediately.
+          if git merge --no-ff --no-commit upstream/master; then
+            echo "Merge completed."
+          else
+            conflicts=$(git diff --name-only --diff-filter=U)
+
+            # repo.xml is the only conflict we are allowed to resolve automatically.
+            other_conflicts=$(printf '%s\n' "$conflicts" | grep -v '^repo/repo.xml$' || true)
+
+            if [ -n "$other_conflicts" ]; then
+              echo "::error::Upstream merge has conflicts requiring manual intervention:"
+              echo "$other_conflicts"
+              git merge --abort
+              exit 1
+            fi
+
+            if [ -z "$conflicts" ]; then
+              echo "::error::Merge failed for an unexpected reason."
+              git merge --abort
+              exit 1
+            fi
+
+            echo "Only repo/repo.xml conflicts; preserving our version."
+          fi
+
+          # Always restore our own repository metadata.
+          cp "$RUNNER_TEMP/repo.xml" repo/repo.xml
+          git add repo/repo.xml
+
+          git commit -m "Merge upstream/master into qobuz-patches"
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push synchronization branch
+        if: steps.merge.outputs.has_changes == 'true'
+        run: |
+          git push --force origin HEAD:refs/heads/upstream-sync
+
+      - name: Create or update pull request
+        if: steps.merge.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER=$(gh pr list \
+            --head upstream-sync \
+            --base qobuz-patches \
+            --json number \
+            --jq '.[0].number')
+
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" \
+              --title "Upstream Qobuz updates" \
+              --body "Synchronization of LMS-Community/plugin-Qobuz master into qobuz-patches. Please review and test before merging."
+          else
+            gh pr create \
+              --base qobuz-patches \
+              --head upstream-sync \
+              --title "Upstream Qobuz updates" \
+              --body "Synchronization of LMS-Community/plugin-Qobuz master into qobuz-patches. Please review and test before merging."
+          fi
